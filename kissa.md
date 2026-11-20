@@ -96,6 +96,11 @@ You own **Stream C (Frontend PWA)** and **Stream D (Demo & quality)**. Aiza owns
 - `POST /api/v1/payout-changes/{id}/approve|reject` body `{note}` (officer, flagged only) · `GET /api/v1/cases/{case_id}/payout-changes`
 - Judge console: `POST /api/v1/admin/payout/apply-due?skip_wait=true` (admin) applies confirmed changes as if the hold passed.
 
+### Scam Shield endpoints (backend ready)
+- `POST /api/v1/scam/check` body `{text, sender?, on_call_with_unknown?, area?}` → `{verdict: LIKELY_SCAM|LOOKS_GENUINE|NOT_SURE, confidence, reasons[], reasons_ur[], case_cross_check, report_routes[{name,url}]}`
+- `GET /api/v1/scam/map?days=7` (officer/admin/auditor) → `{total_checked, by_verdict, scams_by_type, scams_by_area, scams_by_hour}`
+- Mock official sender ID is `PENSION-GOV`. Ask "Is someone on the phone telling you to do this right now?" before checking (big yes/no icons).
+
 ## 5. Design facts from research (keep these in the UI)
 
 - Size budget: citizen app shell <= 170 KB total (JS <= 100 KB), each extra screen <= 30 KB, audio clips ~15 KB, photos compressed on the phone to ~200 KB. Check with `npm run build`.
