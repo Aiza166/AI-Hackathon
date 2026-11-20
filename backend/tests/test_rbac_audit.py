@@ -112,3 +112,11 @@ def test_tampering_is_detected_by_the_chain(db):
     db.execute(text("SET sahara.allow_audit_reset = 'on'"))
     db.execute(text("TRUNCATE audit_events RESTART IDENTITY"))
     db.commit()
+
+
+def test_me_returns_own_person_and_helper_sees_40_families(client, login):
+    me = client.get("/api/v1/me", headers=login("zainab")).json()["data"]
+    assert me["person"]["cnic"] == "9000000000022"
+    families = client.get("/api/v1/helper/families", headers=login("helper")).json()["data"]
+    assert len(families) == 40
+    assert client.get("/api/v1/helper/families", headers=login("zainab")).status_code == 403
