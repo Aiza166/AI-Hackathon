@@ -1,0 +1,334 @@
+{
+  "models_seen": [
+    "jev-1.14.0"
+  ],
+  "median_latency_ms": 289.5,
+  "summary": {
+    "en": {
+      "n": 6,
+      "missed_scams": 0,
+      "false_alarms": 0,
+      "undecided": 0,
+      "mean_score_scam": 0.987,
+      "mean_score_genuine": 0.02
+    },
+    "roman_ur": {
+      "n": 7,
+      "missed_scams": 0,
+      "false_alarms": 0,
+      "undecided": 0,
+      "mean_score_scam": 0.977,
+      "mean_score_genuine": 0.035
+    },
+    "ur": {
+      "n": 7,
+      "missed_scams": 0,
+      "false_alarms": 0,
+      "undecided": 0,
+      "mean_score_scam": 0.973,
+      "mean_score_genuine": 0.025
+    }
+  },
+  "rows": [
+    {
+      "language": "en",
+      "is_scam": true,
+      "model": "jev-1.14.0",
+      "latency_ms": 530,
+      "nouls": {
+        "asks_fee": 0.99,
+        "asks_secret": 0.03,
+        "has_link": 0.99,
+        "claims_government": 0.49,
+        "urgency": 0.98
+      },
+      "scam_score": 0.99,
+      "band": "yes"
+    },
+    {
+      "language": "en",
+      "is_scam": true,
+      "model": "jev-1.14.0",
+      "latency_ms": 279,
+      "nouls": {
+        "asks_fee": 0.04,
+        "asks_secret": 0.98,
+        "has_link": 0.02,
+        "claims_government": 0.86,
+        "urgency": 0.95
+      },
+      "scam_score": 0.98,
+      "band": "yes"
+    },
+    {
+      "language": "en",
+      "is_scam": true,
+      "model": "jev-1.14.0",
+      "latency_ms": 286,
+      "nouls": {
+        "asks_fee": 0.99,
+        "asks_secret": 0.05,
+        "has_link": 0.02,
+        "claims_government": 0.48,
+        "urgency": 0.84
+      },
+      "scam_score": 0.99,
+      "band": "yes"
+    },
+    {
+      "language": "en",
+      "is_scam": false,
+      "model": "jev-1.14.0",
+      "latency_ms": 278,
+      "nouls": {
+        "asks_fee": 0.02,
+        "asks_secret": 0.02,
+        "has_link": 0.02,
+        "claims_government": 0.67,
+        "urgency": 0.05
+      },
+      "scam_score": 0.02,
+      "band": "no"
+    },
+    {
+      "language": "en",
+      "is_scam": false,
+      "model": "jev-1.14.0",
+      "latency_ms": 372,
+      "nouls": {
+        "asks_fee": 0.02,
+        "asks_secret": 0.01,
+        "has_link": 0.01,
+        "claims_government": 0.09,
+        "urgency": 0.69
+      },
+      "scam_score": 0.02,
+      "band": "no"
+    },
+    {
+      "language": "en",
+      "is_scam": false,
+      "model": "jev-1.14.0",
+      "latency_ms": 282,
+      "nouls": {
+        "asks_fee": 0.02,
+        "asks_secret": 0.02,
+        "has_link": 0.02,
+        "claims_government": 0.25,
+        "urgency": 0.19
+      },
+      "scam_score": 0.02,
+      "band": "no"
+    },
+    {
+      "language": "roman_ur",
+      "is_scam": true,
+      "model": "jev-1.14.0",
+      "latency_ms": 278,
+      "nouls": {
+        "asks_fee": 0.99,
+        "asks_secret": 0.04,
+        "has_link": 0.99,
+        "claims_government": 0.54,
+        "urgency": 0.96
+      },
+      "scam_score": 0.99,
+      "band": "yes"
+    },
+    {
+      "language": "roman_ur",
+      "is_scam": true,
+      "model": "jev-1.14.0",
+      "latency_ms": 287,
+      "nouls": {
+        "asks_fee": 0.08,
+        "asks_secret": 0.96,
+        "has_link": 0.05,
+        "claims_government": 0.62,
+        "urgency": 0.91
+      },
+      "scam_score": 0.96,
+      "band": "yes"
+    },
+    {
+      "language": "roman_ur",
+      "is_scam": true,
+      "model": "jev-1.14.0",
+      "latency_ms": 875,
+      "nouls": {
+        "asks_fee": 0.98,
+        "asks_secret": 0.03,
+        "has_link": 0.03,
+        "claims_government": 0.6,
+        "urgency": 0.97
+      },
+      "scam_score": 0.98,
+      "band": "yes"
+    },
+    {
+      "language": "roman_ur",
+      "is_scam": false,
+      "model": "jev-1.14.0",
+      "latency_ms": 278,
+      "nouls": {
+        "asks_fee": 0.03,
+        "asks_secret": 0.02,
+        "has_link": 0.01,
+        "claims_government": 0.72,
+        "urgency": 0.08
+      },
+      "scam_score": 0.03,
+      "band": "no"
+    },
+    {
+      "language": "roman_ur",
+      "is_scam": false,
+      "model": "jev-1.14.0",
+      "latency_ms": 287,
+      "nouls": {
+        "asks_fee": 0.04,
+        "asks_secret": 0.03,
+        "has_link": 0.02,
+        "claims_government": 0.09,
+        "urgency": 0.06
+      },
+      "scam_score": 0.04,
+      "band": "no"
+    },
+    {
+      "language": "roman_ur",
+      "is_scam": false,
+      "model": "jev-1.14.0",
+      "latency_ms": 292,
+      "nouls": {
+        "asks_fee": 0.03,
+        "asks_secret": 0.02,
+        "has_link": 0.02,
+        "claims_government": 0.12,
+        "urgency": 0.16
+      },
+      "scam_score": 0.03,
+      "band": "no"
+    },
+    {
+      "language": "roman_ur",
+      "is_scam": false,
+      "model": "jev-1.14.0",
+      "latency_ms": 291,
+      "nouls": {
+        "asks_fee": 0.04,
+        "asks_secret": 0.02,
+        "has_link": 0.02,
+        "claims_government": 0.05,
+        "urgency": 0.12
+      },
+      "scam_score": 0.04,
+      "band": "no"
+    },
+    {
+      "language": "ur",
+      "is_scam": true,
+      "model": "jev-1.14.0",
+      "latency_ms": 288,
+      "nouls": {
+        "asks_fee": 0.98,
+        "asks_secret": 0.03,
+        "has_link": 0.02,
+        "claims_government": 0.36,
+        "urgency": 0.98
+      },
+      "scam_score": 0.98,
+      "band": "yes"
+    },
+    {
+      "language": "ur",
+      "is_scam": true,
+      "model": "jev-1.14.0",
+      "latency_ms": 277,
+      "nouls": {
+        "asks_fee": 0.2,
+        "asks_secret": 0.96,
+        "has_link": 0.03,
+        "claims_government": 0.6,
+        "urgency": 0.83
+      },
+      "scam_score": 0.96,
+      "band": "yes"
+    },
+    {
+      "language": "ur",
+      "is_scam": true,
+      "model": "jev-1.14.0",
+      "latency_ms": 325,
+      "nouls": {
+        "asks_fee": 0.98,
+        "asks_secret": 0.03,
+        "has_link": 0.02,
+        "claims_government": 0.53,
+        "urgency": 0.83
+      },
+      "scam_score": 0.98,
+      "band": "yes"
+    },
+    {
+      "language": "ur",
+      "is_scam": false,
+      "model": "jev-1.14.0",
+      "latency_ms": 300,
+      "nouls": {
+        "asks_fee": 0.03,
+        "asks_secret": 0.02,
+        "has_link": 0.02,
+        "claims_government": 0.48,
+        "urgency": 0.09
+      },
+      "scam_score": 0.03,
+      "band": "no"
+    },
+    {
+      "language": "ur",
+      "is_scam": false,
+      "model": "jev-1.14.0",
+      "latency_ms": 292,
+      "nouls": {
+        "asks_fee": 0.02,
+        "asks_secret": 0.02,
+        "has_link": 0.02,
+        "claims_government": 0.06,
+        "urgency": 0.35
+      },
+      "scam_score": 0.02,
+      "band": "no"
+    },
+    {
+      "language": "ur",
+      "is_scam": false,
+      "model": "jev-1.14.0",
+      "latency_ms": 305,
+      "nouls": {
+        "asks_fee": 0.02,
+        "asks_secret": 0.02,
+        "has_link": 0.02,
+        "claims_government": 0.12,
+        "urgency": 0.13
+      },
+      "scam_score": 0.02,
+      "band": "no"
+    },
+    {
+      "language": "ur",
+      "is_scam": false,
+      "model": "jev-1.14.0",
+      "latency_ms": 291,
+      "nouls": {
+        "asks_fee": 0.03,
+        "asks_secret": 0.02,
+        "has_link": 0.02,
+        "claims_government": 0.06,
+        "urgency": 0.03
+      },
+      "scam_score": 0.03,
+      "band": "no"
+    }
+  ]
+}

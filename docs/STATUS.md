@@ -10,6 +10,7 @@
 
 | When (PKT) | Who | What |
 |---|---|---|
+| Sat 21 Nov 02:30 | Aiza + Claude | Jev smoke test: GO. 20/20 invented messages (English, Roman Urdu, Urdu script) separated, 0 undecided, median 290 ms, model jev-1.14.0. Small hand-written set: a go/no-go signal, not an accuracy claim. Results in backend/results/jev_smoke.json |
 | Sat 21 Nov 02:15 | Aiza + Claude | Survivor pension research done and applied: real 7-rule ruleset, rule v2 = federal 10-year cap (10 Sep 2024) replacing the unsourced remarriage idea, Confirmation-of-Payee check + 4-business-day hold on red flags, CNIC-required name matching, document checks as indicators only, Jev image limits, 170 KB budget. Reports in docs/research/ |
 | Sat 21 Nov 01:30 | Aiza + Claude | Phase 0 scaffold: FastAPI backend (envelope, config, contracts, reason codes + Urdu text, Jev client pinned to jev-1.14.0, Alembic, 15 tests passing), Vite React PWA with PROTOTYPE banner, docker-compose (Postgres + Redis), CI, Jev smoke-test script, kissa.md |
 | Sat 21 Nov 00:30 | Aiza + Claude | Plan docs written: idea, compliance checklist, architecture, build plan, demo script |
@@ -31,7 +32,9 @@
 ## Open questions
 
 - [x] Jev API key obtained.
-- [ ] Jev: rate limits and remaining credit (check console); run `python -m scripts.jev_smoke` for Urdu / Roman Urdu go/no-go.
+- [x] Jev smoke test: GO for English, Roman Urdu and Urdu script.
+- [x] Jev credit: $4.75 available (plenty at ~$0.00002 per message).
+- [ ] Jev rate limits (check console).
 - [ ] Organizers' reply on prior work (asked on WhatsApp).
 - [x] Eligibility rules and a real rule v1 to v2 change (10-year cap) from research.
 - [ ] Azure speech key for pre-generated Urdu audio (or alternative).
