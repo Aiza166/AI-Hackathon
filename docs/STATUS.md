@@ -12,7 +12,8 @@
 - **API + Swagger:** https://ai-hackathon-production-31dd3038.up.railway.app/docs
 - Auto-deploys on every push to `main` (backend from `/backend`, frontend from `/frontend`, both via Dockerfile). Postgres is a Railway service; the API migrates and seeds demo data on first boot.
 - Railway trial: $5 credit / 30 days. "Limited trial" may restrict outbound network (Jev calls): link GitHub to the Railway account or add a card to lift it.
-- `TYPESAFE_API_KEY` is **not** set on Railway yet (add it in the AI-Hackathon service Variables; never commit it).
+- `TYPESAFE_API_KEY` is set on Railway (copied from backend/.env via the Railway CLI, never printed). Whether the limited trial lets the API reach Jev is checked when Scam Shield ships.
+- Railway CLI is linked in the repo folder: `npx @railway/cli status`, `npx @railway/cli logs --service AI-Hackathon`.
 
 ### How to run it (2 terminals)
 
