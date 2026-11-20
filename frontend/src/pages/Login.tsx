@@ -1,15 +1,22 @@
 import { useState } from 'react'
 import { errorText, post, setToken } from '../api/client'
 import type { LoginResult, SessionUser } from '../api/types'
+import { Icon, type IconName } from '../components/Icon'
+
+interface DemoUser {
+  phone: string
+  label: string
+  icon: IconName
+}
 
 // Demo personas (all mock). Shown only so judges can switch roles quickly.
-const DEMO_USERS = [
-  { phone: '00000000001', label: 'Zainab (widow)', icon: '\u{1F469}' },
-  { phone: '00000000002', label: 'Rukhsana (competing claim)', icon: '\u{1F9D5}' },
-  { phone: '00000000010', label: 'Ayesha (helper)', icon: '\u{1F91D}' },
-  { phone: '00000000020', label: 'Kamran (officer)', icon: '\u{1F5C2}' },
-  { phone: '00000000030', label: 'Admin', icon: '⚙' },
-  { phone: '00000000040', label: 'Auditor', icon: '\u{1F50D}' },
+const DEMO_USERS: DemoUser[] = [
+  { phone: '00000000001', label: 'Zainab (widow)', icon: 'woman' },
+  { phone: '00000000002', label: 'Rukhsana (competing claim)', icon: 'woman' },
+  { phone: '00000000010', label: 'Ayesha (helper)', icon: 'heart' },
+  { phone: '00000000020', label: 'Kamran (officer)', icon: 'briefcase' },
+  { phone: '00000000030', label: 'Admin', icon: 'gear' },
+  { phone: '00000000040', label: 'Auditor', icon: 'search' },
 ]
 
 interface LoginProps {
@@ -62,7 +69,7 @@ export function Login({ onLogin }: LoginProps) {
       <div className="role-grid">
         {DEMO_USERS.map((u) => (
           <button key={u.phone} className="role-card" type="button" disabled={busy} onClick={() => void signIn(u.phone, '1234')}>
-            <span className="icon" aria-hidden="true">{u.icon}</span>
+            <Icon name={u.icon} size={44} />
             <span>{u.label}</span>
           </button>
         ))}

@@ -19,7 +19,14 @@ body { margin: 0; }
   padding: 20px 8px; border: 2px solid #0f5132; border-radius: 12px;
   background: #f3faf6; font-size: 18px; cursor: pointer;
 }
-.role-card .icon { font-size: 40px; }
+.pictogram {
+  fill: none; stroke: currentColor; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round;
+  flex: none; vertical-align: middle;
+}
+.pictogram .fill { fill: currentColor; }
+.pictogram .fill-soft { fill: currentColor; fill-opacity: 0.15; }
+.pictogram .badge circle { fill: #8a5300; stroke: #fff; stroke-width: 2; }
+.pictogram .badge text { fill: #fff; stroke: none; font: 700 13px system-ui, sans-serif; }
 :root {
   --green: #0f5132; --green-soft: #e8f5ee; --red: #b02a37; --amber: #8a5300; --amber-soft: #fff4dc;
   --blue-soft: #e7f0fb; --line: #cfd8d3; --radius: 12px;
@@ -41,7 +48,13 @@ label { display: block; font-weight: 600; }
 .muted { color: #5a6460; font-size: 14px; }
 .urdu { font-size: 22px; line-height: 1.9; direction: rtl; }
 .big { font-size: 26px; }
-.icon.big { font-size: 56px; }
+.explanation .pictogram.big { display: block; margin: 0 auto; color: var(--green); }
+button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+.case-list button { justify-content: flex-start; }
+.priority { display: inline-block; min-width: 28px; padding: 2px 8px; border-radius: 999px; text-align: center; font-weight: 700; }
+.priority.p1 { background: var(--green-soft); color: var(--green); }
+.priority.p2 { background: var(--amber-soft); color: var(--amber); }
+.priority.p3, .priority.p4 { background: #fde8ea; color: var(--red); }
 .error { color: var(--red); font-weight: 600; }
 .role-card.selected { background: var(--green); color: #fff; border-color: var(--green); }
 .role-card.selected .muted { color: #e6f2ec; }

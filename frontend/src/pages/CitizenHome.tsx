@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api, errorText } from '../api/client'
 import type { CaseView, Family, Me, SessionUser } from '../api/types'
+import { Icon } from '../components/Icon'
 import { CaseResult } from './CaseResult'
 import { ClaimWizard } from './ClaimWizard'
 
@@ -69,7 +70,7 @@ export function CitizenHome({ user }: CitizenHomeProps) {
         </div>
       )}
       <button type="button" className="primary huge" disabled={!claimant} onClick={() => setView({ kind: 'new' })}>
-        {'➕'} New pension claim <span lang="ur">نیا دعویٰ</span>
+        <Icon name="plus" size={28} /> New pension claim <span lang="ur">نیا دعویٰ</span>
       </button>
       <h2>My claims <span lang="ur">میرے دعوے</span></h2>
       {cases.length === 0 && <p className="muted">No claims yet.</p>}

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { errorText, post } from '../api/client'
 import type { CaseView, ClaimIn, DocumentKind } from '../api/types'
+import { Icon, type IconName } from '../components/Icon'
 import { DOC_ICONS } from '../lib/icons'
 import { speak } from '../lib/speak'
 
@@ -20,10 +21,10 @@ interface ClaimWizardProps {
   onCancel: () => void
 }
 
-const RELATIONS: { key: Relation; icon: string; ur: string; en: string }[] = [
-  { key: 'widow', icon: '\u{1F469}', ur: 'بیوہ', en: 'Widow' },
-  { key: 'son', icon: '\u{1F466}', ur: 'بیٹا', en: 'Son' },
-  { key: 'daughter', icon: '\u{1F467}', ur: 'بیٹی', en: 'Daughter' },
+const RELATIONS: { key: Relation; icon: IconName; ur: string; en: string }[] = [
+  { key: 'widow', icon: 'woman', ur: 'بیوہ', en: 'Widow' },
+  { key: 'son', icon: 'boy', ur: 'بیٹا', en: 'Son' },
+  { key: 'daughter', icon: 'girl', ur: 'بیٹی', en: 'Daughter' },
 ]
 const DOCS: { key: DocumentKind; ur: string; en: string }[] = [
   { key: 'death_certificate', ur: 'وفات کا سرٹیفکیٹ', en: 'Death certificate' },
@@ -89,14 +90,14 @@ export function ClaimWizard({ claimant, onDone, onCancel }: ClaimWizardProps) {
       <p className="muted">Step {step + 1} / {STEP_PROMPTS.length} · for {claimant.name}</p>
       <div className="row">
         <h2 id="step-title" lang="ur" className="urdu">{prompt.ur}</h2>
-        <button type="button" className="audio" aria-label="Listen" onClick={() => void speak(prompt.key, prompt.ur)}>{'\u{1F50A}'}</button>
+        <button type="button" className="audio" aria-label="Listen" onClick={() => void speak(prompt.key, prompt.ur)}><Icon name="speaker" size={32} /></button>
       </div>
 
       {step === 0 && (
         <div className="role-grid">
           {RELATIONS.map((r) => (
             <button key={r.key} type="button" className={`role-card ${relation === r.key ? 'selected' : ''}`} aria-pressed={relation === r.key} onClick={() => setRelation(r.key)}>
-              <span className="icon" aria-hidden="true">{r.icon}</span>
+              <Icon name={r.icon} size={56} />
               <span lang="ur">{r.ur}</span>
               <span className="muted">{r.en}</span>
             </button>
@@ -116,7 +117,7 @@ export function ClaimWizard({ claimant, onDone, onCancel }: ClaimWizardProps) {
         <div className="role-grid">
           {DOCS.map((d) => (
             <button key={d.key} type="button" className={`role-card ${documents.includes(d.key) ? 'selected' : ''}`} aria-pressed={documents.includes(d.key)} onClick={() => toggleDoc(d.key)}>
-              <span className="icon" aria-hidden="true">{DOC_ICONS[d.key]}</span>
+              <Icon name={DOC_ICONS[d.key]} size={56} />
               <span lang="ur">{d.ur}</span>
               <span className="muted">{d.en}</span>
             </button>
@@ -139,11 +140,11 @@ export function ClaimWizard({ claimant, onDone, onCancel }: ClaimWizardProps) {
 
       {error && <p className="error" role="alert">{error}</p>}
       <div className="row">
-        <button type="button" onClick={step === 0 ? onCancel : () => setStep(step - 1)}>{'⬅'} Back</button>
+        <button type="button" onClick={step === 0 ? onCancel : () => setStep(step - 1)}><Icon name="arrow-left" size={24} /> Back</button>
         {step < STEP_PROMPTS.length - 1 ? (
-          <button type="button" className="primary" onClick={() => setStep(step + 1)} disabled={step === 1 && deceasedName.trim().length < 2}>Next {'➡'}</button>
+          <button type="button" className="primary" onClick={() => setStep(step + 1)} disabled={step === 1 && deceasedName.trim().length < 2}>Next <Icon name="arrow-right" size={24} /></button>
         ) : (
-          <button type="button" className="primary" onClick={() => void submit()} disabled={busy}>Send claim {'✅'}</button>
+          <button type="button" className="primary" onClick={() => void submit()} disabled={busy}>Send claim <Icon name="check" size={24} /></button>
         )}
       </div>
     </section>

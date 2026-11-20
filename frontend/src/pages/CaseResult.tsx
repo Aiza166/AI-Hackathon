@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { api, errorText } from '../api/client'
 import type { CitizenExplanation } from '../api/types'
-import { ICONS } from '../lib/icons'
+import { Icon } from '../components/Icon'
+import { iconFor } from '../lib/icons'
 import { speak } from '../lib/speak'
 
 // The citizen's view of a decision: icon + Urdu sentence + audio. Never generated text.
@@ -35,19 +36,24 @@ export function CaseResult({ caseId, onBack }: CaseResultProps) {
   return (
     <section className="stack">
       <p className={`status ${STATUS_COLOUR[data.status] ?? 'info'}`}>Claim {data.case_reference}: {data.status.replace('_', ' ')}</p>
-      {data.explanations.map((x) => (
-        <article key={x.reason_code} className="explanation">
-          <span className="icon big" aria-hidden="true">{ICONS[x.icon] ?? 'ℹ'}</span>
-          <p lang="ur" className="urdu big">{x.text_ur}</p>
-          <p className="muted">{x.text_en}</p>
-          <button type="button" className="audio" aria-label="Listen" onClick={() => void speak(x.audio_key, x.text_ur)}>{'\u{1F50A}'} Listen</button>
-        </article>
-      ))}
+      {data.explanations.map((x) => {
+        const icon = iconFor(x.icon)
+        return (
+          <article key={x.reason_code} className="explanation">
+            <Icon name={icon.name} badge={icon.badge} size={72} className="big" />
+            <p lang="ur" className="urdu big">{x.text_ur}</p>
+            <p className="muted">{x.text_en}</p>
+            <button type="button" className="audio" onClick={() => void speak(x.audio_key, x.text_ur)}>
+              <Icon name="speaker" size={28} /> Listen <span lang="ur">سنیں</span>
+            </button>
+          </article>
+        )
+      })}
       {data.missing_items.length > 0 && (
         <p>Please send: {data.missing_items.map((m) => m.replace(/_/g, ' ')).join(', ')}</p>
       )}
       {data.entitlement_end && <p>Paid until {data.entitlement_end} (rule v2: 10-year cap)</p>}
-      <button type="button" onClick={onBack}>{'⬅'} Back</button>
+      <button type="button" onClick={onBack}><Icon name="arrow-left" size={24} /> Back</button>
     </section>
   )
 }

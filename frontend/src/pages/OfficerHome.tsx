@@ -72,7 +72,7 @@ export function OfficerHome() {
           {queue.map((c) => (
             <tr key={c.id} className={selected?.id === c.id ? 'selected' : ''} onClick={() => void open(c)}>
               <td>{c.reference}</td>
-              <td>{'\u{1F534}'.repeat(Math.max(c.priority - 1, 0)) || '⚪'} {c.priority}</td>
+              <td><span className={`priority p${Math.min(Math.max(c.priority, 1), 4)}`}>{c.priority}</span></td>
               <td>{c.confidence?.toFixed(2) ?? '-'}</td>
               <td>{c.latest_decision?.reason_codes.join(', ')}</td>
             </tr>
