@@ -21,10 +21,10 @@ from app.models.platform import Case, CaseEvent, HelperAssignment, Person, RuleV
 
 DEMO_PIN = "1234"
 # Bump when the demo world changes: deployed databases re-seed once on the next boot.
-SEED_VERSION = "phase2-twin"
+SEED_VERSION = "phase2-safeswitch"
 RULESET_DIR = Path(__file__).parent / "decision" / "rulesets"
 RESET_TABLES = (
-    "consents", "correction_requests", "decisions", "case_events", "cases", "api_keys", "helper_assignments", "users", "persons", "rule_versions", "tenants",
+    "payout_change_requests", "consents", "correction_requests", "decisions", "case_events", "cases", "api_keys", "helper_assignments", "users", "persons", "rule_versions", "tenants",
     "mock_accounts", "mock_family_pensions_drawn", "mock_pensions", "mock_deaths", "mock_family_links", "mock_persons", "mock_faults",
 )
 

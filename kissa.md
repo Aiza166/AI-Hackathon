@@ -90,6 +90,12 @@ You own **Stream C (Frontend PWA)** and **Stream D (Demo & quality)**. Aiza owns
 - [ ] Record the demo video, upload to Google Drive (public link).
 - [ ] Slides (optional).
 
+### SafeSwitch endpoints (backend ready)
+- `POST /api/v1/cases/{case_id}/payout-change` body `{new_iban}` (citizen or helper with payout consent) → `{id, status (held|flagged), payee_result (match|close_match|no_match), flags, hold_until}`
+- `POST /api/v1/payout-changes/{id}/confirm` body `{pin}`: claimant only, re-enters her PIN (helpers get 403)
+- `POST /api/v1/payout-changes/{id}/approve|reject` body `{note}` (officer, flagged only) · `GET /api/v1/cases/{case_id}/payout-changes`
+- Judge console: `POST /api/v1/admin/payout/apply-due?skip_wait=true` (admin) applies confirmed changes as if the hold passed.
+
 ## 5. Design facts from research (keep these in the UI)
 
 - Size budget: citizen app shell <= 170 KB total (JS <= 100 KB), each extra screen <= 30 KB, audio clips ~15 KB, photos compressed on the phone to ~200 KB. Check with `npm run build`.
