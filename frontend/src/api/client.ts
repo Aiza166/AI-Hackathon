@@ -52,6 +52,13 @@ export function post<T>(path: string, data: unknown): Promise<Envelope<T>> {
   return api<T>(path, { method: 'POST', body: JSON.stringify(data) })
 }
 
+export function patch<T>(path: string, data: unknown): Promise<Envelope<T>> {
+  return api<T>(path, { method: 'PATCH', body: JSON.stringify(data) })
+}
+
 export function errorText(error: unknown): string {
+  if (error instanceof ApiError && error.status === 404 && error.message === 'Not Found') {
+    return 'This feature is not available on the server yet (404). Update the backend and try again.'
+  }
   return error instanceof Error ? error.message : 'Something went wrong'
 }

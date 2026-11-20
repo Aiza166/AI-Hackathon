@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { errorText, post } from '../api/client'
 import type { CaseView, ClaimIn, DocumentKind } from '../api/types'
-import { DOC_ICONS } from '../lib/icons'
-import { speak } from '../lib/speak'
+import { ErrorNote, ListenButton, Pictogram } from '../components/ui'
+import { DOC_ICONS, Icon } from '../lib/icons'
 
 // One question per screen, big icons, audio on every step (low-literacy first).
 // TODO(Kissa, Phase 2): save each step to Dexie so a dropped connection loses nothing.
@@ -21,9 +21,9 @@ interface ClaimWizardProps {
 }
 
 const RELATIONS: { key: Relation; icon: string; ur: string; en: string }[] = [
-  { key: 'widow', icon: '\u{1F469}', ur: 'بیوہ', en: 'Widow' },
-  { key: 'son', icon: '\u{1F466}', ur: 'بیٹا', en: 'Son' },
-  { key: 'daughter', icon: '\u{1F467}', ur: 'بیٹی', en: 'Daughter' },
+  { key: 'widow', icon: 'widow', ur: 'بیوہ', en: 'Widow' },
+  { key: 'son', icon: 'son', ur: 'بیٹا', en: 'Son' },
+  { key: 'daughter', icon: 'daughter', ur: 'بیٹی', en: 'Daughter' },
 ]
 const DOCS: { key: DocumentKind; ur: string; en: string }[] = [
   { key: 'death_certificate', ur: 'وفات کا سرٹیفکیٹ', en: 'Death certificate' },
@@ -31,12 +31,13 @@ const DOCS: { key: DocumentKind; ur: string; en: string }[] = [
   { key: 'frc', ur: 'خاندانی سرٹیفکیٹ', en: 'Family certificate (FRC)' },
   { key: 'nikah_nama', ur: 'نکاح نامہ', en: 'Nikah nama' },
 ]
-const STEP_PROMPTS = [
-  { key: 'prompt_relation', ur: 'آپ مرحوم کی کون ہیں؟' },
-  { key: 'prompt_deceased', ur: 'مرحوم کا نام اور شناختی کارڈ نمبر' },
-  { key: 'prompt_documents', ur: 'آپ کے پاس کون سے کاغذات ہیں؟' },
-  { key: 'prompt_account', ur: 'پنشن کس بینک اکاؤنٹ میں آئے؟' },
-  { key: 'prompt_review', ur: 'دعویٰ بھیجنے سے پہلے دیکھ لیں' },
+const STEPS = [
+  { key: 'prompt_relation', icon: 'family', ur: 'آپ مرحوم کی کون ہیں؟', en: 'How were you related to him?' },
+  { key: 'prompt_deceased', icon: 'person', ur: 'مرحوم کا پورا نام کیا تھا؟', en: 'What was his full name?' },
+  { key: 'prompt_deceased_cnic', icon: 'id-card', ur: 'مرحوم کا شناختی کارڈ نمبر', en: 'His CNIC number (if you know it)' },
+  { key: 'prompt_documents', icon: 'document', ur: 'آپ کے پاس کون سے کاغذات ہیں؟', en: 'Which papers do you have? Tap all that apply.' },
+  { key: 'prompt_account', icon: 'bank', ur: 'پنشن کس بینک اکاؤنٹ میں آئے؟', en: 'Which bank account should the pension go to?' },
+  { key: 'prompt_review', icon: 'check', ur: 'دعویٰ بھیجنے سے پہلے دیکھ لیں', en: 'Check everything before sending' },
 ]
 // Demo prefill so judges can run the golden path quickly (all mock data).
 const DEMO_DECEASED = { name: 'Muhammad Aslam', cnic: '9000000000011', iban: 'PK00MOCK0000000000000001' }
@@ -51,7 +52,9 @@ export function ClaimWizard({ claimant, onDone, onCancel }: ClaimWizardProps) {
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
-  const prompt = STEP_PROMPTS[step]
+  const prompt = STEPS[step]
+  const isLast = step === STEPS.length - 1
+  const canNext = step !== 1 || deceasedName.trim().length >= 2
   const toggleDoc = (doc: DocumentKind) =>
     setDocuments((current) => (current.includes(doc) ? current.filter((d) => d !== doc) : [...current, doc]))
 
@@ -84,68 +87,146 @@ export function ClaimWizard({ claimant, onDone, onCancel }: ClaimWizardProps) {
     setDocuments(DOCS.map((d) => d.key))
   }
 
+  const relationLabel = RELATIONS.find((r) => r.key === relation)
+
   return (
-    <section className="stack" aria-labelledby="step-title">
-      <p className="muted">Step {step + 1} / {STEP_PROMPTS.length} · for {claimant.name}</p>
-      <div className="row">
-        <h2 id="step-title" lang="ur" className="urdu">{prompt.ur}</h2>
-        <button type="button" className="audio" aria-label="Listen" onClick={() => void speak(prompt.key, prompt.ur)}>{'\u{1F50A}'}</button>
+    <section className="wizard" aria-labelledby="step-title">
+      <div className="wizard-top">
+        <ol className="steps" aria-label={`Step ${step + 1} of ${STEPS.length}`}>
+          {STEPS.map((s, i) => (
+            <li key={s.key} className={i < step ? 'done' : i === step ? 'current' : ''} aria-current={i === step ? 'step' : undefined}>
+              <span className="sr-only">Step {i + 1}</span>
+            </li>
+          ))}
+        </ol>
+        <span className="wizard-count">{step + 1} / {STEPS.length}</span>
       </div>
 
-      {step === 0 && (
-        <div className="role-grid">
-          {RELATIONS.map((r) => (
-            <button key={r.key} type="button" className={`role-card ${relation === r.key ? 'selected' : ''}`} aria-pressed={relation === r.key} onClick={() => setRelation(r.key)}>
-              <span className="icon" aria-hidden="true">{r.icon}</span>
-              <span lang="ur">{r.ur}</span>
-              <span className="muted">{r.en}</span>
-            </button>
-          ))}
-        </div>
-      )}
+      <header className="question">
+        <Pictogram name={prompt.icon} size="lg" />
+        <h2 id="step-title" className="question-text">
+          <span lang="ur" dir="rtl" className="question-ur">{prompt.ur}</span>
+          <span className="question-en">{prompt.en}</span>
+        </h2>
+        <ListenButton audioKey={prompt.key} text={prompt.ur} />
+      </header>
 
-      {step === 1 && (
-        <div className="stack">
-          <label>Name of the deceased <input value={deceasedName} onChange={(e) => setDeceasedName(e.target.value)} /></label>
-          <label>CNIC of the deceased (13 digits, if known) <input inputMode="numeric" maxLength={13} value={deceasedCnic} onChange={(e) => setDeceasedCnic(e.target.value.replace(/\D/g, ''))} /></label>
-          <button type="button" className="link" onClick={fillDemo}>Fill demo data (mock)</button>
-        </div>
-      )}
+      <div className="answer">
+        {step === 0 && (
+          <div className="choice-grid choice-3">
+            {RELATIONS.map((r) => (
+              <button key={r.key} type="button" className="choice" aria-pressed={relation === r.key} onClick={() => setRelation(r.key)}>
+                <Icon name={r.icon} size={44} />
+                <span lang="ur" dir="rtl" className="choice-ur">{r.ur}</span>
+                <span className="choice-en">{r.en}</span>
+                {relation === r.key && <span className="choice-tick"><Icon name="check" size={22} /></span>}
+              </button>
+            ))}
+          </div>
+        )}
 
-      {step === 2 && (
-        <div className="role-grid">
-          {DOCS.map((d) => (
-            <button key={d.key} type="button" className={`role-card ${documents.includes(d.key) ? 'selected' : ''}`} aria-pressed={documents.includes(d.key)} onClick={() => toggleDoc(d.key)}>
-              <span className="icon" aria-hidden="true">{DOC_ICONS[d.key]}</span>
-              <span lang="ur">{d.ur}</span>
-              <span className="muted">{d.en}</span>
-            </button>
-          ))}
-        </div>
-      )}
+        {step === 1 && (
+          <div className="stack">
+            <label className="field">
+              <span className="field-label">Name of the deceased</span>
+              <input className="input input-big" autoComplete="off" value={deceasedName} onChange={(e) => setDeceasedName(e.target.value)} />
+            </label>
+            <button type="button" className="btn btn-quiet btn-sm self-start" onClick={fillDemo}>Fill demo data (mock)</button>
+          </div>
+        )}
 
-      {step === 3 && (
-        <label>Bank account (IBAN, in your own name) <input value={iban} onChange={(e) => setIban(e.target.value)} /></label>
-      )}
+        {step === 2 && (
+          <label className="field">
+            <span className="field-label">13 digits, no dashes. Leave empty if you do not know it.</span>
+            <input
+              className="input input-big input-digits"
+              inputMode="numeric"
+              maxLength={13}
+              value={deceasedCnic}
+              onChange={(e) => setDeceasedCnic(e.target.value.replace(/\D/g, ''))}
+            />
+          </label>
+        )}
 
-      {step === 4 && (
-        <dl className="review">
-          <dt>Relation</dt><dd>{relation}</dd>
-          <dt>Deceased</dt><dd>{deceasedName || '-'} {deceasedCnic && `(${deceasedCnic})`}</dd>
-          <dt>Documents</dt><dd>{documents.length} of {DOCS.length}</dd>
-          <dt>Account</dt><dd>{iban || '-'}</dd>
-        </dl>
-      )}
+        {step === 3 && (
+          <div className="choice-grid choice-2">
+            {DOCS.map((d) => {
+              const on = documents.includes(d.key)
+              return (
+                <button key={d.key} type="button" className="choice" aria-pressed={on} onClick={() => toggleDoc(d.key)}>
+                  <Icon name={DOC_ICONS[d.key]} size={40} />
+                  <span lang="ur" dir="rtl" className="choice-ur">{d.ur}</span>
+                  <span className="choice-en">{d.en}</span>
+                  {on && <span className="choice-tick"><Icon name="check" size={22} /></span>}
+                </button>
+              )
+            })}
+          </div>
+        )}
 
-      {error && <p className="error" role="alert">{error}</p>}
-      <div className="row">
-        <button type="button" onClick={step === 0 ? onCancel : () => setStep(step - 1)}>{'⬅'} Back</button>
-        {step < STEP_PROMPTS.length - 1 ? (
-          <button type="button" className="primary" onClick={() => setStep(step + 1)} disabled={step === 1 && deceasedName.trim().length < 2}>Next {'➡'}</button>
-        ) : (
-          <button type="button" className="primary" onClick={() => void submit()} disabled={busy}>Send claim {'✅'}</button>
+        {step === 4 && (
+          <label className="field">
+            <span className="field-label">IBAN of an account in your own name</span>
+            <input className="input input-big input-digits" autoComplete="off" autoCapitalize="characters" value={iban} onChange={(e) => setIban(e.target.value)} />
+          </label>
+        )}
+
+        {step === 5 && (
+          <dl className="review">
+            <ReviewRow icon="family" label="Relation" value={relationLabel ? `${relationLabel.en} / ${relationLabel.ur}` : relation} onEdit={() => setStep(0)} />
+            <ReviewRow icon="person" label="Deceased" value={deceasedName || '-'} onEdit={() => setStep(1)} />
+            <ReviewRow icon="id-card" label="His CNIC" value={deceasedCnic || 'Not given'} onEdit={() => setStep(2)} />
+            <ReviewRow icon="document" label="Papers" value={`${documents.length} of ${DOCS.length}`} onEdit={() => setStep(3)} />
+            <ReviewRow icon="bank" label="Account" value={iban || 'Not given'} onEdit={() => setStep(4)} />
+            <ReviewRow icon="helper" label="Claim for" value={claimant.name} />
+          </dl>
         )}
       </div>
+
+      <ErrorNote message={error} />
+      <nav className="wizard-nav" aria-label="Claim steps">
+        <button type="button" className="btn btn-secondary btn-big" onClick={step === 0 ? onCancel : () => setStep(step - 1)}>
+          <Icon name="arrow-left" size={24} />
+          <span lang="ur" dir="rtl">واپس</span>
+          <span className="btn-en">Back</span>
+        </button>
+        {isLast ? (
+          <button type="button" className="btn btn-primary btn-big" onClick={() => void submit()} disabled={busy}>
+            <span lang="ur" dir="rtl">بھیجیں</span>
+            <span className="btn-en">{busy ? 'Sending…' : 'Send claim'}</span>
+            <Icon name="check" size={24} />
+          </button>
+        ) : (
+          <button type="button" className="btn btn-primary btn-big" onClick={() => setStep(step + 1)} disabled={!canNext}>
+            <span lang="ur" dir="rtl">آگے</span>
+            <span className="btn-en">Next</span>
+            <Icon name="arrow-right" size={24} />
+          </button>
+        )}
+      </nav>
     </section>
+  )
+}
+
+interface ReviewRowProps {
+  icon: string
+  label: string
+  value: string
+  onEdit?: () => void
+}
+
+function ReviewRow({ icon, label, value, onEdit }: ReviewRowProps) {
+  return (
+    <div className="review-row">
+      <Icon name={icon} size={24} />
+      <dt>{label}</dt>
+      <dd>{value}</dd>
+      {onEdit && (
+        <button type="button" className="btn btn-quiet btn-sm" onClick={onEdit} aria-label={`Change ${label}`}>
+          <Icon name="pen" size={18} />
+          <span>Change</span>
+        </button>
+      )}
+    </div>
   )
 }

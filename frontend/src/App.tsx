@@ -1,17 +1,33 @@
-import { useState } from 'react'
+import { Suspense, lazy, useState } from 'react'
 import { setToken } from './api/client'
-import type { SessionUser } from './api/types'
+import type { Role, SessionUser } from './api/types'
 import { PrototypeBanner } from './components/PrototypeBanner'
-import { AuditorHome } from './pages/AuditorHome'
+import { Icon } from './lib/icons'
 import { CitizenHome } from './pages/CitizenHome'
 import { Login } from './pages/Login'
-import { OfficerHome } from './pages/OfficerHome'
+
+// Staff screens load on demand so the citizen shell stays small on a cheap phone.
+const OfficerHome = lazy(() => import('./pages/OfficerHome').then((m) => ({ default: m.OfficerHome })))
+const AdminHome = lazy(() => import('./pages/AdminHome').then((m) => ({ default: m.AdminHome })))
+const AuditorHome = lazy(() => import('./pages/AuditorHome').then((m) => ({ default: m.AuditorHome })))
 
 const USER_KEY = 'sahara.user'
 
+const ROLE_LABEL: Record<Role, string> = {
+  citizen: 'Citizen',
+  helper: 'Community helper',
+  officer: 'Pension officer',
+  admin: 'Administrator',
+  auditor: 'Auditor',
+}
+
 function loadUser(): SessionUser | null {
-  const raw = sessionStorage.getItem(USER_KEY)
-  return raw ? (JSON.parse(raw) as SessionUser) : null
+  try {
+    const raw = sessionStorage.getItem(USER_KEY)
+    return raw ? (JSON.parse(raw) as SessionUser) : null
+  } catch {
+    return null
+  }
 }
 
 function HomeFor({ user }: { user: SessionUser }) {
@@ -21,10 +37,15 @@ function HomeFor({ user }: { user: SessionUser }) {
       return <CitizenHome user={user} />
     case 'officer':
       return <OfficerHome />
-    case 'auditor':
     case 'admin':
+      return <AdminHome />
+    case 'auditor':
       return <AuditorHome />
   }
+}
+
+function isStaff(role: Role): boolean {
+  return role === 'officer' || role === 'admin' || role === 'auditor'
 }
 
 export default function App() {
@@ -41,21 +62,40 @@ export default function App() {
     setUser(null)
   }
 
+  if (!user) {
+    return (
+      <>
+        <PrototypeBanner />
+        <Login onLogin={handleLogin} />
+      </>
+    )
+  }
+
+  const staff = isStaff(user.role)
   return (
     <>
       <PrototypeBanner />
-      {user ? (
-        <main className="page">
-          <header className="row">
-            <strong>Sahara</strong>
-            <span className="muted">{user.name} · {user.role}</span>
-            <button type="button" onClick={handleLogout}>Sign out</button>
-          </header>
+      <header className={staff ? 'topbar topbar-staff' : 'topbar'}>
+        <div className="topbar-inner">
+          <span className="wordmark">
+            <span lang="ur" dir="rtl" className="wordmark-ur">سہارا</span>
+            <span className="wordmark-en">Sahara</span>
+          </span>
+          <span className="who">
+            <span className="who-name">{user.name}</span>
+            <span className="who-role">{ROLE_LABEL[user.role]}</span>
+          </span>
+          <button type="button" className="btn btn-ghost btn-sm" onClick={handleLogout} aria-label="Sign out">
+            <Icon name="logout" size={20} />
+            <span>Sign out</span>
+          </button>
+        </div>
+      </header>
+      <main className={staff ? 'shell shell-staff' : 'shell shell-citizen'}>
+        <Suspense fallback={<p className="loading" role="status">Loading…</p>}>
           <HomeFor user={user} />
-        </main>
-      ) : (
-        <Login onLogin={handleLogin} />
-      )}
+        </Suspense>
+      </main>
     </>
   )
 }

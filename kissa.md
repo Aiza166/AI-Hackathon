@@ -7,6 +7,8 @@
 
 ## 0. What changed overnight (read first)
 
+**Update Sat ~05:30:** the UI was redesigned (design system in `src/index.css`, pictograms in `src/lib/icons.tsx`, shared pieces in `src/components/ui.tsx`). Already built: My data (consent) screen, helper lock states, admin Rules + Digital Twin, officer and auditor layouts, Demo mode toggle on login. **Still yours:** Scam Shield screen + Scam Map, SafeSwitch (change payout account + confirm with PIN) screens, offline outbox (Dexie), Urdu audio clips, phone-width check, Playwright E2E. Backend endpoints for all of these are listed below.
+
 - The backend for Phase 1 is done and tested (83 tests). Run it with the steps in [docs/STATUS.md](docs/STATUS.md).
 - Claude built **first versions** of these screens so the golden path works end to end: `src/pages/Login.tsx`, `ClaimWizard.tsx`, `CaseResult.tsx`, `CitizenHome.tsx` (incl. Helper Mode picker), `OfficerHome.tsx`, `AuditorHome.tsx`. They use emoji as icons and plain CSS. **They are yours now**: improve the design, swap emoji for real pictograms, make them feel right on a cheap phone.
 - API types are hand-written in `src/api/types.ts`; replace with generated ones (`npx openapi-typescript http://localhost:8000/openapi.json -o src/api/schema.ts`).
