@@ -69,7 +69,11 @@ You own **Stream C (Frontend PWA)** and **Stream D (Demo & quality)**. Aiza owns
   - `GET /api/v1/me/access-log` → rows `{ts, action, who, role, field}` (DATA_ACCESS, CONSENT_DENIED, CONSENT_WITHDRAWN...)
   - `POST /api/v1/me/corrections` body `{field: name|date_of_birth|payout_account|family_record, requested_value, reason}`; officer side `GET /api/v1/corrections`, `POST /api/v1/corrections/{id}/approve|reject` body `{note}`
   - Helper family list now returns `consent_active` and hides `cnic` when not shared: show a lock icon and disable "new claim" for those families.
-- [ ] Admin rule editor screen + Digital Twin results table.
+- [ ] Admin rule editor screen + Digital Twin results table. **Backend is ready** (admin token):
+  - `GET /api/v1/admin/rules` → versions `{id, version, label, status (live|draft|retired), effective_from, thresholds, rules}`
+  - `POST /api/v1/rules/{id}/simulate` → `{checked, changed, cases:[{case, before:{route, reasons, entitlement_end}, after:{...}, changed:[...]}]}` (nothing is saved)
+  - `POST /api/v1/rules/{id}/publish` · `POST /api/v1/rules/drafts` body `{label, rules, thresholds, effective_from}` (422 with a clear message if malformed)
+  - Demo: simulate v2 shows 2 of 4 past cases change (end date 2034-11-01); publish; Zainab's new claim says "rule v2".
 - [ ] Auditor: decision trace view.
 - [ ] Urdu audio clips for every prompt and reason code (Stream D), cached by the PWA.
 
