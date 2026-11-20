@@ -17,7 +17,7 @@ def test_competing_claimant_not_in_family_record_pauses_both_cases(file_claim, c
     rukhsana = file_claim("rukhsana", claimant_cnic="9000000000033", claimant_name="Rukhsana", payout_iban="PK00MOCK0000000000000002")
 
     assert _decision(rukhsana) == ("in_review", ["NOT_IN_FAMILY_RECORD"])
-    assert rukhsana["meta"]["rechecked_cases"] == [zainab["data"]["reference"]]
+    assert rukhsana["meta"] == {"rechecked_count": 1}  # citizens never see other people's case references
     again = client.get(f"/api/v1/cases/{zainab['data']['id']}", headers=login("zainab")).json()
     assert _decision(again) == ("in_review", ["DUPLICATE_CLAIM"])
 

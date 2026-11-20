@@ -24,13 +24,14 @@ class Actor:
     actor_type: str  # user | ai | system | agent | api_key
     actor_id: str | None = None
     role: str | None = None
+    tenant_id: str | None = None
 
 
 SYSTEM = Actor("system")
 AI = Actor("ai", "decision-engine")
 
 
-def _canonical(ts: datetime, actor: Actor, action: str, resource: str | None, case_id: str | None, details: dict) -> str:
+def _canonical(ts: datetime, actor: Actor, action: str, resource: str | None, case_id: str | None, details: dict, tenant_id: str | None = None) -> str:
     body = {
         "ts": ts.astimezone(timezone.utc).isoformat(),  # normalised: DB session time zone must not matter
         "actor_type": actor.actor_type,
@@ -41,6 +42,8 @@ def _canonical(ts: datetime, actor: Actor, action: str, resource: str | None, ca
         "case_id": case_id,
         "details": details,
     }
+    if tenant_id is not None:  # older rows had no tenant; keep their hashes valid
+        body["tenant_id"] = tenant_id
     return json.dumps(body, sort_keys=True, separators=(",", ":"), default=str)
 
 
@@ -56,16 +59,19 @@ def record(
     resource: str | None = None,
     case_id: str | None = None,
     details: dict | None = None,
+    tenant_id: str | None = None,
 ) -> AuditEvent:
     """Append one event. Runs inside the caller's transaction; the advisory lock
     serialises writers so the chain never forks."""
     details = details or {}
+    tenant_id = tenant_id or actor.tenant_id
     db.execute(text("SELECT pg_advisory_xact_lock(:k)"), {"k": _CHAIN_LOCK_KEY})
     last = db.execute(select(AuditEvent.hash).order_by(AuditEvent.seq.desc()).limit(1)).scalar()
     prev_hash = last or GENESIS_HASH
     ts = utcnow()
-    canonical = _canonical(ts, actor, action, resource, case_id, details)
+    canonical = _canonical(ts, actor, action, resource, case_id, details, tenant_id)
     event = AuditEvent(
+        tenant_id=tenant_id,
         ts=ts,
         actor_type=actor.actor_type,
         actor_id=actor.actor_id,
@@ -87,9 +93,11 @@ def verify_chain(db: Session) -> dict:
     count = 0
     for event in db.execute(select(AuditEvent).order_by(AuditEvent.seq)).scalars():
         actor = Actor(event.actor_type, event.actor_id, event.role)
-        canonical = _canonical(event.ts, actor, event.action, event.resource, event.case_id, event.details)
+        canonical = _canonical(event.ts, actor, event.action, event.resource, event.case_id, event.details, event.tenant_id)
         if event.prev_hash != prev_hash or event.hash != _hash(prev_hash, canonical):
-            return {"intact": False, "checked": count, "first_broken_seq": event.seq}
+            return {"intact": False, "checked": count, "first_broken_seq": event.seq, "head_hash": prev_hash}
         prev_hash = event.hash
         count += 1
-    return {"intact": True, "checked": count, "first_broken_seq": None}
+    # head_hash should also be anchored outside the database (e.g. printed in logs) to detect
+    # removal of the newest rows by someone with database owner rights.
+    return {"intact": True, "checked": count, "first_broken_seq": None, "head_hash": prev_hash}

@@ -33,7 +33,7 @@ class Principal:
 
     @property
     def actor(self) -> audit.Actor:
-        return audit.Actor("user" if self.kind == "user" else "api_key", self.id, self.role)
+        return audit.Actor("user" if self.kind == "user" else "api_key", self.id, self.role, self.tenant_id)
 
 
 def _unauthorized() -> HTTPException:

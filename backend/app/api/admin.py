@@ -1,18 +1,19 @@
 """Admin: demo reset, API keys, mock-service faults (judge console), users, rules."""
 from typing import Literal
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core import audit
-from app.core.auth import Principal, require_roles
+from app.core.auth import Principal, deny, require_roles
+from app.core.config import get_settings
 from app.core.envelope import ok
 from app.core.security import new_api_key
 from app.db import get_db
 from app.mock import registry
-from app.models.platform import ApiKey, RuleVersion, User, utcnow
+from app.models.platform import ApiKey, RuleVersion, Tenant, User, utcnow
 from app.schemas.contracts import Role
 from app.seed import reset
 
@@ -32,8 +33,16 @@ class FaultIn(BaseModel):
     latency_ms: int = Field(default=0, ge=0, le=10000)
 
 
+def platform_admin(request: Request, principal: Principal = Depends(ADMIN), db: Session = Depends(get_db)) -> Principal:
+    """Demo-wide controls affect every department, so only the platform-admin department may use them."""
+    tenant = db.get(Tenant, principal.tenant_id)
+    if tenant is None or tenant.slug != get_settings().platform_admin_tenant:
+        raise deny(db, principal, request, "not a platform admin")
+    return principal
+
+
 @router.post("/seed/reset")
-def seed_reset(principal: Principal = Depends(ADMIN), db: Session = Depends(get_db)) -> dict:
+def seed_reset(principal: Principal = Depends(platform_admin), db: Session = Depends(get_db)) -> dict:
     """Judge console 'Reset demo'. Audit history is kept; the reset is logged."""
     audit.record(db, principal.actor, "DEMO_RESET_REQUESTED")
     db.commit()
@@ -70,7 +79,7 @@ def revoke_api_key(key_id: str, principal: Principal = Depends(ADMIN), db: Sessi
 
 
 @router.post("/faults")
-def set_fault(body: FaultIn, principal: Principal = Depends(ADMIN), db: Session = Depends(get_db)) -> dict:
+def set_fault(body: FaultIn, principal: Principal = Depends(platform_admin), db: Session = Depends(get_db)) -> dict:
     """Judge console: break or slow down a mock government service."""
     fault = registry.set_fault(db, body.service, body.mode, body.latency_ms)
     audit.record(db, principal.actor, "MOCK_FAULT_SET", resource=f"mock:{body.service}", details=body.model_dump())

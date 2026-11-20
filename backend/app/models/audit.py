@@ -22,6 +22,7 @@ class AuditEvent(Base):
     action: Mapped[str] = mapped_column(String(60), index=True)
     resource: Mapped[str | None] = mapped_column(String(120), nullable=True)
     case_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)
+    tenant_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)
     details: Mapped[dict] = mapped_column(JSON, default=dict)
     prev_hash: Mapped[str] = mapped_column(String(64))
     hash: Mapped[str] = mapped_column(String(64))

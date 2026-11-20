@@ -30,7 +30,8 @@ def list_events(
     principal: Principal = Depends(require_roles(*READERS)),
     db: Session = Depends(get_db),
 ) -> dict:
-    query = select(AuditEvent).order_by(AuditEvent.seq.desc()).limit(limit)
+    # Department isolation: only this tenant's events (system-wide events have no tenant).
+    query = select(AuditEvent).where(AuditEvent.tenant_id == principal.tenant_id).order_by(AuditEvent.seq.desc()).limit(limit)
     if action:
         query = query.where(AuditEvent.action == action)
     rows = [_row(e) for e in db.execute(query).scalars()]

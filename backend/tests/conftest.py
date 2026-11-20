@@ -3,7 +3,7 @@ import os
 
 TEST_DB = os.environ.get("TEST_DATABASE_URL", "postgresql+psycopg://sahara:sahara@localhost:5432/sahara_test")
 os.environ["DATABASE_URL"] = TEST_DB  # must be set before the app modules read settings
-os.environ.setdefault("JWT_SECRET", "test-secret-not-for-production")
+os.environ.setdefault("JWT_SECRET", "test-secret-not-for-production-0123456789")
 os.environ["BCRYPT_ROUNDS"] = "4"
 os.environ["TYPESAFE_API_KEY"] = ""  # tests never call the real Jev API
 

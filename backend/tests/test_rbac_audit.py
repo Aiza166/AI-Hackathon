@@ -120,3 +120,56 @@ def test_me_returns_own_person_and_helper_sees_40_families(client, login):
     families = client.get("/api/v1/helper/families", headers=login("helper")).json()["data"]
     assert len(families) == 40
     assert client.get("/api/v1/helper/families", headers=login("zainab")).status_code == 403
+
+
+# ---- Fixes from the security review -------------------------------------------------
+
+def test_api_key_cannot_list_cases(client, login, file_claim):
+    file_claim("zainab")
+    created = client.post("/api/v1/admin/api-keys", json={"name": "Partner", "scopes": ["scam:check"]}, headers=login("admin")).json()["data"]
+    assert client.get("/api/v1/cases", headers={"X-API-Key": created["api_key"]}).status_code == 403
+
+
+def test_auditor_cannot_escalate(client, login, file_claim):
+    case_id = file_claim("zainab")["data"]["id"]
+    assert client.post(f"/api/v1/cases/{case_id}/escalate", json={"reason": "stop it"}, headers=login("auditor")).status_code == 403
+
+
+def test_second_open_claim_for_the_same_pension_is_refused(client, login, file_claim):
+    from tests.conftest import BASE_CLAIM
+
+    file_claim("zainab")
+    assert client.post("/api/v1/cases", json=BASE_CLAIM, headers=login("zainab")).status_code == 409
+
+
+def test_citizen_does_not_see_assigned_officer(client, login, file_claim):
+    case = file_claim("rukhsana", claimant_cnic="9000000000033", claimant_name="Rukhsana", payout_iban="PK00MOCK0000000000000002")
+    assert case["data"]["assigned_officer_id"] is None
+    staff_view = client.get(f"/api/v1/cases/{case['data']['id']}", headers=login("officer")).json()["data"]
+    assert staff_view["assigned_officer_id"] is not None
+
+
+def test_account_locks_after_five_wrong_pins(client):
+    for _ in range(5):
+        assert client.post("/api/v1/auth/login", json={"phone": "00000000001", "pin": "0000"}).status_code == 401
+    assert client.post("/api/v1/auth/login", json={"phone": "00000000001", "pin": "1234"}).status_code == 429
+
+
+def test_audit_log_is_scoped_to_the_readers_department(client, login, file_claim):
+    file_claim("zainab")
+    rows = client.get("/api/v1/audit?limit=500", headers=login("auditor")).json()["data"]
+    assert rows
+    tenant = client.get("/api/v1/me", headers=login("auditor")).json()["data"]["tenant_id"]
+    from app.db import SessionLocal
+    from app.models.audit import AuditEvent
+
+    with SessionLocal() as db:
+        tenants = {db.get(AuditEvent, r["seq"]).tenant_id for r in rows}
+    assert tenants == {tenant}
+
+
+def test_case_references_come_from_a_sequence(file_claim):
+    first = file_claim("zainab")["data"]["reference"]
+    second = file_claim("rukhsana", claimant_cnic="9000000000033", claimant_name="Rukhsana", payout_iban="PK00MOCK0000000000000002")["data"]["reference"]
+    assert first != second
+    assert int(second.split("-")[1]) > int(first.split("-")[1])

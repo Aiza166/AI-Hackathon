@@ -1,5 +1,7 @@
 """Case endpoints for citizens, helpers, officers, admins and auditors."""
 from fastapi import APIRouter, Depends, Request
+
+from app.core.ratelimit import limiter
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -14,10 +16,13 @@ from app.services import cases as svc
 
 router = APIRouter(prefix="/api/v1", tags=["cases"])
 OFFICER_LIKE = (Role.OFFICER, Role.ADMIN)
+STAFF = (Role.OFFICER, Role.ADMIN, Role.AUDITOR)
+CAN_ESCALATE = (Role.CITIZEN, Role.HELPER, Role.OFFICER, Role.ADMIN)
 
 
-def _load(db: Session, principal: Principal, request: Request, case_id: str) -> Case:
-    case = db.get(Case, case_id)
+def _load(db: Session, principal: Principal, request: Request, case_id: str, lock: bool = False) -> Case:
+    # lock=True for state changes: the row lock stops two officers deciding at once.
+    case = db.get(Case, case_id, with_for_update=lock)
     if case is None:
         raise svc.not_found()
     if not svc.can_view(db, principal, case):
@@ -39,45 +44,52 @@ def _summary(db: Session, decision: Decision | None) -> DecisionSummary | None:
     )
 
 
-def _view(db: Session, case: Case) -> dict:
+def _view(db: Session, case: Case, principal: Principal | None = None) -> dict:
+    is_staff = principal is not None and principal.role in STAFF
     view = CaseView(
         id=case.id, reference=case.reference, status=case.status, priority=case.priority, confidence=case.confidence,
-        claimant_person_id=case.claimant_person_id, assigned_officer_id=case.assigned_officer_id,
+        claimant_person_id=case.claimant_person_id, assigned_officer_id=case.assigned_officer_id if is_staff else None,
         deceased_cnic=case.deceased_cnic, created_at=case.created_at, latest_decision=_summary(db, _latest_decision(db, case.id)),
     )
     return view.model_dump(mode="json")
 
 
 @router.post("/cases", status_code=201)
+@limiter.limit("10/minute")
 def create_and_submit(
+    request: Request,
     body: ClaimIn,
     principal: Principal = Depends(require_roles(Role.CITIZEN, Role.HELPER)),
     db: Session = Depends(get_db),
 ) -> dict:
     """File a claim and run the decision engine on it right away."""
     case = svc.create_case(db, principal, body)
-    svc.run_decision(db, case)
+    svc.run_decision(db, case, created_by=principal)
     affected = svc.recheck_related(db, case)
     db.commit()
-    return ok(_view(db, case), meta={"rechecked_cases": affected})
+    # Never reveal other people's claims to citizens/helpers: they only get a count.
+    meta = {"rechecked_cases": affected} if principal.role in STAFF else {"rechecked_count": len(affected)}
+    return ok(_view(db, case, principal), meta=meta)
 
 
 @router.get("/cases")
-def list_cases(principal: Principal = Depends(get_principal), db: Session = Depends(get_db)) -> dict:
+def list_cases(request: Request, principal: Principal = Depends(get_principal), db: Session = Depends(get_db)) -> dict:
     query = select(Case).order_by(Case.created_at.desc())
     if principal.role == Role.CITIZEN:
         query = query.where(Case.claimant_person_id == principal.person_id)
     elif principal.role == Role.HELPER:
         assigned = select(HelperAssignment.person_id).where(HelperAssignment.helper_user_id == principal.id)
         query = query.where(Case.claimant_person_id.in_(assigned))
-    else:
+    elif principal.role in STAFF:
         query = query.where(Case.tenant_id == principal.tenant_id)
-    return ok([_view(db, c) for c in db.execute(query.limit(200)).scalars()])
+    else:  # e.g. API keys: never list cases
+        raise deny(db, principal, request, "role cannot list cases")
+    return ok([_view(db, c, principal) for c in db.execute(query.limit(200)).scalars()])
 
 
 @router.get("/cases/{case_id}")
 def get_case(case_id: str, request: Request, principal: Principal = Depends(get_principal), db: Session = Depends(get_db)) -> dict:
-    return ok(_view(db, _load(db, principal, request, case_id)))
+    return ok(_view(db, _load(db, principal, request, case_id), principal))
 
 
 @router.get("/cases/{case_id}/explanation")
@@ -137,40 +149,40 @@ def officer_queue(principal: Principal = Depends(require_roles(*OFFICER_LIKE)), 
         .where(Case.tenant_id == principal.tenant_id, Case.status.in_(("in_review", "proof_requested")))
         .order_by(Case.priority.desc(), Case.confidence.asc().nulls_first(), Case.created_at)
     )
-    return ok([_view(db, c) for c in db.execute(query).scalars()])
+    return ok([_view(db, c, principal) for c in db.execute(query).scalars()])
 
 
 @router.post("/cases/{case_id}/approve")
 def approve(case_id: str, body: OfficerAction, request: Request, principal: Principal = Depends(require_roles(Role.OFFICER)), db: Session = Depends(get_db)) -> dict:
-    case = svc.officer_decide(db, principal, _load(db, principal, request, case_id), approve=True, reason=body.reason)
+    case = svc.officer_decide(db, principal, _load(db, principal, request, case_id, lock=True), approve=True, reason=body.reason)
     db.commit()
-    return ok(_view(db, case))
+    return ok(_view(db, case, principal))
 
 
 @router.post("/cases/{case_id}/reject")
 def reject(case_id: str, body: OfficerAction, request: Request, principal: Principal = Depends(require_roles(Role.OFFICER)), db: Session = Depends(get_db)) -> dict:
-    case = svc.officer_decide(db, principal, _load(db, principal, request, case_id), approve=False, reason=body.reason)
+    case = svc.officer_decide(db, principal, _load(db, principal, request, case_id, lock=True), approve=False, reason=body.reason)
     db.commit()
-    return ok(_view(db, case))
+    return ok(_view(db, case, principal))
 
 
 @router.post("/cases/{case_id}/assign")
 def assign(case_id: str, body: AssignIn, request: Request, principal: Principal = Depends(require_roles(*OFFICER_LIKE)), db: Session = Depends(get_db)) -> dict:
-    case = svc.assign(db, principal, _load(db, principal, request, case_id), body.officer_id)
+    case = svc.assign(db, principal, _load(db, principal, request, case_id, lock=True), body.officer_id)
     db.commit()
-    return ok(_view(db, case))
+    return ok(_view(db, case, principal))
 
 
 @router.post("/cases/{case_id}/escalate")
-def escalate(case_id: str, body: OfficerAction, request: Request, principal: Principal = Depends(get_principal), db: Session = Depends(get_db)) -> dict:
-    """Anyone who can see a case can ask for a human to look at it."""
-    case = svc.escalate(db, principal, _load(db, principal, request, case_id), body.reason)
+def escalate(case_id: str, body: OfficerAction, request: Request, principal: Principal = Depends(require_roles(*CAN_ESCALATE)), db: Session = Depends(get_db)) -> dict:
+    """Claimants, helpers and staff (not auditors: they are read-only) can ask for a human."""
+    case = svc.escalate(db, principal, _load(db, principal, request, case_id, lock=True), body.reason)
     db.commit()
-    return ok(_view(db, case))
+    return ok(_view(db, case, principal))
 
 
 @router.post("/cases/{case_id}/close")
 def close(case_id: str, body: OfficerAction, request: Request, principal: Principal = Depends(require_roles(*OFFICER_LIKE)), db: Session = Depends(get_db)) -> dict:
-    case = svc.close(db, principal, _load(db, principal, request, case_id), body.reason)
+    case = svc.close(db, principal, _load(db, principal, request, case_id, lock=True), body.reason)
     db.commit()
-    return ok(_view(db, case))
+    return ok(_view(db, case, principal))

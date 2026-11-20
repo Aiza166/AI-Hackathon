@@ -8,7 +8,7 @@ import json
 from datetime import date
 
 from fastapi import HTTPException, status
-from sqlalchemy import func, select
+from sqlalchemy import func, select, text
 from sqlalchemy.orm import Session
 
 from app.core import audit
@@ -22,6 +22,7 @@ from app.schemas.contracts import ReasonCode, Role, Route
 RULESET = "survivor-pension"
 STATUS_FOR_ROUTE = {Route.AUTO_APPROVE: "auto_approved", Route.ASK_PROOF: "proof_requested", Route.UNSURE: "in_review"}
 OFFICER_FINAL = ("approved", "rejected", "closed")
+MAX_RECHECK = 10  # bound the work a single new claim can trigger
 HIGH_RISK = {ReasonCode.DUPLICATE_CLAIM, ReasonCode.ACCOUNT_REUSED, ReasonCode.ACCOUNT_NOT_OWNED, ReasonCode.NOT_IN_FAMILY_RECORD}
 
 
@@ -84,9 +85,10 @@ def _claimant_person(db: Session, principal: Principal, claim: ClaimIn) -> Perso
 
 def create_case(db: Session, principal: Principal, claim: ClaimIn) -> Case:
     person = _claimant_person(db, principal, claim)
-    count = db.execute(select(func.count(Case.id))).scalar() or 0
+    _refuse_duplicate(db, person.id, claim.deceased_cnic)
+    number = db.execute(text("SELECT nextval('case_ref_seq')")).scalar()
     case = Case(
-        reference=f"SP-{1001 + count}",
+        reference=f"SP-{number}",
         tenant_id=principal.tenant_id,
         claimant_person_id=person.id,
         created_by=principal.id,
@@ -98,8 +100,19 @@ def create_case(db: Session, principal: Principal, claim: ClaimIn) -> Case:
     db.add(case)
     db.flush()
     _event(db, case, "created", principal.id)
-    audit.record(db, principal.actor, "CASE_CREATED", resource=f"case:{case.reference}", case_id=case.id)
+    # CASE_CREATED is audited in run_decision, after the slow registry lookups, so the
+    # global audit-chain lock is held only briefly.
     return case
+
+
+def _refuse_duplicate(db: Session, person_id: str, deceased_cnic: str | None) -> None:
+    if deceased_cnic is None:
+        return
+    existing = db.execute(select(Case.reference).where(
+        Case.claimant_person_id == person_id, Case.deceased_cnic == deceased_cnic, Case.status.in_(ACTIVE_STATUSES),
+    )).first()
+    if existing:
+        raise HTTPException(status_code=409, detail=f"You already have an open claim for this pension ({existing[0]})")
 
 
 def _least_busy_officer(db: Session, tenant_id: str) -> str | None:
@@ -114,7 +127,9 @@ def _least_busy_officer(db: Session, tenant_id: str) -> str | None:
     return row[0] if row else None
 
 
-def run_decision(db: Session, case: Case, today: date | None = None, ruleset_row: RuleVersion | None = None) -> Decision:
+def run_decision(
+    db: Session, case: Case, today: date | None = None, ruleset_row: RuleVersion | None = None, created_by: Principal | None = None,
+) -> Decision:
     """Decide (or re-decide) a case with the live ruleset. Actor = AI."""
     today = today or date.today()
     ruleset_row = ruleset_row or live_ruleset(db)
@@ -141,8 +156,10 @@ def run_decision(db: Session, case: Case, today: date | None = None, ruleset_row
         case.assigned_officer_id = _least_busy_officer(db, case.tenant_id)
     db.flush()
     _event(db, case, f"decision_{outcome.route.value.lower()}", "decision-engine", ", ".join(decision.reason_codes))
+    if created_by is not None:
+        audit.record(db, created_by.actor, "CASE_CREATED", resource=f"case:{case.reference}", case_id=case.id)
     audit.record(
-        db, audit.AI, "DECISION_MADE", resource=f"decision:{decision.id}", case_id=case.id,
+        db, audit.AI, "DECISION_MADE", resource=f"decision:{decision.id}", case_id=case.id, tenant_id=case.tenant_id,
         details={"route": decision.route, "reasons": decision.reason_codes, "confidence": decision.confidence,
                  "rule_version": ruleset_row.version, "model_id": None},
     )
@@ -156,6 +173,7 @@ def recheck_related(db: Session, case: Case) -> list[str]:
         return []
     related = db.execute(
         select(Case).where(Case.deceased_cnic == case.deceased_cnic, Case.id != case.id, Case.status.in_(ACTIVE_STATUSES), Case.status.not_in(OFFICER_FINAL))
+        .order_by(Case.created_at).limit(MAX_RECHECK).with_for_update()
     ).scalars().all()
     for other in related:
         run_decision(db, other)

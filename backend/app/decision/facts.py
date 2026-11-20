@@ -6,7 +6,7 @@ Phase 1 (it is used for documents and scam messages in later phases).
 from dataclasses import dataclass, field
 from datetime import date
 
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from app.decision.matching import MatchResult, match_identity, name_similarity, parse_name
@@ -148,7 +148,8 @@ def _other_claims(db: Session, case: Case, claim: ClaimIn, signals: Signals) -> 
     others = db.execute(
         select(Case, Person.cnic).join(Person, Person.id == Case.claimant_person_id).where(
             Case.id != case.id, Case.status.in_(ACTIVE_STATUSES), Case.claimant_person_id != case.claimant_person_id,
-        )
+            or_(Case.deceased_cnic == claim.deceased_cnic, Case.payout_iban == claim.payout_iban),
+        ).limit(50)
     ).all()
     for other, other_cnic in others:
         if claim.deceased_cnic and other.deceased_cnic == claim.deceased_cnic:
