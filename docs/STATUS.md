@@ -10,6 +10,7 @@
 
 | When (PKT) | Who | What |
 |---|---|---|
+| Sat 21 Nov 01:30 | Aiza + Claude | Phase 0 scaffold: FastAPI backend (envelope, config, contracts, reason codes + Urdu text, Jev client pinned to jev-1.14.0, Alembic, 15 tests passing), Vite React PWA with PROTOTYPE banner, docker-compose (Postgres + Redis), CI, Jev smoke-test script, kissa.md |
 | Sat 21 Nov 00:30 | Aiza + Claude | Plan docs written: idea, compliance checklist, architecture, build plan, demo script |
 | Fri 20 Nov evening | Aiza + Claude | Read brief, installed ECC tooling locally, researched Jev and win strategy, chose the task |
 
@@ -26,8 +27,9 @@
 
 ## Open questions
 
-- [ ] Organizer reply on prior work (FYP) under "no pre-built projects".
-- [ ] Jev: API key, rate limits, remaining credit; Urdu / Roman Urdu quality (smoke test).
+- [x] Jev API key obtained.
+- [ ] Jev: rate limits and remaining credit (check console); run `python -m scripts.jev_smoke` for Urdu / Roman Urdu go/no-go.
+- [ ] Organizers' reply on prior work (asked on WhatsApp).
 - [ ] Exact eligibility rules and a realistic rule v1 to v2 change (deep research running).
 - [ ] Azure speech key for pre-generated Urdu audio (or alternative).
 

@@ -1,0 +1,18 @@
+# Local Postgres + Redis for development. Credentials are local-only defaults.
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: sahara
+      POSTGRES_PASSWORD: sahara
+      POSTGRES_DB: sahara
+    ports:
+      - "5432:5432"
+    volumes:
+      - sahara_db:/var/lib/postgresql/data
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+volumes:
+  sahara_db:

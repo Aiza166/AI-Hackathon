@@ -31,6 +31,17 @@ Build window: Fri 20 Nov 2026, 6:00 PM to Sun 22 Nov 2026, 6:00 PM PKT. Live jud
 | 5 | [docs/05-DEMO-SCRIPT.md](docs/05-DEMO-SCRIPT.md) | The live demo, judge console, backup plan, Q&A prep |
 | - | [docs/STATUS.md](docs/STATUS.md) | **Living status**: what is done, decisions, open questions |
 | - | [PRIOR_WORK.md](PRIOR_WORK.md) | Disclosure of related prior work (pending organizer clearance) |
+| - | [kissa.md](kissa.md) | Kissa's setup steps and task list |
+
+## Run it locally
+
+```bash
+docker compose up -d                      # Postgres + Redis
+cd backend && python -m venv .venv && .venv\Scriptsctivate
+pip install -r requirements.txt && copy .env.example .env
+pytest && uvicorn app.main:app --reload   # API docs: http://localhost:8000/docs
+cd ../frontend && npm install && npm run dev   # http://localhost:5173
+```
 
 ## Team working rules
 
