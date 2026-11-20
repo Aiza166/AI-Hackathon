@@ -32,6 +32,7 @@ Build window: Fri 20 Nov 2026, 6:00 PM to Sun 22 Nov 2026, 6:00 PM PKT. Live jud
 | - | [docs/STATUS.md](docs/STATUS.md) | **Living status**: what is done, decisions, open questions |
 | - | [PRIOR_WORK.md](PRIOR_WORK.md) | Disclosure of related prior work (pending organizer clearance) |
 | - | [kissa.md](kissa.md) | Kissa's setup steps and task list |
+| - | [CLAUDE.md](CLAUDE.md) | Rules and commands for Claude Code sessions (and humans) |
 
 ## Run it locally
 
