@@ -85,14 +85,19 @@
 
 ### Step 2: eligibility rules (GoRules ZEN, versioned)
 
-Example ruleset `survivor-pension` v1 (exact rules finalised from research):
+Ruleset `survivor-pension` (grounded in Pakistan family pension rules; see `docs/research/survivor-pension.md` section 1):
 
-1. Deceased must be a registered pensioner in the pension office.
-2. Death must be confirmed by the death registry.
-3. Claimant must be listed as spouse in the family record.
-4. Claimant must not have remarried (v1). **v2 changes this:** remarried widows remain eligible.
-5. Claim must be filed within N years of death.
-6. Payout account must be in the claimant's own CNIC.
+| Rule | v1 | Basis |
+|---|---|---|
+| R1 Spouse first | Widow is eligible if the family record (FRC) links her to the deceased, nikah nama present, death verified | Rule 4.10, SHC order 2025 |
+| R2 Share split | n = widows + eligible children; if n <= 4 equal shares, else each widow 1/4 and children split the rest | Rule 4.10 (we pick the "n <= 4" reading and say so) |
+| R3 Child age | Son over 25 and not disabled: not eligible | Rule 4.10 (Sindh text) |
+| R4 Daughter status | Unmarried, widowed or divorced daughter eligible until remarriage; divorce date irrelevant | SC ruling 30 Jul 2025 |
+| R5 Required documents | Death certificate, claimant CNIC, FRC, nikah nama (widow), bank account titled to claimant; missing item = `missing_info` naming it | Pension / EOBI forms |
+| R6 Single pension | Already drawing a family pension: not eligible | Federal rule |
+| **R7 (v2 only)** | **10-year cap for non-spouse heirs** after the spouse dies or becomes ineligible, if they became eligible on or after 2024-09-10; child = max(10 years, until 21); disabled child = life; existing pensioners exempt | Finance Division OM F.No.9(3)R-6/2024, 10 Sep 2024 |
+
+A second widow who **is** in the FRC is a lawful co-sharer (R2), not a fraud flag. A claimant who is **not** in the FRC is a red flag. Family pension amounts in the mock are made up and labelled, because no source gives the rate.
 
 The rules return `eligible | not_eligible | missing_info` plus the list of rules that fired. Rules never reject on their own: `not_eligible` routes to an officer with the reason.
 
@@ -319,3 +324,56 @@ frontend/
     audio/       cached Urdu clips
 docs/
 ```
+
+## Research-driven details (Sat 21 Nov; these win where earlier sections differ)
+
+Source: [docs/research/survivor-pension.md](research/survivor-pension.md).
+
+### Name matching pipeline
+| Stage | Design |
+|---|---|
+| Parse | Split on s/o, w/o, d/o, bin, bint, ibn. Move honorifics (Syed, Sheikh, Haji, Chaudhry, Malik, Begum, Bibi, Mst) to a low-weight field. |
+| Canonicalise | Mohd, Md, M., Mohammad, Mohammed, Muhammed map to `muhammad`; expand "M." only if the other record has a Muhammad-family token. |
+| Block | CNIC exact, OR key token + birth year, OR phonetic key + district. Phonetic codes only **propose** pairs, never count as evidence. |
+| Score | Fellegi-Sunter style: sum log2(m/u) per field; `muhammad` down-weighted (term frequency). Name `token_sort_ratio` bands >=95 / 85-95 / 70-85 / <70; CNIC exact / one-digit typo / different / missing; DOB exact / year / +-1 / different / missing. Never `token_set_ratio`. |
+| Route | p >= 0.95 **and exact CNIC** and no flag: match. 0.70-0.95: ask for the missing field. < 0.70, CNIC conflict, or two candidates above 0.70: UNSURE. **No auto-match without exact CNIC.** |
+
+- The CNIC father/husband field is weak evidence: since 2021 married women may keep their father's name there, so Zainab's CNIC may not name Aslam.
+- NADRA CNIC DOB is the single source of truth (EOBI paid Rs2.79bn on altered ages from other documents).
+- Eval: ~500 synthetic identities with variants + hard negatives (same full name, same name + birth year, siblings, CNIC one digit off). Threshold set where false-match rate on hard negatives = 0; plot false-match, false-non-match, UNSURE rate, blocking recall.
+
+### Payout safety (SafeSwitch + Confirmation of Payee)
+- Before any payout: mock Confirmation-of-Payee check on the account title: **match = proceed, close match = ASK_PROOF, no match = UNSURE**.
+- Account change hold: **48 hours**, extended to **4 business days** when a red flag fires (account used by another claim, CoP close/no match, change soon after the death is reported). Context: SSA moved to 1 business day; UK firms may delay at most 4 business days.
+- Confirmation (PIN/voice) goes to the widow directly, never to the helper's phone.
+- Cross-check "already drawing a family pension / excluded" before approval (R6).
+
+### Document checks = indicators, never a verdict
+Ranked by evidence, each shown with its evidence and a "what this cannot tell" line, labelled "needs a second look", never "fake", never rolled into one score:
+1. OCR fields (CNIC 13 digits, DOB, date of death, names) cross-checked with registry by CNIC + DOB. **Strongest signal.**
+2. Copy-move (ORB/SIFT keypoints) on seal/stamp regions only.
+3. ELA on the original upload, shown next to the image.
+4. EXIF as context only; **missing EXIF never counts against anyone**.
+5. Optional QR decode; "no QR found" is neutral. We never show "QR verified".
+- Officer agree/disagree with each indicator is logged for the eval page.
+- Mock image set: each image as original, WhatsApp-recompressed, and screenshot.
+
+### Jev usage rules
+- Images/Box need header `TypeSafe-Danger-Zone-Images: true`. PNG/JPEG only, each side 280-1568 px, 78,400-2,458,624 pixels, 16 MiB per file, 32 MiB per request; out-of-range images fail the whole request. Rotate pixels (EXIF orientation is stripped), fit to 1568 px, baseline JPEG, fresh UUID per image.
+- Box always returns a box: pair it with a presence Noul.
+- Choice: act only if its companion Noul > 0.7 **and** top choice probability > 0.7; otherwise a person decides.
+- Split reading from judging (read the date in one question, judge it in code).
+- Page check + crop check for OCR fields; flag if either < 0.25.
+- Untrusted text goes under a labelled state key (`untrusted_message`); add an `addresses_reader_instructions` Noul as an injection sensor.
+- Log model, usage, every probability, question-set version, image SHA-256 (not the image), thresholds, route. Measure image latency p50/p95; timeout = UNSURE.
+- Question sets: A intake (text), B document (image), C scam SMS (text) as in the research report section 6.
+
+### Scam Shield weighting
+Content rules (asks fee, asks code, link, unverified "payment ready" claim) outweigh sender ID. Official short codes (e.g., BISP 8171) are **evidence, never proof**: 8171 masking has been reported (PID, 5 Jul 2024). The app uses mock senders; real short codes appear only in the README as real-world patterns.
+
+### Offline and size budgets
+- Citizen shell <= 170 KB total (JS <= 100 KB), each later screen <= 30 KB, each audio clip ~15 KB, photos compressed on device to ~200 KB (from web.dev slow-3G budget).
+- ~60 prompts pre-generated with Azure `ur-PK-UzmaNeural` (~6,000 characters, inside the free tier).
+- Outbox key = UUID created when the user taps save. Flush on app open, `online` event, Background Sync (Chromium only) and a "Send now" button. Call `navigator.storage.persist()`.
+- Server Idempotency-Key (IETF draft): unique per principal, replay stored response, 422 if the same key comes with a different body, 409 while in flight.
+- Outbox partitioned per family in Helper Mode.

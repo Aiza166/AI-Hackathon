@@ -7,7 +7,9 @@
 | Persona | Role | What is special about their data |
 |---|---|---|
 | Zainab Bibi | Citizen (widow) | Husband "Muhammad Aslam" is "Mohd. Aslam" on the death certificate and "Muhammed Aslam" in the pension office |
-| Rukhsana | Citizen (competing claimant) | Claims the same pension; not in the family record |
+| Rukhsana | Citizen (competing claimant) | Claims the same pension; **not** in the family record, so a red flag |
+| Saima | Citizen (lawful second widow) | In the family record: a lawful co-sharer, shown with her share, not a fraud flag |
+| Bilal, Hina | Citizens (heirs of an older case) | Children claiming after their mother died: used by the rule v2 Digital Twin |
 | Muhammad Aslam (2) | Mock registry only | Different man, same name, different CNIC and DOB: must never be matched |
 | Ayesha | Community helper | 40 seeded families on one phone |
 | Rafiq | Citizen (shopkeeper) | Inbox full of fake "pension released, pay fee" messages |
@@ -32,7 +34,7 @@
 |---|---|
 | **Add competing claimant** | Rukhsana claims the same pension: Zainab's case pauses, route UNSURE, officer sees both side by side |
 | **Try the look-alike name** | Claim using the other "Muhammad Aslam": not matched, NAME_MISMATCH, no money moves |
-| **Publish rule v2** | Remarried widows stay eligible; next case decided under v2; old cases still show v1; Digital Twin shows how many past cases would change |
+| **Publish rule v2: 10-year cap for non-spouse heirs (10 Sep 2024)** | Digital Twin first shows which of ~5 seeded past cases would change (only heirs who became eligible on or after 2024-09-10); publish; next case decided under v2; old cases still show v1; Zainab (spouse) is unaffected |
 | **Withdraw consent** | Zainab withdraws Ayesha's access: Ayesha's next request returns 403, logged as CONSENT_DENIED |
 | **Upload edited certificate** | Edit-risk indicators raised, case to officer, citizen hears a polite "needs checking" message |
 | **Send scam SMS** | Fee/OTP message from an unofficial sender: LIKELY_SCAM, reasons shown, case cross-check says no payment pending |

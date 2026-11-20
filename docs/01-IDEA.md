@@ -58,7 +58,7 @@ The engine combines **versioned eligibility rules** (stored in the database, edi
 Why 0.95: we judge that a wrong approval costs about 20 times a short delay, so auto-approve only when `p > 20 / (20 + 1) = 0.952`. The evaluation page shows the full cost curve that backs this choice.
 
 ### 6. The explanation: two views
-- **Zainab hears (Urdu audio + icon):** "Your claim is paused because another person has also claimed this pension. An officer will check within 3 days."
+- **Zainab hears (Urdu audio + icon):** "Your claim is paused because another person has also claimed this pension. An officer will check within 3 days." (3 days is our mock service level; no official processing time exists.)
 - **The auditor sees:** input, rule version, model version, confidence, every check result, the route and the final result.
 
 ### 7. Officer review
@@ -82,7 +82,7 @@ Kamran's queue is sorted by priority and confidence. He sees both claimants side
 - When she withdraws Ayesha's access, Ayesha's **very next request is blocked (403)** on the server, and the audit log shows the withdrawal and the blocked attempt.
 
 ### 11. Rules change live
-- The admin changes a rule (example: v2 lets widows who remarried keep the pension) in a form. No code change, no redeploy.
+- The admin publishes a real, dated rule change: **v2 = the federal 10-year cap** (effective 10 Sep 2024). After the spouse dies or becomes ineligible, other family members get the family pension for at most 10 years (children: 10 years or until age 21, whichever is later; disabled children: for life). People already drawing the pension before that date are exempt. No code change, no redeploy.
 - **Digital Twin:** before publishing, the admin replays past cases under the new rule and sees "this would change 3 past decisions".
 - Old decisions still show "decided under rule v1".
 

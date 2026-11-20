@@ -1,7 +1,7 @@
 # Kissa: start here
 
 > Your personal task list. Aiza (and Claude) keep this updated. Tick boxes as you finish and push.
-> Last updated: Sat 21 Nov, Phase 0.
+> Last updated: Sat 21 Nov 02:15, Phase 0 (research applied).
 
 ## 1. What we are building (2 minute read)
 
@@ -74,7 +74,17 @@ You own **Stream C (Frontend PWA)** and **Stream D (Demo & quality)**. Aiza owns
 - [ ] Record the demo video, upload to Google Drive (public link).
 - [ ] Slides (optional).
 
-## 5. Rules (important)
+## 5. Design facts from research (keep these in the UI)
+
+- Size budget: citizen app shell <= 170 KB total (JS <= 100 KB), each extra screen <= 30 KB, audio clips ~15 KB, photos compressed on the phone to ~200 KB. Check with `npm run build`.
+- Never write "fake" or "forged" on screen: document checks say "needs a second look", each with its reason and "what this cannot tell".
+- Payout screens show the payee check as **match / close match / no match**.
+- Payout confirmation goes to the widow herself, never to the helper's phone.
+- Rule v2 in the demo is the **10-year cap for non-spouse heirs (10 Sep 2024)**, not "remarried widows".
+- Voice only pre-fills a field; the user always confirms with a tap.
+- Full details: [docs/research/survivor-pension.md](docs/research/survivor-pension.md) and the last section of [docs/03-ARCHITECTURE.md](docs/03-ARCHITECTURE.md).
+
+## 6. Rules (important)
 
 - Everything is **mock**: no real names, CNICs, phone numbers or photos anywhere.
 - Every page shows the **PROTOTYPE** banner (the component already exists: `src/components/PrototypeBanner.tsx`).

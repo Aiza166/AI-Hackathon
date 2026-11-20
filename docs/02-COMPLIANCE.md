@@ -11,7 +11,7 @@ Legend: P = Planned, B = Built, T = Tested, X = Cut
 | Wrong approvals cost more than slow ones | Cost ratio 20:1 gives auto-approve threshold 0.95; never auto-reject; any red flag goes to a human | Evaluation page: cost curve, wrong approvals = 0 on test set | P |
 | Weak internet | Offline-first PWA, outbox with idempotency keys, saved progress, small pages, cached audio | Throttle to "Slow 3G", go offline mid-claim, come back, claim syncs once | P |
 | Low literacy | Icons, Urdu audio for every prompt, voice input confirmed by tap, minimal text | Complete a claim without reading | P |
-| Rules change without notice | Rules are versioned JSON in the database (GoRules ZEN), edited by admin, no redeploy | Publish v2 live; next case uses v2, old case shows v1 | P |
+| Rules change without notice | Rules are versioned JSON in the database (GoRules ZEN), edited by admin, no redeploy | Publish v2 (real 10-year cap, 10 Sep 2024) live; next case uses v2, old case shows v1 | P |
 | Bad data | Name normaliser + fuzzy match + CNIC/DOB agreement; dedupe; missing fields lead to "ask for proof", never a crash | Muhammad/Mohd./Muhammed matched; the other Muhammad Aslam not matched | P |
 | Explainable decisions | Two views: simple Urdu reason for the user, full trace for the auditor | Citizen hears reason; auditor opens trace | P |
 | User control | Consent screen: see, share, withdraw, correct | Withdraw helper's access live | P |
@@ -112,6 +112,14 @@ Legend: P = Planned, B = Built, T = Tested, X = Cut
 | README | both | P |
 | Demo video (public Google Drive link) | P2 | P |
 | Slides (optional) | P2 | P |
+
+## Honest limits (say these to judges)
+
+- QR verification of death certificates is **not built**: no primary source confirms these certificates carry a QR code.
+- Document checks are risk indicators for an officer, never a "fake" verdict; missing EXIF is normal (WhatsApp strips it) and never counts against anyone.
+- Name-matching and scam error rates are measured on our synthetic / public sets, not on real NADRA data.
+- Family pension amounts and the "3 days" review time are mock values.
+- Urdu speech-to-text is only used to pre-fill fields that the user confirms with a tap.
 
 ## Open compliance risk
 
