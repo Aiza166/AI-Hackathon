@@ -70,8 +70,12 @@ def can_view(db: Session, principal: Principal, case: Case) -> bool:
     return False
 
 
+def person_by_cnic(db: Session, cnic: str) -> Person | None:
+    return db.execute(select(Person).where(Person.cnic == cnic)).scalar_one_or_none()
+
+
 def _claimant_person(db: Session, principal: Principal, claim: ClaimIn) -> Person:
-    person = db.execute(select(Person).where(Person.cnic == claim.claimant_cnic)).scalar_one_or_none()
+    person = person_by_cnic(db, claim.claimant_cnic)
     allowed = person is not None and (
         (principal.role == Role.CITIZEN and person.id == principal.person_id)
         or (principal.role == Role.HELPER and _helper_assigned(db, principal.id, person.id))

@@ -63,7 +63,12 @@ You own **Stream C (Frontend PWA)** and **Stream D (Demo & quality)**. Aiza owns
 ### Phase 2 (Sat 15:00 to 23:00)
 - [ ] Offline outbox with Dexie: save each claim step locally; queue actions with an idempotency key; "send now" button; sync on reconnect.
 - [ ] Helper Mode: family list, fast switch, clear "now acting for: X" header, only families with consent.
-- [ ] Consent screen: who can see my data, toggle fields, withdraw, request correction, "who saw my data".
+- [ ] Consent screen: who can see my data, toggle fields, withdraw, request correction, "who saw my data". **Backend is ready** (citizen token):
+  - `GET /api/v1/me/consents` → `{fields, consents:[{id, grantee_type, grantee_name, fields, status}]}`
+  - `PATCH /api/v1/me/consents/{id}` body `{fields:[...]}` · `POST /api/v1/me/consents/{id}/withdraw` · `POST /api/v1/me/consents` to grant again
+  - `GET /api/v1/me/access-log` → rows `{ts, action, who, role, field}` (DATA_ACCESS, CONSENT_DENIED, CONSENT_WITHDRAWN...)
+  - `POST /api/v1/me/corrections` body `{field: name|date_of_birth|payout_account|family_record, requested_value, reason}`; officer side `GET /api/v1/corrections`, `POST /api/v1/corrections/{id}/approve|reject` body `{note}`
+  - Helper family list now returns `consent_active` and hides `cnic` when not shared: show a lock icon and disable "new claim" for those families.
 - [ ] Admin rule editor screen + Digital Twin results table.
 - [ ] Auditor: decision trace view.
 - [ ] Urdu audio clips for every prompt and reason code (Stream D), cached by the PWA.

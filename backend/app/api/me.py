@@ -4,6 +4,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.auth import Principal, get_principal, require_roles
+from app.core.consent import active_consent
 from app.core.envelope import ok
 from app.db import get_db
 from app.models.platform import HelperAssignment, Person, User
@@ -29,4 +30,9 @@ def helper_families(principal: Principal = Depends(require_roles(Role.HELPER)), 
         select(Person).join(HelperAssignment, HelperAssignment.person_id == Person.id)
         .where(HelperAssignment.helper_user_id == principal.id).order_by(Person.display_name)
     ).scalars()
-    return ok([{"id": p.id, "cnic": p.cnic, "name": p.display_name} for p in rows])
+    families = []
+    for p in rows:
+        # Without the family's consent the helper sees only the name, never the CNIC.
+        shared = active_consent(db, principal, p.id, "cnic") is not None
+        families.append({"id": p.id, "name": p.display_name, "cnic": p.cnic if shared else None, "consent_active": shared})
+    return ok(families)

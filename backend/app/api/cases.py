@@ -1,11 +1,11 @@
 """Case endpoints for citizens, helpers, officers, admins and auditors."""
 from fastapi import APIRouter, Depends, Request
-
-from app.core.ratelimit import limiter
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.auth import Principal, deny, get_principal, require_roles
+from app.core.consent import assert_consent
+from app.core.ratelimit import limiter
 from app.core.envelope import ok
 from app.db import get_db
 from app.decision.explanations import explain
@@ -20,13 +20,17 @@ STAFF = (Role.OFFICER, Role.ADMIN, Role.AUDITOR)
 CAN_ESCALATE = (Role.CITIZEN, Role.HELPER, Role.OFFICER, Role.ADMIN)
 
 
-def _load(db: Session, principal: Principal, request: Request, case_id: str, lock: bool = False) -> Case:
-    # lock=True for state changes: the row lock stops two officers deciding at once.
-    case = db.get(Case, case_id, with_for_update=lock)
+def _load(db: Session, principal: Principal, request: Request, case_id: str, lock: bool = False, field: str = "case_details") -> Case:
+    case = db.get(Case, case_id)
     if case is None:
         raise svc.not_found()
     if not svc.can_view(db, principal, case):
         raise deny(db, principal, request, "not allowed to view this case")
+    # Consent is checked on every request (never cached): a withdrawal blocks the very next call.
+    assert_consent(db, principal, request, case.claimant_person_id, field)
+    if lock:
+        # Row lock for state changes, taken after the consent log commit so it is held to the end.
+        db.refresh(case, with_for_update=True)
     return case
 
 
@@ -63,6 +67,11 @@ def create_and_submit(
     db: Session = Depends(get_db),
 ) -> dict:
     """File a claim and run the decision engine on it right away."""
+    if principal.role == Role.HELPER:
+        # A helper may only file for a family that has shared its details with this helper.
+        person = svc.person_by_cnic(db, body.claimant_cnic)
+        if person is not None:
+            assert_consent(db, principal, request, person.id, "case_details")
     case = svc.create_case(db, principal, body)
     svc.run_decision(db, case, created_by=principal)
     affected = svc.recheck_related(db, case)

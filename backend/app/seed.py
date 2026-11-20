@@ -13,14 +13,16 @@ from sqlalchemy.orm import Session
 
 from app.core import audit
 from app.core.security import hash_pin
+from app.core.consent import PURPOSE
 from app.db import SessionLocal
+from app.models.consent import CONSENT_FIELDS, Consent
 from app.models.mock import MockAccount, MockDeath, MockFamilyLink, MockFamilyPensionDrawn, MockPension, MockPerson
 from app.models.platform import HelperAssignment, Person, RuleVersion, Tenant, User, utcnow
 
 DEMO_PIN = "1234"
 RULESET_DIR = Path(__file__).parent / "decision" / "rulesets"
 RESET_TABLES = (
-    "decisions", "case_events", "cases", "api_keys", "helper_assignments", "users", "persons", "rule_versions", "tenants",
+    "consents", "correction_requests", "decisions", "case_events", "cases", "api_keys", "helper_assignments", "users", "persons", "rule_versions", "tenants",
     "mock_accounts", "mock_family_pensions_drawn", "mock_pensions", "mock_deaths", "mock_family_links", "mock_persons", "mock_faults",
 )
 
@@ -161,6 +163,18 @@ def _seed_users(db: Session) -> None:
         db.add(person)
         db.flush()
         db.add(HelperAssignment(helper_user_id=helper.id, person_id=person.id))
+    db.flush()
+    _seed_consents(db, tenants["pension"].id, helper.id)
+
+
+def _seed_consents(db: Session, pension_tenant_id: str, helper_id: str) -> None:
+    """Each person starts having shared everything with the pension department, and helper
+    families with their helper. Citizens can change or withdraw these at any time."""
+    fields = list(CONSENT_FIELDS)
+    for person in db.query(Person).all():
+        db.add(Consent(subject_person_id=person.id, grantee_type="department", grantee_id=pension_tenant_id, purpose=PURPOSE, fields=fields))
+    for assignment in db.query(HelperAssignment).filter(HelperAssignment.helper_user_id == helper_id).all():
+        db.add(Consent(subject_person_id=assignment.person_id, grantee_type="helper", grantee_id=helper_id, purpose=PURPOSE, fields=fields))
 
 
 def reset(db: Session) -> None:
