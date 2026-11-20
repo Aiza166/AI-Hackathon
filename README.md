@@ -37,7 +37,7 @@ Build window: Fri 20 Nov 2026, 6:00 PM to Sun 22 Nov 2026, 6:00 PM PKT. Live jud
 
 ```bash
 docker compose up -d                      # Postgres + Redis
-cd backend && python -m venv .venv && .venv\Scriptsctivate
+cd backend && python -m venv .venv && .venv\Scripts\activate
 pip install -r requirements.txt && copy .env.example .env
 pytest && uvicorn app.main:app --reload   # API docs: http://localhost:8000/docs
 cd ../frontend && npm install && npm run dev   # http://localhost:5173
