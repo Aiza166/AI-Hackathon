@@ -15,7 +15,8 @@ export type Me = {
   person: { id: string; cnic: string; name: string } | null
 }
 
-export type Family = { id: string; cnic: string; name: string }
+// cnic is null when the family has not shared it with this helper (no active consent).
+export type Family = { id: string; cnic: string | null; name: string; consent_active?: boolean }
 
 export type DecisionSummary = {
   id: string
@@ -70,3 +71,49 @@ export type AuditRow = {
   resource: string | null
   details: Record<string, unknown>
 }
+
+export type ConsentField = 'cnic' | 'family_record' | 'death_certificate' | 'payout_account' | 'case_details'
+
+export type Consent = {
+  id: string
+  grantee_type: 'helper' | 'department'
+  grantee_id: string
+  grantee_name: string
+  fields: ConsentField[]
+  status: 'active' | 'withdrawn'
+  created_at: string
+  withdrawn_at: string | null
+}
+
+export type ConsentList = { fields: ConsentField[]; consents: Consent[] }
+
+export type AccessLogRow = {
+  seq: number
+  ts: string
+  action: string
+  who: string
+  role: string | null
+  field: string | null
+  basis: string | null
+}
+
+export type CorrectionField = 'name' | 'date_of_birth' | 'payout_account' | 'family_record'
+
+export type RuleDef = { id: string; title?: string; basis?: string; reason?: string }
+
+export type RuleVersionRow = {
+  id: string
+  ruleset: string
+  version: number
+  label: string
+  status: 'live' | 'draft' | 'retired'
+  effective_from: string | null
+  thresholds: Record<string, number>
+  rules: RuleDef[]
+}
+
+export type TwinOutcome = { route: string; reasons: string[]; entitlement_end: string | null }
+
+export type TwinCase = { case: string; status: string; before: TwinOutcome; after: TwinOutcome; changed: string[] }
+
+export type Simulation = { draft_version: number; checked: number; changed: number; cases: TwinCase[] }

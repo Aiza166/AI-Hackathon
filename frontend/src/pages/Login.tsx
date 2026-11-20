@@ -1,16 +1,28 @@
 import { useState } from 'react'
 import { errorText, post, setToken } from '../api/client'
 import type { LoginResult, SessionUser } from '../api/types'
+import { ErrorNote, ListenButton } from '../components/ui'
+import { Icon } from '../lib/icons'
 
-// Demo personas (all mock). Shown only so judges can switch roles quickly.
+// Demo personas (all mock). Hidden behind a toggle so the default screen looks like a real sign-in.
 const DEMO_USERS = [
-  { phone: '00000000001', label: 'Zainab (widow)', icon: '\u{1F469}' },
-  { phone: '00000000002', label: 'Rukhsana (competing claim)', icon: '\u{1F9D5}' },
-  { phone: '00000000010', label: 'Ayesha (helper)', icon: '\u{1F91D}' },
-  { phone: '00000000020', label: 'Kamran (officer)', icon: '\u{1F5C2}' },
-  { phone: '00000000030', label: 'Admin', icon: '⚙' },
-  { phone: '00000000040', label: 'Auditor', icon: '\u{1F50D}' },
+  { phone: '00000000001', label: 'Zainab', role: 'Widow', icon: 'widow' },
+  { phone: '00000000002', label: 'Rukhsana', role: 'Competing claim', icon: 'people' },
+  { phone: '00000000010', label: 'Ayesha', role: 'Helper', icon: 'helper' },
+  { phone: '00000000020', label: 'Kamran', role: 'Officer', icon: 'person' },
+  { phone: '00000000030', label: 'Admin', role: 'Rules + console', icon: 'rules' },
+  { phone: '00000000040', label: 'Auditor', role: 'Read-only log', icon: 'eye' },
 ]
+const DEMO_KEY = 'sahara.demoOpen'
+const WELCOME_UR = 'سہارا میں خوش آمدید۔ اپنا فون نمبر اور پن لکھیں۔'
+
+function readDemoOpen(): boolean {
+  try {
+    return sessionStorage.getItem(DEMO_KEY) === '1'
+  } catch {
+    return false
+  }
+}
 
 interface LoginProps {
   onLogin: (user: SessionUser) => void
@@ -21,6 +33,17 @@ export function Login({ onLogin }: LoginProps) {
   const [pin, setPin] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const [demoOpen, setDemoOpen] = useState(readDemoOpen)
+
+  function toggleDemo(): void {
+    const next = !demoOpen
+    setDemoOpen(next)
+    try {
+      sessionStorage.setItem(DEMO_KEY, next ? '1' : '0')
+    } catch {
+      // storage blocked: the toggle still works for this page view
+    }
+  }
 
   async function signIn(usePhone: string, usePin: string): Promise<void> {
     setBusy(true)
@@ -37,36 +60,90 @@ export function Login({ onLogin }: LoginProps) {
   }
 
   return (
-    <main className="page">
-      <h1>Sahara</h1>
-      <p lang="ur" className="urdu">پنشن کے دعوے میں مدد</p>
-      <form
-        className="stack"
-        onSubmit={(e) => {
-          e.preventDefault()
-          void signIn(phone, pin)
-        }}
-      >
-        <label>
-          Phone <span lang="ur">فون نمبر</span>
-          <input inputMode="numeric" autoComplete="tel" value={phone} onChange={(e) => setPhone(e.target.value)} />
-        </label>
-        <label>
-          PIN <span lang="ur">پن</span>
-          <input inputMode="numeric" type="password" autoComplete="current-password" value={pin} onChange={(e) => setPin(e.target.value)} />
-        </label>
-        <button className="primary" type="submit" disabled={busy}>Sign in</button>
-        {error && <p className="error" role="alert">{error}</p>}
-      </form>
-      <h2>Demo users (PIN 1234)</h2>
-      <div className="role-grid">
-        {DEMO_USERS.map((u) => (
-          <button key={u.phone} className="role-card" type="button" disabled={busy} onClick={() => void signIn(u.phone, '1234')}>
-            <span className="icon" aria-hidden="true">{u.icon}</span>
-            <span>{u.label}</span>
+    <main className="login">
+      <section className="login-card" aria-labelledby="login-title">
+        <div className="login-head">
+          <div>
+            <h1 id="login-title" className="login-mark">
+              <span lang="ur" dir="rtl">سہارا</span>
+              <span className="login-mark-en">Sahara</span>
+            </h1>
+            <p className="login-sub">
+              <span lang="ur" dir="rtl">پنشن کا دعویٰ، آسان طریقے سے</span>
+              <span className="bi-en">Survivor pension claims, step by step</span>
+            </p>
+          </div>
+          <ListenButton audioKey="prompt_welcome" text={WELCOME_UR} />
+        </div>
+
+        <form
+          className="form"
+          onSubmit={(e) => {
+            e.preventDefault()
+            void signIn(phone, pin)
+          }}
+        >
+          <label className="field">
+            <span className="field-label">
+              <Icon name="phone" size={22} />
+              <span lang="ur" dir="rtl">فون نمبر</span>
+              <span className="bi-en">Phone number</span>
+            </span>
+            <input
+              className="input input-big"
+              inputMode="numeric"
+              autoComplete="tel"
+              placeholder="03XX XXXXXXX"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value.replace(/[^\d]/g, ''))}
+              required
+            />
+          </label>
+          <label className="field">
+            <span className="field-label">
+              <Icon name="lock" size={22} />
+              <span lang="ur" dir="rtl">پن</span>
+              <span className="bi-en">4-digit PIN</span>
+            </span>
+            <input
+              className="input input-big input-pin"
+              inputMode="numeric"
+              type="password"
+              autoComplete="current-password"
+              maxLength={6}
+              value={pin}
+              onChange={(e) => setPin(e.target.value.replace(/[^\d]/g, ''))}
+              required
+            />
+          </label>
+          <ErrorNote message={error} />
+          <button className="btn btn-primary btn-block btn-big" type="submit" disabled={busy}>
+            <span lang="ur" dir="rtl">داخل ہوں</span>
+            <span>{busy ? 'Signing in…' : 'Sign in'}</span>
           </button>
-        ))}
-      </div>
+        </form>
+
+        <div className="demo">
+          <button type="button" className="demo-toggle" aria-expanded={demoOpen} aria-controls="demo-list" onClick={toggleDemo}>
+            <Icon name={demoOpen ? 'close' : 'people'} size={18} />
+            {demoOpen ? 'Hide demo accounts' : 'Demo accounts (mock)'}
+          </button>
+          {demoOpen && (
+            <div id="demo-list" className="demo-panel">
+              <p className="demo-hint">One tap signs in as a mock persona (PIN 1234). For judges and testing only.</p>
+              <div className="demo-grid">
+                {DEMO_USERS.map((u) => (
+                  <button key={u.phone} className="demo-persona" type="button" disabled={busy} onClick={() => void signIn(u.phone, '1234')}>
+                    <Icon name={u.icon} size={26} />
+                    <span className="demo-name">{u.label}</span>
+                    <span className="demo-role">{u.role}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </section>
     </main>
   )
 }
