@@ -22,6 +22,7 @@ Demo logins (PIN 1234): Zainab 00000000001, Rukhsana 00000000002, helper Ayesha 
 
 | When (PKT) | Who | What |
 |---|---|---|
+| Sat 21 Nov | Kissa | **Phase 0 (C+D)**: repo access confirmed (push works), docs read, screen list + text sketches in `docs/screens/`. Frontend installs and builds (73.6 KB gzipped JS). Backend venv (Python 3.12) + deps installed; DB steps blocked on Docker Desktop (not yet installed on Kissa's laptop). |
 | Sat 21 Nov ~04:00 | Claude (overnight) | **Security review** (independent agent, 13 findings) fixed: API keys can't list cases; tenant-scoped audit log; app refuses weak JWT_SECRET; auditors read-only; demo reset/faults only for platform admin; audit TRUNCATE hatch only in *_test DB; claim rate limit + duplicate-claim 409 + bounded recheck; PIN lockout (5 tries/15 min); row locks on officer actions; case refs from a sequence; citizens can't see officer IDs or others' case refs. 83 tests. Not fixed (known limits): refresh tokens not revocable; mock registry lookups not purpose-bound to a case; app DB user owns the audit table (production should use a separate non-owner role). |
 | Sat 21 Nov ~03:00 | Claude (overnight) | **Phase 1 frontend**: login + demo personas, citizen/helper claim wizard (icons, Urdu, audio), decision result screen, Helper Mode family picker (40 families), officer queue with trace + approve/reject, auditor log + verify chain. 74 KB gzipped JS. Verified live: claim through the UI proxy auto-approves Zainab. |
 | Sat 21 Nov ~02:30 | Claude (overnight) | **Phase 1 backend**: Postgres schema + migrations; append-only hash-chained audit log (DB trigger); JWT login, roles, API keys with scopes; mock NADRA/FRC/death registry/pension/Raast services with fault injection; name matching (no match without exact CNIC); rules as versioned JSON (v1 live, v2 = 10-year cap as draft); decision engine (AUTO / ASK_PROOF / UNSURE, never auto-reject, payee check, competing claims recheck); case APIs, officer queue, citizen explanation, auditor trace; seed data with messy names and traps. |
@@ -63,4 +64,6 @@ Demo logins (PIN 1234): Zainab 00000000001, Rukhsana 00000000002, helper Ayesha 
 
 ## Blockers
 
-None. Deploy note: behind a proxy run `uvicorn app.main:app --proxy-headers --forwarded-allow-ips='*'` so rate limits see real client IPs.
+- Kissa: Docker Desktop (and WSL) not installed yet, so local Postgres/Redis, `pytest` and the signed-in frontend wait on that install.
+
+Deploy note: behind a proxy run `uvicorn app.main:app --proxy-headers --forwarded-allow-ips='*'` so rate limits see real client IPs.

@@ -51,8 +51,8 @@ You own **Stream C (Frontend PWA)** and **Stream D (Demo & quality)**. Aiza owns
 
 ### Phase 0 (tonight / first thing)
 - [ ] Do the setup above; run the frontend; push one small commit (e.g., your name in this file) so we know access works.
-- [ ] Read the 3 docs above.
-- [ ] Draft the screen list and a rough sketch (a paper photo is fine) for: citizen home, claim steps, decision result, officer queue. Put it in `docs/screens/`.
+- [x] Read the 3 docs above.
+- [x] Draft the screen list and a rough sketch (a paper photo is fine) for: citizen home, claim steps, decision result, officer queue. Put it in `docs/screens/`. (Text sketches in [docs/screens/README.md](docs/screens/README.md).)
 
 ### Phase 1 (Sat 09:00 to 15:00): golden path UI
 - [x] Role login screen (phone + PIN) with demo personas (built; routing is simple state in `App.tsx`, add a router only if needed).
