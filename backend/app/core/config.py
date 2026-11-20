@@ -1,7 +1,7 @@
 """App settings, read from environment variables (see .env.example)."""
 from functools import lru_cache
 
-from pydantic import model_validator
+from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 PLACEHOLDER_SECRETS = {"change-me-in-env", "generate-a-long-random-string", ""}
@@ -28,6 +28,15 @@ class Settings(BaseSettings):
     jev_timeout_seconds: float = 2.0
     # Only admins of this department may reset the demo or inject mock-service faults.
     platform_admin_tenant: str = "pension"
+
+    @field_validator("database_url")
+    @classmethod
+    def _use_psycopg_driver(cls, url: str) -> str:
+        """Hosts like Railway give postgres:// or postgresql:// URLs; SQLAlchemy needs the driver named."""
+        for prefix in ("postgres://", "postgresql://"):
+            if url.startswith(prefix):
+                return "postgresql+psycopg://" + url[len(prefix):]
+        return url
 
     @model_validator(mode="after")
     def _refuse_weak_jwt_secret(self) -> "Settings":

@@ -11,10 +11,10 @@ Legend: P = Planned, B = Built, T = Tested, X = Cut
 | Wrong approvals cost more than slow ones | Cost ratio 20:1 gives auto-approve threshold 0.95; never auto-reject; any red flag goes to a human | Evaluation page: cost curve, wrong approvals = 0 on test set | B |
 | Weak internet | Offline-first PWA, outbox with idempotency keys, saved progress, small pages, cached audio | Throttle to "Slow 3G", go offline mid-claim, come back, claim syncs once | P |
 | Low literacy | Icons, Urdu audio for every prompt, voice input confirmed by tap, minimal text | Complete a claim without reading | P |
-| Rules change without notice | Rules are versioned JSON in the database (GoRules ZEN), edited by admin, no redeploy | Publish v2 (real 10-year cap, 10 Sep 2024) live; next case uses v2, old case shows v1 | P |
+| Rules change without notice | Rules are versioned JSON in the database (own small rules engine), edited by admin, no redeploy | Publish v2 (real 10-year cap, 10 Sep 2024) live; next case uses v2, old case shows v1 | B (API, tested) |
 | Bad data | Name normaliser + fuzzy match + CNIC/DOB agreement; dedupe; missing fields lead to "ask for proof", never a crash | Muhammad/Mohd./Muhammed matched; the other Muhammad Aslam not matched | B |
 | Explainable decisions | Two views: simple Urdu reason for the user, full trace for the auditor | Citizen hears reason; auditor opens trace | P |
-| User control | Consent screen: see, share, withdraw, correct | Withdraw helper's access live | P |
+| User control | Consent screen: see, share, withdraw, correct | Withdraw helper's access live | B (API) |
 | "I am not sure" | Typed `UNSURE` route with reason codes, case notes, officer handoff | Second claimant appears, case pauses | B |
 
 ## User roles (at least 3): we use all 5
@@ -36,14 +36,14 @@ Legend: P = Planned, B = Built, T = Tested, X = Cut
 | Case management (create, assign, escalate, close) | `cases` + case events; auto-assign to officer; escalate on UNSURE | B |
 | Public REST API with API keys + Swagger/OpenAPI | FastAPI `/docs`; hashed API keys for outside systems | B |
 | Audit log of every user, AI and agent action | Append-only `audit_events` with hash chain, `/audit/verify` | B |
-| Consent management (see, share, withdraw, correct) | `consents` (artefact fields) + `assert_consent()` on every read | P |
+| Consent management (see, share, withdraw, correct) | `consents` (artefact fields) + `assert_consent()` on every read | B (API) |
 | Mock identity, payment and data services behind clean APIs | `/mock/nadra`, `/mock/death-registry`, `/mock/pension`, `/mock/raast` with failure injection | B |
 
 ## Platform features (pick at least 3): we plan 7
 
 | Feature | State |
 |---|---|
-| Admin rule editor (change eligibility without code) | P |
+| Admin rule editor (change eligibility without code) | B (API) |
 | Officer review queue with priority and confidence sorting | B |
 | Low-bandwidth / offline mode | P |
 | Notifications (in-app + mock SMS inbox) | P |
@@ -79,9 +79,9 @@ Legend: P = Planned, B = Built, T = Tested, X = Cut
 | 1 | Cost of being wrong | Cost curve + threshold justification on eval page | P |
 | 2 | Saying "I am not sure" | Competing claimant: case pauses, officer gets notes | P |
 | 3 | Bad data | Name variants matched; look-alike different person not matched; missing DOB asks for proof | P |
-| 4 | Rules that change | Publish v2 live; v1 cases still show v1; Digital Twin preview | P |
+| 4 | Rules that change | Publish v2 live; v1 cases still show v1; Digital Twin preview | B (API, tested) |
 | 5 | Explain and audit | Urdu reason for citizen; full trace + audit replay for auditor | P |
-| 6 | Consent and take-back | Withdraw helper access: next request 403, logged | P |
+| 6 | Consent and take-back | Withdraw helper access: next request 403, logged | B (API, tested) |
 | 7 | Works for everyone | Voice + icons on throttled network, offline resume | P |
 | 8 | Scams and fake documents | Fee/OTP scam SMS flagged with case cross-check; edited certificate flagged; false-alarm rate shown | P |
 
@@ -89,7 +89,7 @@ Legend: P = Planned, B = Built, T = Tested, X = Cut
 
 | Feature | State |
 |---|---|
-| Digital Twin (replay rule change on past cases) | P |
+| Digital Twin (replay rule change on past cases) | B (API, tested) |
 | Helper Mode (one phone, many families, separate consent) | P |
 | Offline-First Sync | P (part of core) |
 | Scam Map (scam patterns by type, area, time) | P |

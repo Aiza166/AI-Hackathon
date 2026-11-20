@@ -15,6 +15,8 @@ from datetime import date
 from typing import Any
 
 OUTCOME_ORDER = {"eligible": 0, "missing_info": 1, "not_eligible": 2}
+RULE_KINDS = frozenset({"gate", "limit", "share"})
+OPERATORS = frozenset({"is_true", "is_false", "eq", "ne", "in", "not_in", "contains", "date_gte", "date_lt", "gte", "lte"})
 
 
 @dataclass(frozen=True)

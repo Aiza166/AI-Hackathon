@@ -13,14 +13,18 @@ from sqlalchemy.orm import Session
 
 from app.core import audit
 from app.core.security import hash_pin
+from app.core.consent import PURPOSE
 from app.db import SessionLocal
+from app.models.consent import CONSENT_FIELDS, Consent
 from app.models.mock import MockAccount, MockDeath, MockFamilyLink, MockFamilyPensionDrawn, MockPension, MockPerson
-from app.models.platform import HelperAssignment, Person, RuleVersion, Tenant, User, utcnow
+from app.models.platform import Case, CaseEvent, HelperAssignment, Person, RuleVersion, Tenant, User, utcnow
 
 DEMO_PIN = "1234"
+# Bump when the demo world changes: deployed databases re-seed once on the next boot.
+SEED_VERSION = "phase2-scam"
 RULESET_DIR = Path(__file__).parent / "decision" / "rulesets"
 RESET_TABLES = (
-    "decisions", "case_events", "cases", "api_keys", "helper_assignments", "users", "persons", "rule_versions", "tenants",
+    "scam_checks", "payout_change_requests", "consents", "correction_requests", "decisions", "case_events", "cases", "api_keys", "helper_assignments", "users", "persons", "rule_versions", "tenants",
     "mock_accounts", "mock_family_pensions_drawn", "mock_pensions", "mock_deaths", "mock_family_links", "mock_persons", "mock_faults",
 )
 
@@ -42,6 +46,18 @@ PEOPLE = [
     ("9000000000077", "Rafiq Ahmed", "Bashir Ahmed", date(1980, 8, 8), "M", "Karachi South", "married", False),
     ("9000000000088", "Kausar Parveen", "Tariq Mehmood", date(1968, 10, 10), "F", "Quetta", "widowed", False),
     ("9000000000089", "Tariq Mehmood", "Sher Khan", date(1960, 1, 1), "M", "Quetta", "married", False),
+    # Family whose heirs became eligible in 2019: exempt from the 2024 10-year cap (rule v2).
+    ("9000000000101", "Allah Rakha", "Fateh Muhammad", date(1945, 2, 2), "M", "Faisalabad", "married", False),
+    ("9000000000102", "Rasheeda Bibi", "Allah Rakha", date(1950, 5, 5), "F", "Faisalabad", "widowed", False),
+    ("9000000000103", "Sajida Rakha", "Allah Rakha", date(1990, 8, 8), "F", "Faisalabad", "unmarried", False),
+    ("9000000000104", "Naveed Rakha", "Allah Rakha", date(2004, 1, 1), "M", "Faisalabad", "unmarried", False),
+]
+# Past, already-approved claims (decided under rule v1) for the Digital Twin to replay.
+PAST_CASES = [  # claimant cnic, relation, deceased cnic, deceased name, iban
+    ("9000000000068", "son", "9000000000066", "Ghulam Haider", "PK00MOCK0000000000000005"),
+    ("9000000000069", "daughter", "9000000000066", "Ghulam Haider", "PK00MOCK0000000000000006"),
+    ("9000000000103", "daughter", "9000000000101", "Allah Rakha", "PK00MOCK0000000000000010"),
+    ("9000000000104", "son", "9000000000101", "Allah Rakha", "PK00MOCK0000000000000011"),
 ]
 FAMILIES = [  # frc, head, member, relation
     ("FRC-1001", "9000000000011", "9000000000022", "wife"),
@@ -53,6 +69,9 @@ FAMILIES = [  # frc, head, member, relation
     ("FRC-1003", "9000000000066", "9000000000068", "son"),
     ("FRC-1003", "9000000000066", "9000000000069", "daughter"),
     ("FRC-1004", "9000000000089", "9000000000088", "wife"),
+    ("FRC-1005", "9000000000101", "9000000000102", "wife"),
+    ("FRC-1005", "9000000000101", "9000000000103", "daughter"),
+    ("FRC-1005", "9000000000101", "9000000000104", "son"),
 ]
 DEATHS = [  # cnic, name on certificate (spelled differently on purpose), date, cert no, union council
     ("9000000000011", "Mohd. Aslam", date(2026, 8, 14), "DC-UC12-2026-0412", "UC-12 Gulshan (mock)"),
@@ -60,12 +79,15 @@ DEATHS = [  # cnic, name on certificate (spelled differently on purpose), date, 
     ("9000000000066", "Ghulam Haider", date(2010, 2, 2), "DC-UC07-2010-0031", "UC-7 Multan (mock)"),
     ("9000000000067", "Shamim Akhtar", date(2024, 11, 1), "DC-UC07-2024-0777", "UC-7 Multan (mock)"),
     ("9000000000089", "Tariq Mehmood", date(2019, 5, 5), "DC-UC01-2019-0123", "UC-1 Quetta (mock)"),
+    ("9000000000101", "Allah Rakha", date(2005, 6, 1), "DC-UC09-2005-0050", "UC-9 Faisalabad (mock)"),
+    ("9000000000102", "Rasheeda Bibi", date(2019, 3, 1), "DC-UC09-2019-0211", "UC-9 Faisalabad (mock)"),
 ]
 PENSIONS = [  # cnic, name in pension office, invented monthly amount, status
     ("9000000000011", "Muhammed Aslam", 32000, "active"),
     ("9000000000055", "Abdul Rauf", 28000, "active"),
     ("9000000000066", "Ghulam Haider", 21000, "active"),
     ("9000000000089", "Tariq Mehmood", 25000, "active"),
+    ("9000000000101", "Allah Rakha", 18000, "active"),
 ]
 ACCOUNTS = [  # iban, title, owner, bank
     ("PK00MOCK0000000000000001", "ZAINAB BIBI", "9000000000022", "Mock Bank"),
@@ -77,6 +99,8 @@ ACCOUNTS = [  # iban, title, owner, bank
     ("PK00MOCK0000000000000007", "ZAINAB B", "9000000000022", "Mock Bank"),
     ("PK00MOCK0000000000000008", "KHALID TRADERS", "9000000000077", "Mock Bank"),
     ("PK00MOCK0000000000000009", "KAUSAR PARVEEN", "9000000000088", "Mock Bank"),
+    ("PK00MOCK0000000000000010", "SAJIDA RAKHA", "9000000000103", "Mock Bank"),
+    ("PK00MOCK0000000000000011", "NAVEED RAKHA", "9000000000104", "Mock Bank"),
 ]
 CITIZENS = [  # phone, person cnic
     ("00000000001", "9000000000022"),
@@ -161,6 +185,46 @@ def _seed_users(db: Session) -> None:
         db.add(person)
         db.flush()
         db.add(HelperAssignment(helper_user_id=helper.id, person_id=person.id))
+    db.flush()
+    _seed_consents(db, tenants["pension"].id, helper.id)
+
+
+def _seed_consents(db: Session, pension_tenant_id: str, helper_id: str) -> None:
+    """Each person starts having shared everything with the pension department, and helper
+    families with their helper. Citizens can change or withdraw these at any time."""
+    fields = list(CONSENT_FIELDS)
+    for person in db.query(Person).all():
+        db.add(Consent(subject_person_id=person.id, grantee_type="department", grantee_id=pension_tenant_id, purpose=PURPOSE, fields=fields))
+    for assignment in db.query(HelperAssignment).filter(HelperAssignment.helper_user_id == helper_id).all():
+        db.add(Consent(subject_person_id=assignment.person_id, grantee_type="helper", grantee_id=helper_id, purpose=PURPOSE, fields=fields))
+
+
+def _seed_past_cases(db: Session) -> None:
+    """Claims decided under rule v1 and approved by an officer, so the Digital Twin has
+    history to replay when an admin tries rule v2."""
+    from app.services.cases import run_decision  # local import: services import the models this module seeds
+
+    pension = db.query(Tenant).filter(Tenant.slug == "pension").one()
+    officer = db.query(User).filter(User.phone == "00000000020").one()
+    names = {p[0]: p[1] for p in PEOPLE}
+    docs = ["death_certificate", "claimant_cnic", "frc"]
+    for number, (cnic, relation, deceased_cnic, deceased_name, iban) in enumerate(PAST_CASES, start=1):
+        person = db.query(Person).filter(Person.cnic == cnic).one_or_none()
+        if person is None:
+            person = Person(cnic=cnic, display_name=names[cnic])
+            db.add(person)
+            db.flush()
+            db.add(Consent(subject_person_id=person.id, grantee_type="department", grantee_id=pension.id,
+                           purpose=PURPOSE, fields=list(CONSENT_FIELDS)))
+        claim = {"claimant_cnic": cnic, "claimant_name": names[cnic], "relation_claimed": relation, "deceased_cnic": deceased_cnic,
+                 "deceased_name": deceased_name, "payout_iban": iban, "documents": docs}
+        case = Case(reference=f"SP-0{number:03d}", tenant_id=pension.id, claimant_person_id=person.id, created_by=officer.id,
+                    status="submitted", claim=claim, deceased_cnic=deceased_cnic, payout_iban=iban)
+        db.add(case)
+        db.flush()
+        run_decision(db, case)
+        case.status = "approved"
+        db.add(CaseEvent(case_id=case.id, kind="approved", actor_id=officer.id, note="Approved (seeded history)"))
 
 
 def reset(db: Session) -> None:
@@ -170,7 +234,9 @@ def reset(db: Session) -> None:
     _seed_rules(db)
     _seed_users(db)
     db.flush()
-    audit.record(db, audit.SYSTEM, "DEMO_RESET", details={"seed": "phase1"})
+    _seed_past_cases(db)
+    db.flush()
+    audit.record(db, audit.SYSTEM, "DEMO_RESET", details={"seed": SEED_VERSION})
     db.commit()
 
 
