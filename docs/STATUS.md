@@ -64,6 +64,6 @@ Demo logins (PIN 1234): Zainab 00000000001, Rukhsana 00000000002, helper Ayesha 
 
 ## Blockers
 
-- Kissa: Docker Desktop (and WSL) not installed yet, so local Postgres/Redis, `pytest` and the signed-in frontend wait on that install.
+None. (Kissa's Docker setup done Sat 21 Nov: 83/83 tests pass, signed in as Zainab. Tip: if a native Postgres already owns port 5432 on your laptop, add a git-ignored `docker-compose.override.yml` mapping `5433:5432`, use port 5433 in `.env`, and set `TEST_DATABASE_URL` to the 5433 `sahara_test` URL for pytest.)
 
 Deploy note: behind a proxy run `uvicorn app.main:app --proxy-headers --forwarded-allow-ips='*'` so rate limits see real client IPs.
