@@ -85,5 +85,15 @@ class JevClient:
             usage=data.get("usage", {}),
         )
 
+    def reachable(self) -> bool:
+        """Cheap health check (lists models, no tokens used). Never raises."""
+        if not self._settings.typesafe_api_key:
+            return False
+        try:
+            headers = {"Authorization": f"Bearer {self._settings.typesafe_api_key}"}
+            return self._client.get("/v1/models", headers=headers).status_code == 200
+        except httpx.HTTPError:
+            return False
+
     def close(self) -> None:
         self._client.close()

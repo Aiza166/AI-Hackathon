@@ -106,7 +106,8 @@ def _family_facts(db: Session, claim: ClaimIn, deceased_cnic: str, signals: Sign
         signals.facts["became_eligible_on"] = date_of_death
     else:
         signals.facts["became_eligible_on"] = max(wife_death_dates) if wife_death_dates else date_of_death
-    signals.facts["_frc_wives"] = sorted(c for c, r in members.items() if r == "wife")
+    # Everyone in the FRC who could lawfully share this pension (widows, sons, daughters).
+    signals.facts["_frc_family"] = sorted(c for c, r in members.items() if r in ("wife", "son", "daughter"))
 
 
 def _claimant_facts(db: Session, claim: ClaimIn, signals: Signals, today: date) -> None:
@@ -144,7 +145,7 @@ def _payee(db: Session, claim: ClaimIn, signals: Signals) -> None:
 
 
 def _other_claims(db: Session, case: Case, claim: ClaimIn, signals: Signals) -> None:
-    wives = set(signals.facts.get("_frc_wives", []))
+    family = set(signals.facts.get("_frc_family", []))
     others = db.execute(
         select(Case, Person.cnic).join(Person, Person.id == Case.claimant_person_id).where(
             Case.id != case.id, Case.status.in_(ACTIVE_STATUSES), Case.claimant_person_id != case.claimant_person_id,
@@ -154,7 +155,8 @@ def _other_claims(db: Session, case: Case, claim: ClaimIn, signals: Signals) -> 
     for other, other_cnic in others:
         if claim.deceased_cnic and other.deceased_cnic == claim.deceased_cnic:
             entry = {"case": other.reference, "claimant_cnic_last4": other_cnic[-4:]}
-            (signals.co_sharers if other_cnic in wives else signals.duplicate_claims).append(entry)
+            # A claimant in the FRC is a lawful co-sharer; anyone else is a red flag.
+            (signals.co_sharers if other_cnic in family else signals.duplicate_claims).append(entry)
         if other.payout_iban == claim.payout_iban:
             signals.account_reuse.append({"case": other.reference})
 

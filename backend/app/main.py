@@ -6,11 +6,12 @@ from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 from sqlalchemy import text
 
-from app.api import admin, audit, auth, cases, consent, me, public
+from app.api import admin, audit, auth, cases, consent, me, payout, public, rules, scam
 from app.core.config import get_settings
 from app.core.envelope import fail, install_error_handlers, ok
 from app.core.ratelimit import limiter
 from app.db import SessionLocal
+from app.decision.jev_client import JevClient
 from app.mock import router as mock_router
 
 PROTOTYPE_NOTE = (
@@ -39,7 +40,7 @@ def create_app() -> FastAPI:
         allow_headers=["Authorization", "Content-Type", "X-API-Key", "Idempotency-Key"],
     )
     install_error_handlers(app)
-    for router in (auth.router, me.router, consent.router, cases.router, audit.router, admin.router, public.router, mock_router.router):
+    for router in (auth.router, me.router, consent.router, cases.router, audit.router, admin.router, rules.router, payout.router, scam.router, public.router, mock_router.router):
         app.include_router(router)
 
     @app.get("/healthz", tags=["health"])
@@ -50,7 +51,12 @@ def create_app() -> FastAPI:
     def readyz() -> dict:
         with SessionLocal() as db:
             db.execute(text("SELECT 1"))
-        return ok({"database": "ok"})
+        jev = JevClient()
+        try:
+            jev_ok = jev.reachable()
+        finally:
+            jev.close()
+        return ok({"database": "ok", "jev_reachable": jev_ok, "jev_model": get_settings().jev_model})
 
     return app
 

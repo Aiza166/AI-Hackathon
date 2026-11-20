@@ -69,7 +69,11 @@ You own **Stream C (Frontend PWA)** and **Stream D (Demo & quality)**. Aiza owns
   - `GET /api/v1/me/access-log` → rows `{ts, action, who, role, field}` (DATA_ACCESS, CONSENT_DENIED, CONSENT_WITHDRAWN...)
   - `POST /api/v1/me/corrections` body `{field: name|date_of_birth|payout_account|family_record, requested_value, reason}`; officer side `GET /api/v1/corrections`, `POST /api/v1/corrections/{id}/approve|reject` body `{note}`
   - Helper family list now returns `consent_active` and hides `cnic` when not shared: show a lock icon and disable "new claim" for those families.
-- [ ] Admin rule editor screen + Digital Twin results table.
+- [ ] Admin rule editor screen + Digital Twin results table. **Backend is ready** (admin token):
+  - `GET /api/v1/admin/rules` → versions `{id, version, label, status (live|draft|retired), effective_from, thresholds, rules}`
+  - `POST /api/v1/rules/{id}/simulate` → `{checked, changed, cases:[{case, before:{route, reasons, entitlement_end}, after:{...}, changed:[...]}]}` (nothing is saved)
+  - `POST /api/v1/rules/{id}/publish` · `POST /api/v1/rules/drafts` body `{label, rules, thresholds, effective_from}` (422 with a clear message if malformed)
+  - Demo: simulate v2 shows 2 of 4 past cases change (end date 2034-11-01); publish; Zainab's new claim says "rule v2".
 - [ ] Auditor: decision trace view.
 - [ ] Urdu audio clips for every prompt and reason code (Stream D), cached by the PWA.
 
@@ -85,6 +89,17 @@ You own **Stream C (Frontend PWA)** and **Stream D (Demo & quality)**. Aiza owns
 - [ ] Test on a real phone with a throttled network.
 - [ ] Record the demo video, upload to Google Drive (public link).
 - [ ] Slides (optional).
+
+### SafeSwitch endpoints (backend ready)
+- `POST /api/v1/cases/{case_id}/payout-change` body `{new_iban}` (citizen or helper with payout consent) → `{id, status (held|flagged), payee_result (match|close_match|no_match), flags, hold_until}`
+- `POST /api/v1/payout-changes/{id}/confirm` body `{pin}`: claimant only, re-enters her PIN (helpers get 403)
+- `POST /api/v1/payout-changes/{id}/approve|reject` body `{note}` (officer, flagged only) · `GET /api/v1/cases/{case_id}/payout-changes`
+- Judge console: `POST /api/v1/admin/payout/apply-due?skip_wait=true` (admin) applies confirmed changes as if the hold passed.
+
+### Scam Shield endpoints (backend ready)
+- `POST /api/v1/scam/check` body `{text, sender?, on_call_with_unknown?, area?}` → `{verdict: LIKELY_SCAM|LOOKS_GENUINE|NOT_SURE, confidence, reasons[], reasons_ur[], case_cross_check, report_routes[{name,url}]}`
+- `GET /api/v1/scam/map?days=7` (officer/admin/auditor) → `{total_checked, by_verdict, scams_by_type, scams_by_area, scams_by_hour}`
+- Mock official sender ID is `PENSION-GOV`. Ask "Is someone on the phone telling you to do this right now?" before checking (big yes/no icons).
 
 ## 5. Design facts from research (keep these in the UI)
 
