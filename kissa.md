@@ -1,5 +1,7 @@
 # Kissa: start here
 
+> Owner: **Kissa** (GitHub `Kissa-Zehra`), Streams C (frontend PWA) and D (demo & quality).
+
 > Your personal task list. Aiza (and Claude) keep this updated. Tick boxes as you finish and push.
 > Last updated: Sat 21 Nov ~04:00. **Phase 1 is built** (backend + a first version of your screens). Read section 0 first.
 
