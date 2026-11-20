@@ -1,7 +1,14 @@
 # Kissa: start here
 
 > Your personal task list. Aiza (and Claude) keep this updated. Tick boxes as you finish and push.
-> Last updated: Sat 21 Nov 02:15, Phase 0 (research applied).
+> Last updated: Sat 21 Nov ~04:00. **Phase 1 is built** (backend + a first version of your screens). Read section 0 first.
+
+## 0. What changed overnight (read first)
+
+- The backend for Phase 1 is done and tested (83 tests). Run it with the steps in [docs/STATUS.md](docs/STATUS.md).
+- Claude built **first versions** of these screens so the golden path works end to end: `src/pages/Login.tsx`, `ClaimWizard.tsx`, `CaseResult.tsx`, `CitizenHome.tsx` (incl. Helper Mode picker), `OfficerHome.tsx`, `AuditorHome.tsx`. They use emoji as icons and plain CSS. **They are yours now**: improve the design, swap emoji for real pictograms, make them feel right on a cheap phone.
+- API types are hand-written in `src/api/types.ts`; replace with generated ones (`npx openapi-typescript http://localhost:8000/openapi.json -o src/api/schema.ts`).
+- So your Phase 1 boxes below are mostly ticked; jump to Phase 2.
 
 ## 1. What we are building (2 minute read)
 
@@ -46,11 +53,11 @@ You own **Stream C (Frontend PWA)** and **Stream D (Demo & quality)**. Aiza owns
 - [ ] Draft the screen list and a rough sketch (a paper photo is fine) for: citizen home, claim steps, decision result, officer queue. Put it in `docs/screens/`.
 
 ### Phase 1 (Sat 09:00 to 15:00): golden path UI
-- [ ] Set up routing (React Router) and a simple role login screen (phone + PIN).
+- [x] Role login screen (phone + PIN) with demo personas (built; routing is simple state in `App.tsx`, add a router only if needed).
 - [ ] Generate API types from the backend: `npx openapi-typescript http://localhost:8000/openapi.json -o src/api/schema.ts`. Until endpoints exist, use mock data (MSW) shaped like `backend/app/schemas/contracts.py`.
-- [ ] Citizen claim flow: big icons, one question per screen, audio button on each screen (audio files come later; use the `audio_key` names from `backend/app/decision/explanations.py`).
-- [ ] Decision result screen: icon + Urdu text + English text + play audio, from the `Explanation` contract.
-- [ ] Officer queue: list sorted by priority and confidence; case detail; approve / reject with reason.
+- [x] Citizen claim flow: first version built (`ClaimWizard.tsx`). Improve the visuals.
+- [x] Decision result screen: first version built (`CaseResult.tsx`).
+- [x] Officer queue: first version built (`OfficerHome.tsx`).
 - [ ] Deploy the frontend to Vercel (Stream D) and send the link in the group.
 
 ### Phase 2 (Sat 15:00 to 23:00)
