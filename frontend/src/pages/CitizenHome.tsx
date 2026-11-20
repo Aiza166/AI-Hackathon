@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { api, errorText } from '../api/client'
 import type { CaseView, Family, Me, SessionUser } from '../api/types'
+import { OutboxStrip } from '../components/OutboxStrip'
+import { useOutbox } from '../lib/useOutbox'
 import { Badge, Bilingual, ErrorNote, ListenButton, Pictogram, humanize, toneFor } from '../components/ui'
 import { Icon } from '../lib/icons'
 import { CaseResult } from './CaseResult'
@@ -36,7 +38,9 @@ export function CitizenHome({ user }: CitizenHomeProps) {
   const [cases, setCases] = useState<CaseView[]>([])
   const [view, setView] = useState<View>({ kind: 'list' })
   const [error, setError] = useState<string | null>(null)
+  const [refreshKey, setRefreshKey] = useState(0)
   const isHelper = user.role === 'helper'
+  const outbox = useOutbox(user.id, () => setRefreshKey((k) => k + 1))
 
   useEffect(() => {
     let active = true
@@ -46,6 +50,7 @@ export function CitizenHome({ user }: CitizenHomeProps) {
         const caseResult = await api<CaseView[]>('/api/v1/cases')
         const familyResult = isHelper ? await api<Family[]>('/api/v1/helper/families') : null
         if (!active) return
+        setError(null) // a successful reload (e.g. after reconnect) clears an old "No connection" note
         setMe(meResult.data)
         setCases(caseResult.data)
         if (familyResult) setFamilies(familyResult.data)
@@ -57,7 +62,8 @@ export function CitizenHome({ user }: CitizenHomeProps) {
     return () => {
       active = false
     }
-  }, [isHelper, view])
+    // Reload when the view changes, after a sync sends something, and when signal returns.
+  }, [isHelper, view, refreshKey, outbox.online])
 
   const helperClaimant = actingFor && hasConsent(actingFor) && actingFor.cnic ? { cnic: actingFor.cnic, name: actingFor.name } : null
   const citizenClaimant = me?.person ? { cnic: me.person.cnic, name: me.person.name } : null
@@ -70,7 +76,13 @@ export function CitizenHome({ user }: CitizenHomeProps) {
     return (
       <>
         {isHelper && actingFor && <ActingForBanner family={actingFor} />}
-        <ClaimWizard claimant={claimant} onCancel={back} onDone={(c) => setView({ kind: 'case', id: c.id })} />
+        <ClaimWizard
+          ownerId={user.id}
+          claimant={claimant}
+          onCancel={back}
+          onQueued={back}
+          onDone={(c) => setView({ kind: 'case', id: c.id })}
+        />
       </>
     )
   }
@@ -83,6 +95,7 @@ export function CitizenHome({ user }: CitizenHomeProps) {
         <ListenButton audioKey="prompt_home" text={HOME_UR} />
       </div>
       <ErrorNote message={error} />
+      <OutboxStrip state={outbox} />
 
       {isHelper && (
         <FamilyPicker families={families} selected={actingFor} onSelect={setActingFor} />

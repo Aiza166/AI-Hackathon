@@ -1,11 +1,11 @@
-import { useState } from 'react'
-import { errorText, post } from '../api/client'
+import { useEffect, useState } from 'react'
 import type { CaseView, ClaimIn, DocumentKind } from '../api/types'
 import { ErrorNote, ListenButton, Pictogram } from '../components/ui'
 import { DOC_ICONS, Icon } from '../lib/icons'
+import { clearDraft, loadDraft, saveDraft, submit as submitQueued } from '../lib/outbox'
 
 // One question per screen, big icons, audio on every step (low-literacy first).
-// TODO(Kissa, Phase 2): save each step to Dexie so a dropped connection loses nothing.
+// Every step is saved on the phone (lib/outbox.ts), so a reload or a dropped signal loses nothing.
 
 type Relation = ClaimIn['relation_claimed']
 
@@ -15,9 +15,19 @@ interface Claimant {
 }
 
 interface ClaimWizardProps {
+  ownerId: string
   claimant: Claimant
   onDone: (created: CaseView) => void
+  onQueued: () => void
   onCancel: () => void
+}
+
+interface ClaimDraft {
+  relation: Relation
+  deceasedName: string
+  deceasedCnic: string
+  documents: DocumentKind[]
+  iban: string
 }
 
 const RELATIONS: { key: Relation; icon: string; ur: string; en: string }[] = [
@@ -42,7 +52,7 @@ const STEPS = [
 // Demo prefill so judges can run the golden path quickly (all mock data).
 const DEMO_DECEASED = { name: 'Muhammad Aslam', cnic: '9000000000011', iban: 'PK00MOCK0000000000000001' }
 
-export function ClaimWizard({ claimant, onDone, onCancel }: ClaimWizardProps) {
+export function ClaimWizard({ ownerId, claimant, onDone, onQueued, onCancel }: ClaimWizardProps) {
   const [step, setStep] = useState(0)
   const [relation, setRelation] = useState<Relation>('widow')
   const [deceasedName, setDeceasedName] = useState('')
@@ -51,6 +61,40 @@ export function ClaimWizard({ claimant, onDone, onCancel }: ClaimWizardProps) {
   const [iban, setIban] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  // Draft handling: restore once, then save after every change.
+  const [restored, setRestored] = useState(false)
+  const [savedOnPhone, setSavedOnPhone] = useState(false)
+
+  useEffect(() => {
+    let active = true
+    void loadDraft<ClaimDraft>(ownerId, claimant.cnic).then((draft) => {
+      if (!active) return
+      if (draft) {
+        setRelation(draft.data.relation)
+        setDeceasedName(draft.data.deceasedName)
+        setDeceasedCnic(draft.data.deceasedCnic)
+        setDocuments(draft.data.documents)
+        setIban(draft.data.iban)
+        setStep(Math.min(Math.max(draft.step, 0), STEPS.length - 1))
+      }
+      setRestored(true)
+    })
+    return () => {
+      active = false
+    }
+  }, [ownerId, claimant.cnic])
+
+  useEffect(() => {
+    if (!restored) return
+    let active = true
+    const data: ClaimDraft = { relation, deceasedName, deceasedCnic, documents, iban }
+    void saveDraft(ownerId, claimant.cnic, { step, data }).then((ok) => {
+      if (active) setSavedOnPhone(ok)
+    })
+    return () => {
+      active = false
+    }
+  }, [restored, ownerId, claimant.cnic, step, relation, deceasedName, deceasedCnic, documents, iban])
 
   const prompt = STEPS[step]
   const isLast = step === STEPS.length - 1
@@ -71,10 +115,17 @@ export function ClaimWizard({ claimant, onDone, onCancel }: ClaimWizardProps) {
       documents,
     }
     try {
-      const result = await post<CaseView>('/api/v1/cases', claim)
-      onDone(result.data)
-    } catch (e) {
-      setError(errorText(e))
+      const result = await submitQueued<CaseView>(ownerId, '/api/v1/cases', claim)
+      if (result.kind === 'sent') {
+        await clearDraft(ownerId, claimant.cnic)
+        onDone(result.data)
+      } else if (result.kind === 'queued') {
+        // Saved in the outbox: the home screen shows "waiting to send" and sends it on reconnect.
+        await clearDraft(ownerId, claimant.cnic)
+        onQueued()
+      } else {
+        setError(result.message)
+      }
     } finally {
       setBusy(false)
     }
@@ -184,6 +235,13 @@ export function ClaimWizard({ claimant, onDone, onCancel }: ClaimWizardProps) {
       </div>
 
       <ErrorNote message={error} />
+      {savedOnPhone && (
+        <p className="fine saved-on-phone" role="status">
+          <Icon name="check" size={16} />
+          <span lang="ur" dir="rtl">اس فون پر محفوظ</span>
+          <span>Saved on this phone</span>
+        </p>
+      )}
       <nav className="wizard-nav" aria-label="Claim steps">
         <button type="button" className="btn btn-secondary btn-big" onClick={step === 0 ? onCancel : () => setStep(step - 1)}>
           <Icon name="arrow-left" size={24} />

@@ -65,7 +65,7 @@ You own **Stream C (Frontend PWA)** and **Stream D (Demo & quality)**. Aiza owns
 - [ ] Deploy the frontend to Vercel (Stream D) and send the link in the group.
 
 ### Phase 2 (Sat 15:00 to 23:00)
-- [ ] Offline outbox with Dexie: save each claim step locally; queue actions with an idempotency key; "send now" button; sync on reconnect.
+- [x] Offline outbox with Dexie: save each claim step locally; queue actions with an idempotency key; "send now" button; sync on reconnect. (`feat/c-offline-outbox`; Dexie is lazy-loaded in its own chunk.)
 - [ ] Helper Mode: family list, fast switch, clear "now acting for: X" header, only families with consent.
 - [ ] Consent screen: who can see my data, toggle fields, withdraw, request correction, "who saw my data". **Backend is ready** (citizen token):
   - `GET /api/v1/me/consents` → `{fields, consents:[{id, grantee_type, grantee_name, fields, status}]}`
