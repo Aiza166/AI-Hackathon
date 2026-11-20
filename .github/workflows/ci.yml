@@ -8,6 +8,22 @@ on:
 jobs:
   backend:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: sahara
+          POSTGRES_PASSWORD: sahara
+          POSTGRES_DB: sahara_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U sahara"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      TEST_DATABASE_URL: postgresql+psycopg://sahara:sahara@localhost:5432/sahara_test
     defaults:
       run:
         working-directory: backend

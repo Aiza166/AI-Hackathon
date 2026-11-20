@@ -70,6 +70,56 @@ _EXPLANATIONS: dict[ReasonCode, tuple[str, str, str]] = {
         "Your claim is saved and an officer will continue it.",
         "cloud-off",
     ),
+    ReasonCode.NOT_IN_FAMILY_RECORD: (
+        "خاندانی ریکارڈ میں آپ کا نام مرحوم کے ساتھ نہیں ملا۔ ایک افسر جانچ کرے گا۔",
+        "Your name was not found with the deceased in the family record. An officer will check.",
+        "family",
+    ),
+    ReasonCode.DEATH_NOT_VERIFIED: (
+        "وفات کا ریکارڈ ابھی تصدیق نہیں ہو سکا۔ ایک افسر جانچ کرے گا۔",
+        "The death record could not be confirmed yet. An officer will check.",
+        "document-alert",
+    ),
+    ReasonCode.NO_PENSION_RECORD: (
+        "مرحوم کی پنشن کا ریکارڈ نہیں ملا۔ ایک افسر جانچ کرے گا۔",
+        "No pension record was found for the deceased. An officer will check.",
+        "rules",
+    ),
+    ReasonCode.ALREADY_DRAWING: (
+        "ریکارڈ کے مطابق آپ پہلے سے ایک خاندانی پنشن لے رہی ہیں۔ ایک افسر جانچ کرے گا۔",
+        "The records show you already receive a family pension. An officer will check.",
+        "rules",
+    ),
+    ReasonCode.CHILD_OVER_AGE: (
+        "قواعد کے مطابق اس عمر کے بیٹے کے لیے ایک افسر دعوے کا جائزہ لے گا۔",
+        "Under the rules, an officer will review a claim from a son of this age.",
+        "rules",
+    ),
+    ReasonCode.DAUGHTER_MARRIED: (
+        "قواعد کے مطابق ایک افسر بیٹی کے دعوے کا جائزہ لے گا۔",
+        "Under the rules, an officer will review this daughter's claim.",
+        "rules",
+    ),
+    ReasonCode.WIDOW_FIRST: (
+        "قواعد کے مطابق پہلے بیوہ کا حق ہے۔ ایک افسر جائزہ لے گا۔",
+        "Under the rules, the widow comes first. An officer will review.",
+        "rules",
+    ),
+    ReasonCode.PAYEE_CLOSE_MATCH: (
+        "بینک اکاؤنٹ کا نام آپ کے نام سے پوری طرح نہیں ملتا۔ براہ کرم اکاؤنٹ کی تصدیق کریں۔",
+        "The bank account name does not fully match your name. Please confirm the account.",
+        "bank",
+    ),
+    ReasonCode.TIME_LIMITED: (
+        "آپ کا دعویٰ منظور ہے، لیکن نئے قاعدے کے مطابق یہ پنشن ایک مقررہ مدت تک ملے گی۔",
+        "Your claim is approved, but under the new rule this pension is paid for a fixed period.",
+        "calendar",
+    ),
+    ReasonCode.MULTIPLE_CANDIDATES: (
+        "ریکارڈ میں اس نام کے ایک سے زیادہ لوگ ہیں۔ براہ کرم مرحوم کا شناختی کارڈ نمبر دیں۔",
+        "More than one person with this name is in the records. Please give the deceased's CNIC number.",
+        "id-card",
+    ),
 }
 
 

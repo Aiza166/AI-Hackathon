@@ -15,6 +15,7 @@ class Settings(BaseSettings):
 
     jwt_secret: str = "change-me-in-env"
     jwt_access_minutes: int = 30
+    bcrypt_rounds: int = 12  # tests lower this for speed; never below 12 in production
 
     typesafe_api_key: str | None = None
     typesafe_base_url: str = "https://api.typesafe.ai"
