@@ -1,11 +1,11 @@
-import { useState } from 'react'
-import { errorText, post } from '../api/client'
+import { useEffect, useRef, useState } from 'react'
 import type { CaseView, ClaimIn, DocumentKind } from '../api/types'
-import { ErrorNote, ListenButton, Pictogram } from '../components/ui'
+import { ErrorNote, ListenButton, Loading, Pictogram } from '../components/ui'
 import { DOC_ICONS, Icon } from '../lib/icons'
+import { clearDraft, loadDraft, saveDraft, submit as submitQueued, takeForFixing } from '../lib/outbox'
 
 // One question per screen, big icons, audio on every step (low-literacy first).
-// TODO(Kissa, Phase 2): save each step to Dexie so a dropped connection loses nothing.
+// Every step is saved on the phone (lib/outbox.ts), so a reload or a dropped signal loses nothing.
 
 type Relation = ClaimIn['relation_claimed']
 
@@ -15,9 +15,19 @@ interface Claimant {
 }
 
 interface ClaimWizardProps {
+  ownerId: string
   claimant: Claimant
   onDone: (created: CaseView) => void
+  onQueued: () => void
   onCancel: () => void
+}
+
+interface ClaimDraft {
+  relation: Relation
+  deceasedName: string
+  deceasedCnic: string
+  documents: DocumentKind[]
+  iban: string
 }
 
 const RELATIONS: { key: Relation; icon: string; ur: string; en: string }[] = [
@@ -42,7 +52,30 @@ const STEPS = [
 // Demo prefill so judges can run the golden path quickly (all mock data).
 const DEMO_DECEASED = { name: 'Muhammad Aslam', cnic: '9000000000011', iban: 'PK00MOCK0000000000000001' }
 
-export function ClaimWizard({ claimant, onDone, onCancel }: ClaimWizardProps) {
+// A stored draft comes from the phone's database: check its shape before using it.
+function asClaimDraft(value: unknown): ClaimDraft | null {
+  if (typeof value !== 'object' || value === null) return null
+  const v = value as Record<string, unknown>
+  const relation = RELATIONS.find((r) => r.key === v.relation)?.key
+  const docs = Array.isArray(v.documents) ? v.documents : null
+  if (!relation || !docs || !docs.every((d) => DOCS.some((k) => k.key === d))) return null
+  if (typeof v.deceasedName !== 'string' || typeof v.deceasedCnic !== 'string' || typeof v.iban !== 'string') return null
+  return {
+    relation,
+    deceasedName: v.deceasedName.slice(0, 120),
+    deceasedCnic: v.deceasedCnic.replace(/\D/g, '').slice(0, 13),
+    documents: docs as DocumentKind[],
+    iban: v.iban.slice(0, 34),
+  }
+}
+
+function clampStep(value: number): number {
+  return Number.isInteger(value) ? Math.min(Math.max(value, 0), STEPS.length - 1) : 0
+}
+
+const snapshot = (step: number, data: ClaimDraft) => JSON.stringify({ step, data })
+
+export function ClaimWizard({ ownerId, claimant, onDone, onQueued, onCancel }: ClaimWizardProps) {
   const [step, setStep] = useState(0)
   const [relation, setRelation] = useState<Relation>('widow')
   const [deceasedName, setDeceasedName] = useState('')
@@ -51,6 +84,54 @@ export function ClaimWizard({ claimant, onDone, onCancel }: ClaimWizardProps) {
   const [iban, setIban] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  // Draft handling: restore once (inputs stay hidden until then), then save after every real change.
+  const [restored, setRestored] = useState(false)
+  const [savedOnPhone, setSavedOnPhone] = useState(false)
+  const lastSaved = useRef<string | null>(null)
+
+  useEffect(() => {
+    let active = true
+    void loadDraft(ownerId, claimant.cnic).then((stored) => {
+      if (!active) return
+      const data = stored ? asClaimDraft(stored.data) : null
+      const start = data && stored ? clampStep(stored.step) : 0
+      if (data) {
+        setRelation(data.relation)
+        setDeceasedName(data.deceasedName)
+        setDeceasedCnic(data.deceasedCnic)
+        setDocuments(data.documents)
+        setIban(data.iban)
+        setStep(start)
+        setSavedOnPhone(true)
+      }
+      lastSaved.current = snapshot(start, data ?? { relation: 'widow', deceasedName: '', deceasedCnic: '', documents: [], iban: '' })
+      setRestored(true)
+    })
+    return () => {
+      active = false
+    }
+  }, [ownerId, claimant.cnic])
+
+  useEffect(() => {
+    if (!restored) return
+    const data: ClaimDraft = { relation, deceasedName, deceasedCnic, documents, iban }
+    const current = snapshot(step, data)
+    if (current === lastSaved.current) return // nothing changed: do not write an empty draft
+    lastSaved.current = current
+    let active = true
+    void saveDraft(ownerId, claimant.cnic, { step, data }).then((ok) => {
+      if (active && ok) setSavedOnPhone(true)
+    })
+    return () => {
+      active = false
+    }
+  }, [restored, ownerId, claimant.cnic, step, relation, deceasedName, deceasedCnic, documents, iban])
+
+  async function cancel(): Promise<void> {
+    // Leaving the claim on purpose: do not keep her details on a shared phone.
+    await clearDraft(ownerId, claimant.cnic)
+    onCancel()
+  }
 
   const prompt = STEPS[step]
   const isLast = step === STEPS.length - 1
@@ -70,11 +151,23 @@ export function ClaimWizard({ claimant, onDone, onCancel }: ClaimWizardProps) {
       payout_iban: iban.trim().toUpperCase(),
       documents,
     }
+    const data: ClaimDraft = { relation, deceasedName, deceasedCnic, documents, iban }
     try {
-      const result = await post<CaseView>('/api/v1/cases', claim)
-      onDone(result.data)
-    } catch (e) {
-      setError(errorText(e))
+      const result = await submitQueued<CaseView>({
+        owner: ownerId, subject: claimant.cnic, subjectName: claimant.name, path: '/api/v1/cases', body: claim, draft: { step, data },
+      })
+      if (result.kind === 'sent') {
+        onDone(result.data) // the outbox removed the draft once the server confirmed the claim
+      } else if (result.kind === 'queued') {
+        // Saved in the outbox; the draft stays until the claim is confirmed sent.
+        onQueued()
+      } else if (result.kind === 'duplicate') {
+        setError(result.message)
+      } else {
+        // Refused while she is still here: show why and let her fix it in place.
+        if (result.rowId) await takeForFixing(result.rowId)
+        setError(result.message)
+      }
     } finally {
       setBusy(false)
     }
@@ -88,6 +181,8 @@ export function ClaimWizard({ claimant, onDone, onCancel }: ClaimWizardProps) {
   }
 
   const relationLabel = RELATIONS.find((r) => r.key === relation)
+
+  if (!restored) return <Loading label="Opening your saved claim" />
 
   return (
     <section className="wizard" aria-labelledby="step-title">
@@ -184,8 +279,15 @@ export function ClaimWizard({ claimant, onDone, onCancel }: ClaimWizardProps) {
       </div>
 
       <ErrorNote message={error} />
+      {savedOnPhone && (
+        <p className="fine saved-on-phone" role="status">
+          <Icon name="check" size={16} />
+          <span lang="ur" dir="rtl">اس فون پر محفوظ</span>
+          <span>Saved on this phone</span>
+        </p>
+      )}
       <nav className="wizard-nav" aria-label="Claim steps">
-        <button type="button" className="btn btn-secondary btn-big" onClick={step === 0 ? onCancel : () => setStep(step - 1)}>
+        <button type="button" className="btn btn-secondary btn-big" onClick={step === 0 ? () => void cancel() : () => setStep(step - 1)}>
           <Icon name="arrow-left" size={24} />
           <span lang="ur" dir="rtl">واپس</span>
           <span className="btn-en">Back</span>

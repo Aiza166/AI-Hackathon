@@ -243,6 +243,10 @@ h2.bi .bi-ur { font-size: var(--t-lg); line-height: 1.8; }
 .note-risk { --tone: var(--risk); --tone-wash: var(--risk-wash); }
 .note-info { --tone: var(--indigo); --tone-wash: var(--indigo-wash); }
 .note-ur { display: block; font-weight: 700; }
+.outbox { flex-wrap: wrap; align-items: center; }
+.outbox-text { flex: 1 1 220px; }
+.outbox-actions { display: flex; align-items: center; gap: var(--s2); }
+.saved-on-phone { display: flex; align-items: center; gap: var(--s2); color: var(--ok); }
 .empty { padding: var(--s4); border: 2px dashed var(--line); border-radius: var(--r-ctl); color: var(--ink-soft); text-align: center; }
 .loading { padding: var(--s4); color: var(--ink-soft); }
 
