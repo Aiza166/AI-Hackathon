@@ -1,26 +1,31 @@
 # Dependency updates and security alerts (Dependabot). Weekly, grouped to keep PR noise low.
+# PAUSED until after judging (23 Nov 2026): open-pull-requests-limit 0 stops new version-update PRs.
+# Security alerts still appear in the Security tab. Restore the limits (5 / default) on Tue 24 Nov.
 version: 2
 updates:
   - package-ecosystem: pip
     directory: /backend
     schedule: { interval: weekly }
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 0
     groups:
       python-minor:
         update-types: [minor, patch]
   - package-ecosystem: npm
     directory: /frontend
     schedule: { interval: weekly }
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 0
     groups:
       npm-minor:
         update-types: [minor, patch]
   - package-ecosystem: github-actions
     directory: /
     schedule: { interval: weekly }
+    open-pull-requests-limit: 0
   - package-ecosystem: docker
     directory: /backend
     schedule: { interval: weekly }
+    open-pull-requests-limit: 0
   - package-ecosystem: docker
     directory: /frontend
     schedule: { interval: weekly }
+    open-pull-requests-limit: 0
