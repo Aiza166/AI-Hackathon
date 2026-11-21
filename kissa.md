@@ -14,7 +14,8 @@ Your tasks now (details in HANDOFF section 5):
   - Local part done Sat evening (TEST-REPORT "Run 2"): pytest 438 passed / 2 skipped, Playwright 25 passed + Jev-down passed, new 360 px journey (J12), one bug fixed (demo toggle 44 -> 48 px). **Still to do:** live-site phone check (checklist in TEST-REPORT), Azure-key parts, rerun after the security-fixes branch merges.
 - [ ] 2. One real-user test (10 min, anonymous) -> `docs/USER-TEST.md`
 - [ ] 3. Sindhi + Punjabi text for citizen screens (labelled machine-assisted)
-- [ ] 4. Demo script trimmed to one story
+- [x] 4. Demo script trimmed to one story
+  - Done Sun (`docs/c-demo-one-story`): `docs/05-DEMO-SCRIPT.md` now opens with one 7-minute story (Zainab claims, scam SMS caught, SafeSwitch holds a payout change to someone else's account, Rukhsana's competing claim goes to Kamran, auditor verifies the chain) with exact clicks, one line to say per beat, and what judges see. Every beat was run on the local stack first. Digital Twin, Evaluation, Judge console and the full persona list moved under "If judges ask". Rehearse it once with Aiza.
 - [ ] 5. Q&A cheat-sheet (`docs/QA-CHEATSHEET.md`), rehearse Sunday
 
 **Dependabot PRs #9-#18: leave them open. Do not merge or close.** You may squash-merge your own PRs once CI is green; ask Aiza for backend logic, security or migration changes.
