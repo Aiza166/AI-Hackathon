@@ -36,10 +36,10 @@ def test_not_eligible_beats_missing_info():
     assert result.outcome == "not_eligible"
 
 
-def test_son_over_25_is_not_eligible_unless_disabled():
+def test_son_over_21_is_not_eligible_unless_disabled():
     son = dict(relation="son", spouse_alive_eligible=False, claimant_marital_status="married")
-    assert evaluate(V1, _facts(claimant_age=26, **son)).outcome == "not_eligible"
-    assert evaluate(V1, _facts(claimant_age=26, claimant_disabled=True, **son)).outcome == "eligible"
+    assert evaluate(V1, _facts(claimant_age=22, **son)).outcome == "not_eligible"
+    assert evaluate(V1, _facts(claimant_age=22, claimant_disabled=True, **son)).outcome == "eligible"
 
 
 def test_divorced_daughter_is_eligible_married_daughter_is_not():

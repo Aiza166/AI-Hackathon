@@ -21,10 +21,10 @@ from app.models.platform import Case, CaseEvent, HelperAssignment, Person, RuleV
 
 DEMO_PIN = "1234"
 # Bump when the demo world changes: deployed databases re-seed once on the next boot.
-SEED_VERSION = "phase2-scam"
+SEED_VERSION = "phase2-idempotency"
 RULESET_DIR = Path(__file__).parent / "decision" / "rulesets"
 RESET_TABLES = (
-    "scam_checks", "payout_change_requests", "consents", "correction_requests", "decisions", "case_events", "cases", "api_keys", "helper_assignments", "users", "persons", "rule_versions", "tenants",
+    "idempotency_keys", "scam_checks", "payout_change_requests", "consents", "correction_requests", "decisions", "case_events", "cases", "api_keys", "helper_assignments", "users", "persons", "rule_versions", "tenants",
     "mock_accounts", "mock_family_pensions_drawn", "mock_pensions", "mock_deaths", "mock_family_links", "mock_persons", "mock_faults",
 )
 
@@ -50,7 +50,7 @@ PEOPLE = [
     ("9000000000101", "Allah Rakha", "Fateh Muhammad", date(1945, 2, 2), "M", "Faisalabad", "married", False),
     ("9000000000102", "Rasheeda Bibi", "Allah Rakha", date(1950, 5, 5), "F", "Faisalabad", "widowed", False),
     ("9000000000103", "Sajida Rakha", "Allah Rakha", date(1990, 8, 8), "F", "Faisalabad", "unmarried", False),
-    ("9000000000104", "Naveed Rakha", "Allah Rakha", date(2004, 1, 1), "M", "Faisalabad", "unmarried", False),
+    ("9000000000104", "Naveed Rakha", "Allah Rakha", date(2006, 1, 1), "M", "Faisalabad", "unmarried", False),
 ]
 # Past, already-approved claims (decided under rule v1) for the Digital Twin to replay.
 PAST_CASES = [  # claimant cnic, relation, deceased cnic, deceased name, iban

@@ -52,7 +52,7 @@ You own **Stream C (Frontend PWA)** and **Stream D (Demo & quality)**. Aiza owns
 ## 4. Your tasks now
 
 ### Phase 0 (tonight / first thing)
-- [ ] Do the setup above; run the frontend; push one small commit (e.g., your name in this file) so we know access works.
+- [x] Do the setup above; run the frontend; push one small commit (e.g., your name in this file) so we know access works. (Docker setup done, tests pass.)
 - [x] Read the 3 docs above.
 - [x] Draft the screen list and a rough sketch (a paper photo is fine) for: citizen home, claim steps, decision result, officer queue. Put it in `docs/screens/`. (Text sketches in [docs/screens/README.md](docs/screens/README.md).)
 

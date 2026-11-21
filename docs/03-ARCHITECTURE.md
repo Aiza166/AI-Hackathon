@@ -21,13 +21,13 @@
 | AI decision model | Jev via TypeSafe API (`typesafe-sdk`), pinned `jev-1.14.0` | Typed questions, calibrated probabilities; brief names Jev |
 | Name matching | rapidfuzz + our own normaliser for Pakistani name variants | Fast, testable, explainable |
 | OCR / documents | Tesseract (`pytesseract`) + OpenCV; Pillow for EXIF; simple error-level analysis | Free, local, enough for mock documents |
-| Speech | Pre-generated Urdu audio (Azure `ur-PK-UzmaNeural`) for fixed prompts, cached in the PWA; speech-to-text (Whisper or Google `ur-PK`) only pre-fills fields | Reliable offline demo; no blind trust in STT |
+| Speech | Pre-generated Urdu audio (Azure `ur-PK-UzmaNeural`) for fixed prompts, cached in the PWA; speech-to-text (Whisper; browser `ur-PK` input untested on a real phone, no source confirms Google `ur-PK` STT) only pre-fills fields | Reliable offline demo; no blind trust in STT |
 | Frontend | React + Vite + TypeScript PWA, Tailwind, Dexie (IndexedDB) outbox, Workbox service worker | Offline, small, installable |
 | Auth | JWT (access + refresh) issued by our API, bcrypt PINs/passwords; hashed API keys for outside systems | Simple, fully under our control, server-side RBAC |
 | Background jobs | arq on Redis (payout hold timer, webhook delivery, notifications) | Brief option "background jobs and queues" |
 | Rate limiting | `slowapi` | Per-IP and per-key limits |
 | Observability | Structured JSON logs, Sentry, uptime ping, Langfuse optional for Jev calls | Brief: monitoring and logs |
-| Hosting | Railway (API + Postgres + Redis, always on), Vercel (PWA) | No cold starts during judging |
+| Hosting | Railway (API + Postgres + Redis + PWA, always on, as deployed); Cloudflare Pages is the static-host alternative (Vercel Hobby is non-commercial only) | No cold starts during judging |
 | Tests | pytest (unit + API), Playwright (E2E golden path) | Brief: basic tests; ECC e2e-runner |
 
 ## Components
@@ -78,7 +78,7 @@
 | `duplicate_claim` | Other open/approved claims on the same pension | count |
 | `doc_consistency` | OCR fields vs registry (name, CNIC, date of death) | score 0-1 |
 | `doc_edit_risk` | EXIF, error-level analysis, field checks | low / medium / high indicators |
-| `account_owner_ok` | Mock Raast title fetch: account in claimant's CNIC? | yes / no |
+| `account_owner_ok` | Mock Raast title fetch: does the masked title match the claimant's name? | yes / no |
 | `account_reuse` | Same payout account on other claims | count |
 | `jev_doc_checks` | **Jev** Nouls on the document image (see Step 3) | probabilities |
 | `service_health` | Did every mock service and Jev answer in time? | ok / degraded |
@@ -87,15 +87,19 @@
 
 Ruleset `survivor-pension` (grounded in Pakistan family pension rules; see `docs/research/survivor-pension.md` section 1):
 
+**v1** = federal Ordinary Family Pension, Finance Division O.M. No. 1(13)-Reg.6/83 dated 23-10-1983, as updated 24-06-2024 ([PDF](https://www.finance.gov.pk/circulars/circular_24062024.pdf)). **v2** = O.M. F.No. 9(3)R-6/2024-264 dated 10-09-2024 ([PDF](https://www.finance.gov.pk/circulars/circular_10092024_1.pdf)), clarified by O.M. No.F.9(3)-Reg.6/2024-300 dated 10-10-2024 ([PDF](https://www.finance.gov.pk/circulars/circular_10102024_1.pdf)) and O.M. No.F.9(3)/Reg.6/2024-264 dated 22-01-2025 ([PDF](https://www.finance.gov.pk/circulars/circular_22012025.pdf)). Verified in `research_notes/survivor-pension/verify_E_rule_v2.md` (parent folder, outside the repo).
+
 | Rule | v1 | Basis |
 |---|---|---|
-| R1 Spouse first | Widow is eligible if the family record (FRC) links her to the deceased, nikah nama present, death verified | Rule 4.10, SHC order 2025 |
-| R2 Share split | n = widows + eligible children; if n <= 4 equal shares, else each widow 1/4 and children split the rest | Rule 4.10 (we pick the "n <= 4" reading and say so) |
-| R3 Child age | Son over 25 and not disabled: not eligible | Rule 4.10 (Sindh text) |
-| R4 Daughter status | Unmarried, widowed or divorced daughter eligible until remarriage; divorce date irrelevant | SC ruling 30 Jul 2025 |
-| R5 Required documents | Death certificate, claimant CNIC, FRC, nikah nama (widow), bank account titled to claimant; missing item = `missing_info` naming it | Pension / EOBI forms |
-| R6 Single pension | Already drawing a family pension: not eligible | Federal rule |
-| **R7 (v2 only)** | **10-year cap for non-spouse heirs** after the spouse dies or becomes ineligible, if they became eligible on or after 2024-09-10; child = max(10 years, until 21); disabled child = life; existing pensioners exempt | Finance Division OM F.No.9(3)R-6/2024, 10 Sep 2024 |
+| R1 Spouse first | Widow is eligible for life, until remarriage, if the family record (FRC) links her to the deceased, nikah nama present, death verified. Remarriage ends her share and the next heir draws from that date | 1983 O.M. para 8(2)(a)(i), 8(3)(c), 8(5); Rule 4.10 as quoted by SHC (C.P. D-198/2025, 27-08-2025) |
+| R2 Share split | n = widows + eligible children; if n <= 4 equal shares, else each widow 1/4 and children split the rest | Rule 4.10 as quoted by SHC. The text says "does not exceed 4" and "more than 3", so n = 4 fits both branches; we pick the "n <= 4" reading and say so (**assumption**) |
+| R3 Child age | Failing a widow: sons not above 21 share the pension; son over 21 and not disabled: not eligible | 1983 O.M. para 8(2)(a)(ii) (substituted 19-06-2018). Sindh Rule 4.10 text says 25; we use the federal 21 |
+| R4 Daughter status | Unmarried, widowed or divorced daughter eligible until (re)marriage; divorce date irrelevant | 1983 O.M. para 8(2)(a)(ii); SC C.P. 616-K/2025, judgment dated 10-07-2025 (reported 30-07-2025) |
+| R5 Required documents | Death certificate, claimant CNIC, FRC, nikah nama (widow), bank account titled to claimant; missing item = `missing_info` naming it, so the route is `ASK_PROOF` | EOBI / PASSCO survivor forms (EOBI scope only); our assumption for government family pension |
+| R6 Single pension | Already drawing a family pension: not eligible (one family pension only) | June 2024 draft text reported by Business Recorder (**assumption**: not confirmed in a final O.M.) |
+| **R7 (v2 only)** | Widow unchanged (R1). After the spouse dies or becomes ineligible, remaining heirs get the pension for **at most 10 years**; children for 10 years or until 21, whichever is later; disabled children for life. Applies only where entitlement starts on or after 2024-09-10; family pensioners already drawing before that date are exempt. The 10-year clock starts on the date of the spouse's death or ineligibility (**assumption**: the O.M. does not say this explicitly for children) | O.M. F.No. 9(3)R-6/2024-264, 10-09-2024; O.M.s 10-10-2024 and 22-01-2025 |
+
+Demo cases: Allah Rakha's heirs (widow died 2019) stay on v1 with no cap; Ghulam Haider's heirs (widow Shamim died 2024-11-01) are capped under v2 (end 2034-11-01). A widow drawing since before 10-09-2024 is unaffected by v2.
 
 A second widow who **is** in the FRC is a lawful co-sharer (R2), not a fraud flag. A claimant who is **not** in the FRC is a red flag. Family pension amounts in the mock are made up and labelled, because no source gives the rate.
 
@@ -105,7 +109,7 @@ The rules return `eligible | not_eligible | missing_info` plus the list of rules
 
 Pinned model `jev-1.14.0`; the `model` field from every response is stored. All questions about one input are bundled in one request.
 
-Document image (death certificate):
+Document image (death certificate). Image requests send header `TypeSafe-Danger-Zone-Images: true`, PNG/JPEG only, 280-1568 px per side. A Box always returns a box, so each Box is paired with a presence Noul (see "Jev usage rules" below):
 
 - Noul: "Is there an official stamp or seal on this document?"
 - Noul: "Is any text on this document covered, smudged or overwritten?"
@@ -162,7 +166,7 @@ Reason codes map to fixed, pre-written Urdu and English sentences with icons and
 
 | Reason code | Citizen hears (English meaning) |
 |---|---|
-| `DUPLICATE_CLAIM` | Another person has also claimed this pension. An officer will check within 3 days. |
+| `DUPLICATE_CLAIM` | Another person has also claimed this pension. An officer will check within 3 days. ("3 days" is a mock target.) |
 | `NAME_MISMATCH` | The name on your documents does not clearly match the records. Please upload a clearer photo or show your CNIC to the helper. |
 | `MISSING_DEATH_CERT` | We need a photo of the death certificate. |
 | `ACCOUNT_NOT_OWNED` | The bank account is not in your name. Please give an account in your own name. |
@@ -175,7 +179,7 @@ The auditor view shows the full decision row plus every audit event for the case
 
 1. Normalise: lowercase, unify Unicode, remove punctuation; canonicalise `mohd`, `muhammad`, `mohammad`, `muhammed`, `m.` to one token; drop relationship markers (`s/o`, `w/o`, `d/o`, `bin`, `bint`) and honorifics (`mr`, `mst`), treat `bibi` as an optional token.
 2. Compare: rapidfuzz `token_sort_ratio` and Jaro-Winkler on normalised names.
-3. **Never match on name alone.** A match needs a high name score **and** an exact CNIC, or a high name score plus exact DOB plus agreeing father/husband name.
+3. **Never match on name alone, and never auto-match without an exact CNIC.** A high name score plus exact DOB plus agreeing father/husband name can only lead to ASK_PROOF or an officer, never to an automatic match.
 4. Ambiguous (name close, other fields missing or conflicting): `NAME_MISMATCH`, routed to ASK_PROOF or UNSURE.
 5. Measured on a synthetic pair set (same-person variants vs different people with similar names): the eval page shows false-match and missed-match rates.
 
@@ -213,7 +217,7 @@ Consent record, modelled on India's Account Aggregator consent artefact:
 
 ## Offline and low bandwidth (Challenge 7)
 
-- PWA first load under 200 KB gzipped; icons as an SVG sprite; small audio clips (Opus).
+- PWA first load under 200 KB gzipped; icons as an SVG sprite; small audio clips (MP3; Azure UzmaNeural output, plays on every phone browser).
 - Each claim step is saved in IndexedDB (Dexie). Actions go to an **outbox** with a client-generated idempotency key. The server stores keys and ignores repeats, so retries never duplicate.
 - Sync on reconnect plus a manual "send now" button (the Background Sync API is Chromium-only, so we don't rely on it).
 - Small JSON responses; images compressed on the phone before upload.
@@ -221,14 +225,14 @@ Consent record, modelled on India's Account Aggregator consent artefact:
 ## Scam Shield (Challenge 8) and Scam Map (bonus)
 
 - Input: forwarded text, sender ID, optional "is someone on the phone with you?" answer, optional area.
-- Score: Jev Nouls (fee, OTP, link, claims to be government, urgency) + code checks (unofficial sender, unofficial domain) + the phone-pressure answer + **case cross-check** (no payment pending on their case).
+- Score: Jev Nouls (fee, OTP, link, claims to be government, urgency) + code checks (unofficial sender, unofficial domain) + the phone-pressure answer + **case cross-check** (no payment pending on their case). Content signals (fee, OTP, link) carry more weight than the sender ID (see "Scam Shield weighting" below).
 - Verdict: `LIKELY_SCAM / LOOKS_GENUINE / NOT_SURE`, with reason sentences.
 - Every check is stored (normalised text, no phone numbers shown) and aggregated into the **Scam Map**: counts by scam type, area and hour.
 - The eval page shows false-alarm and miss rates on a labelled message set built from public examples.
 
 ## SafeSwitch payout
 
-- Payout account change: check the owner CNIC via the mock Raast title fetch, check `account_reuse`, then hold 48 hours (background job) and require the citizen's own PIN or voice confirmation.
+- Payout account change: check the account title via the mock Raast title fetch (masked name + account type, no CNIC, no match verdict; our MATCH / CLOSE_MATCH / NO_MATCH layer sits on top), check `account_reuse`, then hold 48 hours (our design choice, no Pakistani rule sets it; background job; extended up to 4 business days when a red flag fires, the UK FCA maximum) and require the citizen's own PIN or voice confirmation.
 - A helper can start a change but cannot confirm it.
 - Any flag goes to officer review. Every step is audited. The citizen is notified on request and on completion.
 
@@ -239,7 +243,7 @@ Consent record, modelled on India's Account Aggregator consent artefact:
 | NADRA-like identity | `GET /persons/{cnic}`, `GET /family/{cnic}` | Seeded with messy names, missing DOBs, a duplicate person |
 | Death registry | `GET /deaths/{cnic}` | Includes one record with a wrong date |
 | Pension office | `GET /pensions/{cnic}` | Monthly amount, status |
-| Raast-like payments | `GET /accounts/{iban}/title`, `POST /payments` | Returns the account holder's CNIC; payment receipts |
+| Raast-like payments | `GET /accounts/{iban}/title`, `POST /payments` | Returns the masked account title and account type (never a CNIC, like real Raast title fetch); payment receipts |
 | Failure injection | `POST /mock/admin/faults` | Admin or judge can add latency or errors per service |
 
 Mock services are separate modules with their own tables and clean APIs, so they could be swapped for real ones.
@@ -344,7 +348,7 @@ Source: [docs/research/survivor-pension.md](research/survivor-pension.md).
 
 ### Payout safety (SafeSwitch + Confirmation of Payee)
 - Before any payout: mock Confirmation-of-Payee check on the account title: **match = proceed, close match = ASK_PROOF, no match = UNSURE**.
-- Account change hold: **48 hours**, extended to **4 business days** when a red flag fires (account used by another claim, CoP close/no match, change soon after the death is reported). Context: SSA moved to 1 business day; UK firms may delay at most 4 business days.
+- Account change hold: **48 hours** (our design; no Pakistani regulation found that sets a hold), extended to **4 business days** when a red flag fires (account used by another claim, CoP close/no match, change soon after the death is reported). Context: SSA moved to 1 business day; UK firms may delay a suspicious payment at most 4 business days and must not routinely wait out the full 4 days (FCA finalised guidance FG24/6).
 - Confirmation (PIN/voice) goes to the widow directly, never to the helper's phone.
 - Cross-check "already drawing a family pension / excluded" before approval (R6).
 
@@ -354,7 +358,7 @@ Ranked by evidence, each shown with its evidence and a "what this cannot tell" l
 2. Copy-move (ORB/SIFT keypoints) on seal/stamp regions only.
 3. ELA on the original upload, shown next to the image.
 4. EXIF as context only; **missing EXIF never counts against anyone**.
-5. Optional QR decode; "no QR found" is neutral. We never show "QR verified".
+5. Optional QR decode; "no QR found" is neutral. QR verification is **not built and not confirmed** (no primary source says these certificates carry a QR), so we never show "QR verified".
 - Officer agree/disagree with each indicator is logged for the eval page.
 - Mock image set: each image as original, WhatsApp-recompressed, and screenshot.
 
@@ -369,7 +373,9 @@ Ranked by evidence, each shown with its evidence and a "what this cannot tell" l
 - Question sets: A intake (text), B document (image), C scam SMS (text) as in the research report section 6.
 
 ### Scam Shield weighting
-Content rules (asks fee, asks code, link, unverified "payment ready" claim) outweigh sender ID. Official short codes (e.g., BISP 8171) are **evidence, never proof**: 8171 masking has been reported (PID, 5 Jul 2024). The app uses mock senders; real short codes appear only in the README as real-world patterns.
+Content rules (asks fee, asks code, link, unverified "payment ready" claim) outweigh sender ID. Official short codes (e.g., BISP 8171) are **evidence, never proof**: 8171 masking has been reported ([PID PR No. 59, 5 Jul 2024](https://pid.gov.pk/site/press_detail/25791)). Confirmed real-world facts: BISP sends only from 8171; BISP helpline 0800-26477. The app uses mock senders; real short codes appear only in the README as real-world patterns.
+
+Report routes shown after a scam verdict (Round 2 research): NCCIA helpline 1799 and complaint.nccia.gov.pk (replaced FIA 1991); PTA complaint system and 0800-55055; PTA short codes 9000 and 420 (labelled "per PTA 2023 page"); SBP Sunwai for bank fraud; BISP 0800-26477 / 8171. Not shown: 8557 (no source found) and 9915 (Punjab Safe City e-challan line, not PTA).
 
 ### Offline and size budgets
 - Citizen shell <= 170 KB total (JS <= 100 KB), each later screen <= 30 KB, each audio clip ~15 KB, photos compressed on device to ~200 KB (from web.dev slow-3G budget).

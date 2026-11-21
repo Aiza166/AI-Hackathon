@@ -9,20 +9,23 @@ Rules every citizen screen follows: one question per screen, big buttons (>= 48p
 
 | # | Screen | Who | Status |
 |---|---|---|---|
-| 1 | Login (phone + PIN, demo persona buttons) | all | built (`Login.tsx`) |
-| 2 | Citizen home (my claims, start claim, check a message, my data) | citizen | built, needs pictograms |
-| 3 | Helper Mode family picker + "now acting for: X" header | helper | built, needs consent filter + header |
+| 1 | Login (phone + PIN; demo personas behind a hidden "Demo accounts (mock)" toggle) | all | built (`Login.tsx`) |
+| 2 | Citizen home (my claims, start claim, my data) | citizen | built, SVG pictograms done; "check a message" (Scam Shield) not built yet |
+| 3 | Helper Mode family picker + "now acting for: X" banner | helper | built: consent filter (families without consent are locked), lock note, acting-for banner |
 | 4 | Claim step 1: relation (widow / son / daughter) | citizen, helper | built |
-| 5 | Claim step 2: deceased name + CNIC | citizen, helper | built |
-| 6 | Claim step 3: documents I have | citizen, helper | built |
-| 7 | Claim step 4: payout account | citizen, helper | built |
-| 8 | Claim step 5: review and send (+ "saved on phone / waiting to send" state) | citizen, helper | built, outbox in Phase 2 |
-| 9 | Decision result (icon + Urdu reason + audio, what happens next) | citizen | built (`CaseResult.tsx`) |
-| 10 | My data: who can see it, field toggles, withdraw, request correction, who saw it | citizen | Phase 2 |
-| 11 | Officer queue (priority + confidence, side-by-side claimants, approve/reject with reason) | officer | built (`OfficerHome.tsx`) |
-| 12 | Auditor log + verify chain + decision trace | auditor | built, trace view Phase 2 |
-| 13 | Admin rule editor + Digital Twin table | admin | Phase 2 |
-| 14 | Scam Shield, Scam Map, Eval page, Judge console, Audit replay | various | Phase 3 |
+| 5 | Claim step 2: deceased name | citizen, helper | built |
+| 6 | Claim step 3: deceased CNIC (optional, its own step) | citizen, helper | built |
+| 7 | Claim step 4: documents I have | citizen, helper | built |
+| 8 | Claim step 5: payout account | citizen, helper | built |
+| 9 | Claim step 6: review and send (+ "saved on this phone / waiting to send" state) | citizen, helper | built; offline outbox in PR #3 (`feat/c-offline-outbox`) |
+| 10 | Decision result (icon + Urdu reason + audio, what happens next) | citizen | built (`CaseResult.tsx`) |
+| 11 | My data: who can see it, withdraw, request correction, who saw it | citizen | built (`MyData.tsx`) |
+| 12 | Officer queue (priority + confidence, case detail + decision trace, approve/reject with reason) | officer | built (`OfficerHome.tsx`) |
+| 13 | Auditor log (filter) + verify chain | auditor | built (`AuditorHome.tsx`) |
+| 14 | Admin rules (versions, draft) + Digital Twin table + publish | admin | built (`AdminHome.tsx`) |
+| 15 | Scam Shield, Scam Map, SafeSwitch, Eval page, Judge console, Audit replay | various | Phase 3 (Scam Shield, Scam Map and SafeSwitch APIs are ready) |
+
+The claim wizard has 6 steps (one question per screen).
 
 ## Sketches
 
@@ -46,7 +49,7 @@ Sahara                         Zainab · (exit)
 ### Claim step (one question)
 ```
 [ PROTOTYPE banner ]
-Step 1 / 5 · for Zainab        (o o o o o)
+Step 1 / 6 · for Zainab        (o o o o o o)
 آپ مرحوم کی کون ہیں؟                 [ 🔊 ]
 +----------+ +----------+ +----------+
 | [widow]  | | [son]    | | [daughter]|
