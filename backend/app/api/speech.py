@@ -19,6 +19,7 @@ from fastapi import APIRouter, Depends, Request, UploadFile, File, Query
 from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel, Field
 
+from app.core import outages
 from app.core.auth import Principal, require_roles
 from app.core.config import Settings, get_settings
 from app.core.envelope import fail, ok
@@ -125,6 +126,8 @@ def text_to_speech(request: Request, body: TtsIn, principal: Principal = Depends
     settings = get_settings()
     if not settings.speech_configured:
         return _not_configured()
+    if outages.is_down("azure_speech"):  # judge console: show the phone-voice fallback
+        return fail(code="TTS_UNAVAILABLE", message="Speech is not available right now.", status=503)
     text = " ".join(body.text.split())
     _, voice = VOICES[body.lang]
     key = cache_key(voice, text)
@@ -142,6 +145,8 @@ def text_to_speech(request: Request, body: TtsIn, principal: Principal = Depends
 
 
 def recognise(settings: Settings, data: bytes, content_type: str, language: str) -> dict:
+    if outages.is_down("azure_speech"):  # judge console: callers treat it like any Azure failure
+        raise httpx.ConnectError("simulated outage (judge console)")
     url = (f"https://{settings.azure_speech_region}.stt.speech.microsoft.com/speech/recognition/conversation/"
            f"cognitiveservices/v1?language={language}&format=detailed")
     headers = {"Ocp-Apim-Subscription-Key": settings.azure_speech_key or "", "Content-Type": content_type, "Accept": "application/json"}

@@ -31,6 +31,27 @@
 
 ## Judge console (admin-only, every action audited)
 
+Sign in as **Admin** (`00000000030`, PIN 1234) and open the **Judge console** tab (yellow "PROTOTYPE / DEMO CONTROLS" banner). The server checks every call (platform admin only; citizens, helpers, officers and auditors get 403, logged `ACCESS_DENIED`) and writes every change to the audit log. Where judges click to break things:
+
+| Panel | Click | What they should see |
+|---|---|---|
+| Break a mock government service | NADRA identity / FRC / Death registry / Pension office: **timeout** or **error** | The next claim (Zainab, or Swagger) goes to an officer with `SERVICE_UNAVAILABLE`, no guess, no crash. **slow** waits 1.5 s and still answers. Set **ok** to restore |
+| | Raast title fetch: **timeout** | New claim UNSURE; a payout change is flagged `PAYEE_CHECK_TIMEOUT`, held 4 business days |
+| Simulate an AI provider outage | Jev: **Simulate down** | Live status shows "simulated outage"; Scam Shield still answers from keyword + link rules and never says "looks genuine"; a document upload still gets copy-move + registry checks (Jev recorded "unavailable"); a clean claim can still auto-approve (Jev is not used for claims) |
+| | Second sensor (gpt-5-mini): **Simulate down** | Cascade = Jev + deterministic checks; conflicts stay "unresolved" |
+| | Azure OCR: **Simulate down** | Screenshot / document reading falls back to Tesseract (or "an officer will read it") |
+| | Azure speech: **Simulate down** | Listen buttons use the phone's own voice; voice-note check asks her to type |
+| | Every outage switch | Turns itself off after 15 minutes and on demo reset; audited `AI_OUTAGE_SIMULATED` |
+| Live status | **Refresh** | DB, Jev reachable + `jev-1.14.0`, which AI providers are configured (yes/no only, never a key), last evaluation run, audit chain "Intact" |
+| Recent activity | (auto, every 10 s) | The judge's own actions appear within 10 s: `MOCK_FAULT_SET identity: timeout`, `DECISION_MADE UNSURE: SERVICE_UNAVAILABLE`, `ACCESS_DENIED` rows highlighted |
+| Demo shortcuts | **Rules: Digital Twin and publish v2**; **Reset demo data** (in-page confirm) | Opens the rules tab; reset restores the seed, ends faults and outages, signs everyone out |
+| Scam Shield: messages to paste | **Copy** message + sender, then sign in as Rafiq or Zainab -> "Is this message a scam?" | Fee scam, look-alike link and spoofed 8171 call = LIKELY_SCAM; "call this number" = NOT_SURE; genuine notice = LOOKS_GENUINE |
+| Sample documents | Download `death_certificate_aslam_edited.png`, upload it from Zainab's claim ("Send photos of papers") | Case goes to an officer (`DOC_EDIT_RISK`), citizen hears a polite "needs checking" |
+
+The **Evaluation** tab (admin, officer, auditor) shows the numbers behind the thresholds, labelled "synthetic test set": the cost curve with 0.95 and the never-auto-approve line (arrow keys step through thresholds; "Show as table" under every chart), wrong approvals by kind, human-review rate, name-matching rates, and per-tier tables for Scam Shield and documents (deterministic only, Jev only, full cascade: accuracy, FPR, FNR, NOT SURE, median and p95 latency, cost per check, model ids). **Re-run now** re-measures offline (AI tiers then show the last live run, labelled with its time); admin **Run live** calls Jev and gpt-5-mini (several minutes).
+
+The buttons below are the story moments; most are done from the citizen, officer and admin screens, the console covers the "break it" ones.
+
 | Button | Expected behaviour |
 |---|---|
 | **Add competing claimant** | Rukhsana claims the same pension: Zainab's case pauses, route UNSURE, officer sees both side by side |
@@ -43,12 +64,12 @@
 | **Scam Shield screen (citizen or helper)** | Tile "Is this message a scam?": paste the message (or "Fill demo scam SMS"), sender, "is someone on the phone with you?" yes/no, district. LIKELY_SCAM shows reasons in Urdu + English with Listen, the case cross-check line, and a "Report this scam" card: NCCIA 1799 (tel:), NCCIA portal, PTA complaint portal + 0800-55055, forward to 9000 (per PTA, 2023), call your bank, SBP Sunwai; BISP 0800-26477 only when the message mentions BISP. Officer and admin see it on the **Scam map** tab |
 | **Send borderline message** | Ambiguous message: NOT_SURE, never silently labelled safe |
 | **Change payout account** | Zainab's tile "Change payout account" (demo buttons fill mock IBANs). Own wallet (...0013): mock Raast title fetch shows "ZA**** BI**", match, held 48 hours with a countdown, confirmed with her own PIN. Joint account (...0012): close match + "joint account, proof needed", flagged, 4 business days. Someone else's account (...0008): no match, flagged. A helper can start a change but sees no PIN box. Cancel any time. Officer tab **Payout changes** approves or rejects flagged ones with a note (approval still needs her PIN and the hold) |
-| **Break the bank check (Raast timeout)** | `POST /api/v1/admin/faults {"service": "raast", "mode": "timeout"}`: a new claim goes UNSURE with SERVICE_UNAVAILABLE; a payout change is flagged PAYEE_CHECK_TIMEOUT, held 4 business days, her PIN alone does not release it. Set mode `ok` to restore |
+| **Break the bank check (Raast timeout)** | Judge console -> Raast title fetch -> **timeout** (or `POST /api/v1/admin/faults {"service": "raast", "mode": "timeout"}`): a new claim goes UNSURE with SERVICE_UNAVAILABLE; a payout change is flagged PAYEE_CHECK_TIMEOUT, held 4 business days, her PIN alone does not release it. Set mode `ok` to restore |
 | **Leave the DOB blank** | File Zainab's claim with the DOB step empty (the later "Fill demo data" button never fills the DOB): ASK_PROOF, "Please confirm your date of birth. It is printed on your CNIC." Never a rejection. A wrong DOB gives DOB_MISMATCH |
-| **Break the identity service** | Mock NADRA returns errors: case routes UNSURE with SERVICE_UNAVAILABLE, no crash, no guess |
+| **Break the identity service** | Judge console -> NADRA identity -> **error**: mock NADRA returns errors: case routes UNSURE with SERVICE_UNAVAILABLE, no crash, no guess |
 | **Go offline** | File a claim offline, reconnect: syncs exactly once. Reload the app with no signal: home says "No signal, you can continue your saved claim" and the saved draft opens (last profile cached in this tab only) |
 | **Citizen calls officer API** | In Swagger with a citizen token: 403 on approve endpoint, attempt logged |
-| **Reset demo** | Seed data restored in one click |
+| **Reset demo** | Judge console -> Reset demo data -> Yes: seed data restored, faults and simulated outages end |
 
 ## Logins at the venue
 

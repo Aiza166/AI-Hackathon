@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.core import audit
+from app.core import audit, outages
 from app.core.auth import Principal, deny, require_roles
 from app.core.config import get_settings
 from app.core.envelope import ok
@@ -28,7 +28,7 @@ class ApiKeyIn(BaseModel):
 
 
 class FaultIn(BaseModel):
-    service: Literal["identity", "death_registry", "pension_office", "payments", "raast"]
+    service: Literal["identity", "frc", "death_registry", "pension_office", "payments", "raast"]
     mode: Literal["ok", "error", "slow", "timeout"]
     latency_ms: int = Field(default=0, ge=0, le=10000)
 
@@ -47,6 +47,7 @@ def seed_reset(principal: Principal = Depends(platform_admin), db: Session = Dep
     audit.record(db, principal.actor, "DEMO_RESET_REQUESTED")
     db.commit()
     reset(db)
+    outages.clear_all()  # simulated AI outages end with the reset too (mock faults are wiped by the seed)
     return ok({"reset": True, "note": "Sign in again: user IDs changed."})
 
 

@@ -22,6 +22,7 @@ Note: older update notes below say "Sun" for some Saturday work; they were all w
 
 ## 0. What changed overnight (read first)
 
+**Update Sun (Aiza + Claude): Evaluation page and Judge console.** Officer, admin and auditor have a new **Evaluation** tab (lazy-loaded, not in the citizen bundle): cost curve with 0.95 and the "never auto-approve" line (arrow keys step through thresholds), name-matching rates, Scam Shield and document tier tables (deterministic / Jev only / full cascade with model ids), and "Show as table" under every chart. Admin has a **Judge console** tab: break each mock service (ok / timeout / error / slow), simulate Jev, gpt-5-mini, Azure OCR or Azure speech being down (auto-off after 15 min), live status, persona list, Scam Shield samples with Copy buttons, sample document downloads, reset demo, and the last 20 audit events every 10 s. Admin tabs now scroll sideways on a phone instead of pushing the page wider. Playwright: `frontend/e2e/tests/j11-eval-judge.spec.ts`.
 **Update Sun (Aiza + Claude): Scam Shield v2.** `src/pages/ScamShield.tsx` now has three modes (Message or link / Screenshot / Phone call), a Paste button, screenshot upload, voice-note upload and a Record button (only where the phone supports it). The result view moved to `src/components/ScamVerdict.tsx` and lists the links we checked (never opened) and what was read or heard. Installed app: "Share" from WhatsApp/SMS opens Scam Shield prefilled (`src/lib/share.ts`, `public/share-target-sw.js`). Please check at 360 px: the 3-mode choice, the file pickers, the Record button, Urdu line breaks; record clips for `prompt_scam_intro` (new text). Browser test of share/screenshot/recording is planned for the end.
 **Update Sun ~06:00 (Aiza + Claude): E2E bugs fixed** (details in `docs/TEST-REPORT.md`, "Fix status"). What changes for you:
 - Admin -> Rules -> Run Digital Twin now has an "On publish" column; publishing v2 caps the Haider heirs (Bilal sees "paid until 2034-11-01"), Rakha stays v1. Reset the demo to repeat it.
@@ -125,8 +126,8 @@ You own **Stream C (Frontend PWA)** and **Stream D (Demo & quality)**. Aiza owns
 ### Phase 3 (Sat 23:00 to Sun 03:30)
 - [x] Scam Shield screen (paste/forward message, verdict, reasons, "is someone on the phone with you?" question). First version built; polish it.
 - [x] Scam Map (officer + admin tab, counts by district/type/hour). Analytics dashboard still open.
-- [ ] Eval page (cost curve chart, false alarms, wrong approvals).
-- [ ] Judge console page (buttons listed in docs/05-DEMO-SCRIPT.md).
+- [x] Eval page (cost curve chart, false alarms, wrong approvals). Built Sun by Aiza + Claude: staff tab "Evaluation" (officer, admin, auditor). Please check it at tablet width.
+- [x] Judge console page (buttons listed in docs/05-DEMO-SCRIPT.md). Built Sun: admin tab "Judge console". Please rehearse the demo with it.
 - [ ] Audit replay screen.
 
 ### Phase 4-5 (Sunday)

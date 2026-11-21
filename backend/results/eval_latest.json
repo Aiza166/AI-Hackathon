@@ -941,7 +941,8 @@
       "not_sure_rate_scam": 1.0,
       "not_sure_rate_genuine": 1.0
      }
-    }
+    },
+    "models": []
    },
    "jev_only": {
     "tier": "jev_only",
@@ -1046,7 +1047,10 @@
       "not_sure_rate_scam": 0.125,
       "not_sure_rate_genuine": 0.0
      }
-    }
+    },
+    "models": [
+     "jev-1.14.0"
+    ]
    },
    "cascade": {
     "tier": "cascade",
@@ -1151,7 +1155,11 @@
       "not_sure_rate_scam": 0.125,
       "not_sure_rate_genuine": 0.5
      }
-    }
+    },
+    "models": [
+     "gpt-5-mini",
+     "jev-1.14.0"
+    ]
    }
   },
   "items": [
@@ -2853,7 +2861,10 @@
       "latency_ms": 597.2,
       "cost_usd": 0.0
      }
-    ]
+    ],
+    "p95_latency_ms": 859.8,
+    "cost_per_check_usd": 0.0,
+    "models": []
    },
    "jev_only": {
     "tier": "jev_only",
@@ -3027,6 +3038,11 @@
       "latency_ms": 706.0,
       "cost_usd": 0.0
      }
+    ],
+    "p95_latency_ms": 819.0,
+    "cost_per_check_usd": 0.0,
+    "models": [
+     "jev-1.14.0"
     ]
    },
    "cascade": {
@@ -3201,6 +3217,12 @@
       "latency_ms": 6557.2,
       "cost_usd": 0.00104475
      }
+    ],
+    "p95_latency_ms": 7182.5,
+    "cost_per_check_usd": 0.00063845,
+    "models": [
+     "gpt-5-mini",
+     "jev-1.14.0"
     ]
    }
   }
@@ -3279,5 +3301,6 @@
     "total_cost_usd": 0.012769
    }
   }
- }
+ },
+ "derived_note": "p95_latency_ms, cost_per_check_usd and models for the document tiers and models for the scam tiers were added on 22 Nov from the stored items and the run configuration (Jev jev-1.14.0, second sensor Azure OpenAI gpt-5-mini); no numbers were re-measured."
 }

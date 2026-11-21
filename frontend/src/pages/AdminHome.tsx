@@ -1,36 +1,37 @@
-import { useCallback, useEffect, useState } from 'react'
+import { lazy, useCallback, useEffect, useState } from 'react'
 import { api, errorText, post } from '../api/client'
 import type { RuleVersionRow, Simulation, TwinCase } from '../api/types'
+import { Tabs } from '../components/Tabs'
+import type { TabDef } from '../components/Tabs'
 import { Badge, ErrorNote, Loading, toneFor } from '../components/ui'
 import { Icon } from '../lib/icons'
 import { AuditorHome } from './AuditorHome'
 import { ScamMap } from './ScamMap'
 
-// Admin: versioned eligibility rules (Digital Twin + publish) and the audit log.
+// Admin: versioned eligibility rules (Digital Twin + publish), the audit log, the evaluation page and the judge console.
+// Evaluation and the judge console load on demand in their own chunks.
+const Evaluation = lazy(() => import('./Evaluation').then((m) => ({ default: m.Evaluation })))
+const JudgeConsole = lazy(() => import('./JudgeConsole').then((m) => ({ default: m.JudgeConsole })))
 
-type Tab = 'rules' | 'audit' | 'scams'
+type Tab = 'rules' | 'audit' | 'scams' | 'eval' | 'judge'
+const TABS: TabDef<Tab>[] = [
+  { key: 'rules', icon: 'rules', label: 'Rules' },
+  { key: 'audit', icon: 'shield', label: 'Audit log' },
+  { key: 'scams', icon: 'warning', label: 'Scam map' },
+  { key: 'eval', icon: 'clock', label: 'Evaluation' },
+  { key: 'judge', icon: 'twin', label: 'Judge console' },
+]
 
 export function AdminHome() {
   const [tab, setTab] = useState<Tab>('rules')
   return (
-    <div className="stack-lg">
-      <div className="tabs" role="tablist" aria-label="Admin sections">
-        <button type="button" role="tab" id="tab-rules" aria-selected={tab === 'rules'} aria-controls="panel-admin" className="tab" onClick={() => setTab('rules')}>
-          <Icon name="rules" size={20} /> Rules
-        </button>
-        <button type="button" role="tab" id="tab-audit" aria-selected={tab === 'audit'} aria-controls="panel-admin" className="tab" onClick={() => setTab('audit')}>
-          <Icon name="shield" size={20} /> Audit log
-        </button>
-        <button type="button" role="tab" id="tab-scams" aria-selected={tab === 'scams'} aria-controls="panel-admin" className="tab" onClick={() => setTab('scams')}>
-          <Icon name="warning" size={20} /> Scam map
-        </button>
-      </div>
-      <div role="tabpanel" id="panel-admin" aria-labelledby={`tab-${tab}`}>
-        {tab === 'rules' && <RulesPanel />}
-        {tab === 'audit' && <AuditorHome embedded />}
-        {tab === 'scams' && <ScamMap />}
-      </div>
-    </div>
+    <Tabs tabs={TABS} active={tab} onSelect={setTab} label="Admin sections" panelId="panel-admin">
+      {tab === 'rules' && <RulesPanel />}
+      {tab === 'audit' && <AuditorHome embedded />}
+      {tab === 'scams' && <ScamMap />}
+      {tab === 'eval' && <Evaluation canRunLive />}
+      {tab === 'judge' && <JudgeConsole onOpenRules={() => setTab('rules')} />}
+    </Tabs>
   )
 }
 

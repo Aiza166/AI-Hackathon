@@ -1,10 +1,31 @@
-import { useEffect, useState } from 'react'
+import { lazy, useEffect, useState } from 'react'
 import { api, errorText } from '../api/client'
 import type { AuditRow } from '../api/types'
+import { Tabs } from '../components/Tabs'
+import type { TabDef } from '../components/Tabs'
 import { ErrorNote, Loading } from '../components/ui'
 import { Icon } from '../lib/icons'
 
 // Read-only audit log with a one-click hash-chain check. Also used as the admin "Audit log" tab.
+
+const Evaluation = lazy(() => import('./Evaluation').then((m) => ({ default: m.Evaluation })))
+
+type AuditorTab = 'audit' | 'eval'
+const AUDITOR_TABS: TabDef<AuditorTab>[] = [
+  { key: 'audit', icon: 'shield', label: 'Audit log' },
+  { key: 'eval', icon: 'clock', label: 'Evaluation' },
+]
+
+/** Auditor home: the audit log and the (read-only) evaluation page. */
+export function AuditorWorkspace() {
+  const [tab, setTab] = useState<AuditorTab>('audit')
+  return (
+    <Tabs tabs={AUDITOR_TABS} active={tab} onSelect={setTab} label="Auditor sections" panelId="panel-auditor">
+      {tab === 'audit' && <AuditorHome />}
+      {tab === 'eval' && <Evaluation />}
+    </Tabs>
+  )
+}
 
 type Verify = { intact: boolean; checked: number; first_broken_seq: number | null }
 

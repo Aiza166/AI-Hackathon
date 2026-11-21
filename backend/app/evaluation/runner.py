@@ -51,6 +51,30 @@ def _tier_headline(tier: dict) -> dict:
     return {"status": tier["status"], **{k: tier[k] for k in keys if k in tier}}
 
 
+TIER_DETAIL_KEYS = ("items", "by_language", "by_channel")
+
+
+def _tiers_without_items(tiers: dict) -> dict:
+    return {name: {k: v for k, v in tier.items() if k not in TIER_DETAIL_KEYS} for name, tier in tiers.items()}
+
+
+def _reference_live(previous: dict | None) -> dict | None:
+    """An offline re-run cannot call Jev or the second sensor, so its AI tiers are "not run". Keep the last
+    live measurement next to it (clearly labelled with its own timestamp) so the page can still compare tiers."""
+    committed = None
+    if RESULTS_FILE.exists():
+        committed = {**json.loads(RESULTS_FILE.read_text(encoding="utf-8")), "source": "committed_sample"}
+    for candidate in (previous, committed):
+        if candidate and candidate.get("scam", {}).get("mode") == "live":
+            return {
+                "generated_at": candidate.get("generated_at"),
+                "source": candidate.get("source", "this_process"),
+                "scam_tiers": _tiers_without_items(candidate["scam"]["tiers"]),
+                "document_tiers": _tiers_without_items(candidate.get("documents", {}).get("tiers", {})),
+            }
+    return None
+
+
 def run_all(ruleset: dict | None = None, *, live_scam: bool = False) -> dict:
     """live_scam=True also runs the Jev tiers (scam set and documents) against the real APIs."""
     global _latest
@@ -66,6 +90,10 @@ def run_all(ruleset: dict | None = None, *, live_scam: bool = False) -> dict:
         "documents": evaluate_documents(live=live_scam),
     }
     result["summary"] = summary(result)
+    if not live_scam:
+        with _lock:
+            previous = _latest
+        result["reference_live"] = _reference_live(previous)
     with _lock:
         _latest = result
     return result

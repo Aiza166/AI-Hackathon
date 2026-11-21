@@ -62,7 +62,7 @@ Legend: P = Planned, B = Built, T = Tested, X = Cut
 | Structured outputs | Voice/OCR into a validated Pydantic claim schema | P |
 | Computer vision | OCR (Azure prebuilt-read or Tesseract) on CNIC, death certificate, FRC, nikah nama; registry cross-check; stamp copy-move + ELA + Jev image Nouls as indicators | B (tested on sample_docs) |
 | Anomaly detection | One payout account across many claims; repeated claims | P |
-| Evaluation dashboard | Accuracy, false alarms, wrong approvals, UNSURE rate, speed, cost | P |
+| Evaluation dashboard | Accuracy, false alarms, wrong approvals, UNSURE rate, speed, cost | B (staff page: officer/admin/auditor tab "Evaluation"; cost curve vs threshold with 0.95 and the never-auto-approve line, wrong approvals by kind, human-review rate, name matching rates, Scam Shield and document tiers with accuracy/FPR/FNR/undecided/median/p95/cost/model ids; every chart has a table view; labelled "synthetic test set") |
 
 ## Engineering basics
 
@@ -77,7 +77,7 @@ Legend: P = Planned, B = Built, T = Tested, X = Cut
 
 | # | Challenge | Demo moment | State |
 |---|---|---|---|
-| 1 | Cost of being wrong | Cost curve + threshold justification on eval page | P |
+| 1 | Cost of being wrong | Cost curve + threshold justification on eval page | B (Evaluation page; the flat curve is shown and explained) |
 | 2 | Saying "I am not sure" | Competing claimant: case pauses, officer gets notes | P |
 | 3 | Bad data | Name variants matched; look-alike different person not matched; missing DOB asks for proof | P |
 | 4 | Rules that change | Publish v2 live; v1 cases still show v1; Digital Twin preview | B (API, tested) |
@@ -85,6 +85,17 @@ Legend: P = Planned, B = Built, T = Tested, X = Cut
 | 6 | Consent and take-back | Withdraw helper access: next request 403, logged | B (API, tested) |
 | 7 | Works for everyone | Voice + icons on throttled network, offline resume | P |
 | 8 | Scams and fake documents | Fee/OTP scam SMS flagged with case cross-check; links checked without opening (lookalike, shortener, punycode, IP); call check (on the phone now, official number calling you = red flag); screenshot (OCR) and voice note (STT) intake; share from WhatsApp/SMS; second sensor only when Jev is unsure, disagreement = NOT_SURE / officer; edited certificate flagged (stamp copy-move + record mismatch -> UNSURE; 0 of 18 clean sample images flagged); per-tier FPR/FNR/undecided/latency/cost shown | B (scam v2 + documents, tested; live eval with Jev + gpt-5-mini: 80 messages cascade accuracy 0.84, FPR 0, FNR 0; 20 documents cascade FPR 0, FNR 0, undecided 20%) |
+
+## Judge console (admin-only demo controls)
+
+| Item | State |
+|---|---|
+| Fault switches per mock service (NADRA identity, FRC, death registry, pension office, Raast title fetch: ok / timeout / error / slow) | B (existing `POST /admin/faults`; new service `frc`) |
+| Simulated AI outage (Jev, second sensor, Azure OCR, Azure speech), audited `AI_OUTAGE_SIMULATED`, auto-off after 15 min and on demo reset | B (`POST /admin/judge/outages`, tested) |
+| Live status: DB, Jev reachable + model, providers configured (booleans only), last eval, audit chain | B (`GET /admin/judge/status`, tested for no secret values) |
+| Last 20 audit events (role, action, reason code), refresh 10 s | B (`GET /admin/judge/activity`; reads logged once per 5 min, not per poll) |
+| Demo shortcuts: reset with in-page confirm, persona logins, Digital Twin link, Scam Shield samples with copy, sample document downloads (allowlisted from manifest, audited) | B |
+| RBAC: every console endpoint 403 + `ACCESS_DENIED` for citizen, helper, officer, auditor | B (tested) |
 
 ## Bonus (optional)
 

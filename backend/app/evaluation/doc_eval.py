@@ -20,6 +20,7 @@ from pathlib import Path
 from app.core.config import get_settings
 from app.documents import cascade_checks, forensics, indicators, jev_checks
 from app.documents.imaging import load
+from app.evaluation.scam_eval import p95
 
 SAMPLE_DIR = Path(__file__).resolve().parents[2] / "sample_docs"
 TIERS = ("deterministic", "jev_only", "cascade")
@@ -44,14 +45,19 @@ def _outcome(found: list, undecided: bool) -> str:
     return "undecided" if undecided else "pass"
 
 
-def _check(tier: str, kind: str, image, report: forensics.ForensicReport) -> tuple[str, int, float]:
+def _models(sensors: list[dict]) -> list[str]:
+    """Model ids of the AI sensors that actually answered (for the model-and-tool story on the eval page)."""
+    return sorted({s["model"] for s in sensors if s.get("status") == "ok" and s.get("model")})
+
+
+def _check(tier: str, kind: str, image, report: forensics.ForensicReport) -> tuple[str, int, float, list[str]]:
     if tier == "deterministic":
-        return _outcome(indicators.from_forensics(report), False), 0, 0.0
+        return _outcome(indicators.from_forensics(report), False), 0, 0.0, []
     jev = jev_checks.ask_document_questions(kind, image)
     if tier == "jev_only":
         found = indicators.from_jev(jev)
         undecided = jev.status != "ok" or any(i.code == "JEV_UNDECIDED" for i in found)
-        return _outcome(found, undecided), jev.latency_ms or 0, 0.0
+        return _outcome(found, undecided), jev.latency_ms or 0, 0.0, _models([{"status": jev.status, "model": jev.model}])
     sensed = cascade_checks.run(kind, image, {}, report, jev)
     found = [*indicators.from_forensics(report), *indicators.from_jev(sensed.jev)]
     if sensed.fused and sensed.fused.disagreements:
@@ -59,7 +65,7 @@ def _check(tier: str, kind: str, image, report: forensics.ForensicReport) -> tup
     undecided = any(i.code == "JEV_UNDECIDED" for i in found) or sensed.jev.status != "ok"
     latency = sum(s.get("latency_ms") or 0 for s in sensed.sensors)
     cost = sum(s.get("cost_usd") or 0.0 for s in sensed.sensors)
-    return _outcome(found, undecided), latency, cost
+    return _outcome(found, undecided), latency, cost, _models(sensed.sensors)
 
 
 def _metrics(rows: list[dict]) -> dict:
@@ -71,7 +77,9 @@ def _metrics(rows: list[dict]) -> dict:
     cost = round(sum(r["cost_usd"] for r in rows), 6)
     return {"n": len(rows), "n_edited": len(pos), "accuracy": round(correct / len(rows), 4) if rows else 0.0,
             "fpr": share(neg, "flag"), "fnr": share(pos, "pass"), "undecided_rate": share(rows, "undecided"),
-            "median_latency_ms": statistics.median(latencies) if latencies else 0, "total_cost_usd": cost}
+            "median_latency_ms": statistics.median(latencies) if latencies else 0, "p95_latency_ms": p95(latencies),
+            "total_cost_usd": cost, "cost_per_check_usd": round(cost / len(rows), 8) if rows else 0.0,
+            "models": sorted({m for r in rows for m in r["models"]})}
 
 
 def evaluate_documents(live: bool = False, tiers: tuple[str, ...] | None = None) -> dict:
@@ -90,9 +98,9 @@ def evaluate_documents(live: bool = False, tiers: tuple[str, ...] | None = None)
             continue
         rows = []
         for entry, img, report, forensic_ms in loaded:
-            outcome, latency, cost = _check(tier, kind_for(entry["doc"]), img, report)
+            outcome, latency, cost, models = _check(tier, kind_for(entry["doc"]), img, report)
             rows.append({"file": entry["file"], "variant": entry["variant"], "edited": entry["edited"], "outcome": outcome,
-                         "latency_ms": latency + forensic_ms * (tier != "jev_only"), "cost_usd": cost})
+                         "latency_ms": latency + forensic_ms * (tier != "jev_only"), "cost_usd": cost, "models": models})
         out[tier] = {"tier": tier, "status": "ran", **_metrics(rows), "items": rows}
         if tier == "cascade" and not get_settings().second_sensor_configured:
             out[tier]["note"] = "second sensor not configured: cascade = forensics + Jev"

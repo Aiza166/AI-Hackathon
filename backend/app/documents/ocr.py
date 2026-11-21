@@ -13,6 +13,7 @@ from dataclasses import asdict, dataclass, field
 import httpx
 from PIL import Image
 
+from app.core import outages
 from app.core.config import Settings, get_settings
 
 log = logging.getLogger("sahara.ocr")
@@ -166,7 +167,8 @@ def group_tesseract_words(data: dict) -> list[OcrLine]:
 def run_ocr(img: Image.Image, settings: Settings | None = None, transport: httpx.BaseTransport | None = None) -> OcrResult:
     """Azure first (if configured), Tesseract second. Raises OcrUnavailable if both fail."""
     settings = settings or get_settings()
-    if settings.docintel_configured:
+    # A simulated Azure outage (judge console) goes straight to the Tesseract fallback.
+    if settings.docintel_configured and not outages.is_down("azure_ocr"):
         engine = AzureReadEngine(settings, transport=transport)
         try:
             return engine.read(img)

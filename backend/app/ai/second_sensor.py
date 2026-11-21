@@ -35,6 +35,7 @@ from dataclasses import asdict, dataclass, field
 
 import httpx
 
+from app.core import outages
 from app.core.config import Settings, get_settings
 from app.decision.jev_client import shared_ssl_context
 
@@ -166,6 +167,8 @@ class SecondSensor:
     def ask(self, questions: dict[str, str], untrusted_text: str | None = None, image_jpeg: bytes | None = None) -> SensorAnswers:
         if not self.configured:
             return SensorAnswers(status="skipped", error="second sensor not configured")
+        if outages.is_down("second_sensor"):
+            return SensorAnswers(status="unavailable", error="simulated outage (judge console)")
         marker = secrets.token_hex(12)
         content: list[dict] = [{"type": "text", "text": _user_text(questions, untrusted_text, image_jpeg is not None, marker)}]
         if image_jpeg is not None:
