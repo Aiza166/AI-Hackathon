@@ -325,6 +325,7 @@ Mock services are separate modules with their own tables and clean APIs, so they
 | Rules | `GET /rules`, `POST /rules/drafts`, `POST /rules/drafts/{id}/simulate` (Digital Twin), `POST /rules/drafts/{id}/publish` |
 | Audit | `GET /audit`, `GET /audit/verify`, `GET /cases/{id}/replay` |
 | Eval | `POST /eval/run`, `GET /eval/latest` |
+| Judge console (platform admin) | `GET /admin/judge/status`, `POST /admin/judge/outages`, `GET /admin/judge/activity`, `GET /admin/judge/sample-docs`, `GET /admin/judge/sample-docs/{file}` (plus `POST /admin/faults`, `POST /admin/seed/reset`) |
 | Admin | users, roles, API keys, tenants, webhooks, `POST /admin/judge/*` (judge console actions), `POST /admin/seed/reset` |
 | Analytics | `GET /analytics/tenant` |
 | Health | `GET /healthz`, `GET /readyz` |
@@ -495,6 +496,10 @@ LOOKS_GENUINE is only given when no warning reason fired at all (unofficial send
 **4. Documents (`data.documents`), per sensor tier.** The 20 mock images in `backend/sample_docs` (positive = the edited death certificate, original + WhatsApp copy), each checked as its correct kind. Live run with the second sensor: deterministic (stamp copy-move) accuracy 1.0, FPR 0, FNR 0; Jev only accuracy 0.4, FNR 1.0 (it does not see the edit), undecided 50%; cascade (copy-move + Jev + gpt-5-mini) accuracy 0.8, FPR 0, FNR 0, undecided **20%** (the second sensor cleared most of Jev's undecided answers), median 5 s and about $0.0006 per document. A first run let the second sensor raise flags alone and wrongly flagged 4 of 18 clean images (FPR 0.22: the back of a mock CNIC read as "not a CNIC"); since then one sensor alone can only clear, not flag. OCR + registry checks need the database and are covered by the document tests instead.
 
 Earlier result on the 40-message v1 set (21 Nov): Jev FPR 0, FNR 0.091, NOT_SURE 10%, median about 1.05 s.
+
+**Evaluation page (frontend).** `src/pages/Evaluation.tsx` (staff tab, own lazy chunk), charts in `src/components/charts.tsx` (hand-rolled SVG, no chart library), transforms in `src/lib/evalTransforms.ts` (unit-tested). An offline `POST /eval/run` cannot call Jev or the second sensor, so its AI tiers are `not_run`; the result then carries `reference_live` (the last live tiers, without items, with their own timestamp) and the page shows those with a "last live measurement" note. Tiers report `models` (every AI model that answered) and, for documents, `p95_latency_ms` and `cost_per_check_usd`.
+
+**Simulated AI outages (judge console).** `app/core/outages.py` keeps per-provider switches (`jev`, `second_sensor`, `azure_ocr`, `azure_speech`) in the API process with a 15-minute expiry; demo reset clears them. `JevClient.ask` raises `JevUnavailable` (and `reachable()` is false), `SecondSensor.ask` returns `unavailable`, `run_ocr` skips Azure for Tesseract, `/speech/tts` returns 503 `TTS_UNAVAILABLE` and `recognise()` fails like an Azure error. Nothing leaves the server while a switch is on. One uvicorn worker, so in-process state is consistent; a restart ends every outage (the safe direction).
 
 These are synthetic sets that we designed ourselves. They show how the code behaves and where it fails. They are not real-world accuracy figures.
 

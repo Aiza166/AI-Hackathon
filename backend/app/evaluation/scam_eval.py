@@ -53,7 +53,7 @@ def _rates(rows: list[dict]) -> dict:
     }
 
 
-def _p95(values: list[float]) -> float:
+def p95(values: list[float]) -> float:
     ordered = sorted(values)
     return ordered[min(len(ordered) - 1, int(round(0.95 * (len(ordered) - 1))))] if ordered else 0.0
 
@@ -65,22 +65,24 @@ def _run_tier(name: str, messages: list[dict]) -> tuple[dict, list[dict]]:
         result = scam_service.check(None, msg["text"], msg["sender"], None, None, channel=msg.get("channel", "sms"), **TIERS[name])
         latency_ms = round((time.perf_counter() - started) * 1000, 2)
         ran = {s["name"]: s.get("status") for s in result.signals["sensors"]}
+        answered = sorted({s["model"] for s in result.signals["sensors"] if s.get("status") == "ok" and s.get("model")})
         rows.append({"id": msg["id"], "lang": msg["lang"], "channel": msg.get("channel", "sms"), "label": msg["label"],
                      "verdict": result.verdict, "score": result.score, "fallback": result.signals["fallback"],
                      "model_id": result.model_id, "latency_ms": latency_ms, "cost_usd": result.cost_usd,
-                     "second_sensor_ran": ran.get("second_sensor") == "ok",
+                     "second_sensor_ran": ran.get("second_sensor") == "ok", "models": answered,
                      "disagreement": bool(result.signals["cascade"] and result.signals["cascade"]["disagreements"])})
     latencies = [r["latency_ms"] for r in rows]
     cost = round(sum(r["cost_usd"] for r in rows), 6)
     models = sorted({r["model_id"] for r in rows if r["model_id"]})
     metrics = {
         "tier": name, "status": "ran", **_rates(rows),
-        "median_latency_ms": statistics.median(latencies), "p95_latency_ms": _p95(latencies),
+        "median_latency_ms": statistics.median(latencies), "p95_latency_ms": p95(latencies),
         "total_cost_usd": cost, "cost_per_check_usd": round(cost / len(rows), 8) if rows else 0.0,
         "second_sensor_calls": sum(r["second_sensor_ran"] for r in rows),
         "disagreements": sum(r["disagreement"] for r in rows),
         "fallback_count": sum(r["fallback"] for r in rows),
         "model_id": models[0] if len(models) == 1 else (models or None),
+        "models": sorted({m for r in rows for m in r["models"]}),  # every AI model that answered (Jev, second sensor)
         "by_language": {lang: _rates([r for r in rows if r["lang"] == lang]) for lang in sorted({r["lang"] for r in rows})},
         "by_channel": {ch: _rates([r for r in rows if r["channel"] == ch]) for ch in sorted({r["channel"] for r in rows})},
     }

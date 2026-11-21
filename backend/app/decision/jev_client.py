@@ -13,6 +13,7 @@ from typing import Any
 
 import httpx
 
+from app.core import outages
 from app.core.config import Settings, get_settings
 
 # TypeSafe guidance: above 0.7 is yes, below 0.3 is no, between is undecided.
@@ -83,6 +84,8 @@ class JevClient:
         """assets: images referenced by key from state/instructions (needs the Danger-Zone header)."""
         if not self._settings.typesafe_api_key:
             raise JevUnavailable("TYPESAFE_API_KEY is not set")
+        if outages.is_down("jev"):
+            raise JevUnavailable("simulated outage (judge console)")
         body = {"model": self._settings.jev_model, "state": state, "questions": questions}
         headers = {"Authorization": f"Bearer {self._settings.typesafe_api_key}"}
         if assets:
@@ -106,7 +109,7 @@ class JevClient:
 
     def reachable(self) -> bool:
         """Cheap health check (lists models, no tokens used). Never raises."""
-        if not self._settings.typesafe_api_key:
+        if not self._settings.typesafe_api_key or outages.is_down("jev"):
             return False
         try:
             headers = {"Authorization": f"Bearer {self._settings.typesafe_api_key}"}

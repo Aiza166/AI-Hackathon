@@ -21,7 +21,8 @@ from app.models.mock import (
     MockPerson,
 )
 
-SERVICES = ("identity", "death_registry", "pension_office", "payments", "raast")
+# "frc" = the family registration record (NADRA FRC); "identity" also covers it, as before.
+SERVICES = ("identity", "frc", "death_registry", "pension_office", "payments", "raast")
 SLOW_LIMIT_MS = 2000  # anything slower than this counts as unavailable
 
 
@@ -65,6 +66,7 @@ def find_persons_by_name_key(db: Session, key_token: str) -> list[MockPerson]:
 
 def get_family(db: Session, head_cnic: str) -> list[FamilyMember]:
     _check_fault(db, "identity")
+    _check_fault(db, "frc")
     rows = db.execute(select(MockFamilyLink).where(MockFamilyLink.head_cnic == head_cnic)).scalars()
     return [FamilyMember(r.frc_number, r.head_cnic, r.member_cnic, r.relation) for r in rows]
 

@@ -12,7 +12,7 @@ import { Login } from './pages/Login'
 // Staff screens load on demand so the citizen shell stays small on a cheap phone.
 const OfficerHome = lazy(() => import('./pages/OfficerHome').then((m) => ({ default: m.OfficerHome })))
 const AdminHome = lazy(() => import('./pages/AdminHome').then((m) => ({ default: m.AdminHome })))
-const AuditorHome = lazy(() => import('./pages/AuditorHome').then((m) => ({ default: m.AuditorHome })))
+const AuditorWorkspace = lazy(() => import('./pages/AuditorHome').then((m) => ({ default: m.AuditorWorkspace })))
 
 const USER_KEY = 'sahara.user'
 
@@ -43,7 +43,7 @@ function HomeFor({ user, onSignInAgain }: { user: SessionUser; onSignInAgain: ()
     case 'admin':
       return <AdminHome />
     case 'auditor':
-      return <AuditorHome />
+      return <AuditorWorkspace />
   }
 }
 

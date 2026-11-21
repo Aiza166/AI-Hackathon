@@ -19,6 +19,7 @@ from app.core.config import get_settings  # noqa: E402
 
 get_settings.cache_clear()
 
+from app.core import outages  # noqa: E402
 from app.core.ratelimit import limiter  # noqa: E402
 from app.db import SessionLocal  # noqa: E402
 from app.main import create_app  # noqa: E402
@@ -54,6 +55,7 @@ def migrated_db():
 @pytest.fixture(autouse=True)
 def seeded():
     limiter.reset()
+    outages.clear_all()
     with SessionLocal() as db:
         reset(db)
     yield

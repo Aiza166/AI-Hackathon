@@ -1,11 +1,14 @@
 import { Suspense, lazy, useCallback, useEffect, useState } from 'react'
 import { api, errorText, post } from '../api/client'
 import type { CaseView } from '../api/types'
+import { Tabs } from '../components/Tabs'
+import type { TabDef } from '../components/Tabs'
 import { Badge, ErrorNote, Loading, humanize, toneFor } from '../components/ui'
 import { Icon } from '../lib/icons'
 import { OfficerPayouts } from './OfficerPayouts'
 import { ScamMap } from './ScamMap'
 
+const Evaluation = lazy(() => import('./Evaluation').then((m) => ({ default: m.Evaluation })))
 const DocumentReview = lazy(() => import('../components/DocumentReview').then((m) => ({ default: m.DocumentReview })))
 
 // Officer review queue: highest priority first, lowest confidence first.
@@ -28,30 +31,23 @@ type Trace = {
   }
 }
 
-type Tab = 'queue' | 'payouts' | 'scams'
-const TABS: { key: Tab; icon: string; label: string }[] = [
+type Tab = 'queue' | 'payouts' | 'scams' | 'eval'
+const TABS: TabDef<Tab>[] = [
   { key: 'queue', icon: 'list', label: 'Review queue' },
   { key: 'payouts', icon: 'bank', label: 'Payout changes' },
   { key: 'scams', icon: 'warning', label: 'Scam map' },
+  { key: 'eval', icon: 'clock', label: 'Evaluation' },
 ]
 
 export function OfficerHome() {
   const [tab, setTab] = useState<Tab>('queue')
   return (
-    <div className="stack-lg">
-      <div className="tabs" role="tablist" aria-label="Officer sections">
-        {TABS.map((t) => (
-          <button key={t.key} type="button" role="tab" id={`tab-${t.key}`} aria-selected={tab === t.key} aria-controls="panel-officer" className="tab" onClick={() => setTab(t.key)}>
-            <Icon name={t.icon} size={20} /> {t.label}
-          </button>
-        ))}
-      </div>
-      <div role="tabpanel" id="panel-officer" aria-labelledby={`tab-${tab}`}>
-        {tab === 'queue' && <QueuePanel />}
-        {tab === 'payouts' && <OfficerPayouts />}
-        {tab === 'scams' && <ScamMap />}
-      </div>
-    </div>
+    <Tabs tabs={TABS} active={tab} onSelect={setTab} label="Officer sections" panelId="panel-officer">
+      {tab === 'queue' && <QueuePanel />}
+      {tab === 'payouts' && <OfficerPayouts />}
+      {tab === 'scams' && <ScamMap />}
+      {tab === 'eval' && <Evaluation />}
+    </Tabs>
   )
 }
 
