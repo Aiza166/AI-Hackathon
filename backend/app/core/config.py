@@ -28,6 +28,8 @@ class Settings(BaseSettings):
     # Pinned on purpose: thresholds are fitted to this exact model version.
     jev_model: str = "jev-1.14.0"
     jev_timeout_seconds: float = 2.0
+    # Assumed Jev price per million tokens for the per-check cost estimate (0 = unknown, cost not shown).
+    jev_usd_per_1m_tokens: float = 0.042
     # Only admins of this department may reset the demo or inject mock-service faults.
     platform_admin_tenant: str = "pension"
 
@@ -41,6 +43,17 @@ class Settings(BaseSettings):
     jev_image_timeout_seconds: float = 8.0
     tts_cache_dir: str | None = None  # disk cache for synthesised audio; memory-only when unset
 
+    # Second independent sensor (OpenAI-compatible chat model, e.g. the Azure OpenAI gpt-5-mini
+    # deployment). Optional: blank = disabled, and the cascade runs Jev + deterministic checks only.
+    second_sensor_endpoint: str | None = None
+    second_sensor_key: str | None = None
+    second_sensor_deployment: str | None = None
+    second_sensor_api_version: str | None = None  # set = Azure OpenAI style URL; blank = OpenAI-style /chat/completions
+    second_sensor_timeout_seconds: float = 20.0  # reasoning models think before answering
+    # List price per million tokens for the cost estimate (gpt-5-mini; reasoning tokens count as output).
+    second_sensor_usd_per_1m_input: float = 0.25
+    second_sensor_usd_per_1m_output: float = 2.00
+
     @field_validator("database_url")
     @classmethod
     def _use_psycopg_driver(cls, url: str) -> str:
@@ -50,7 +63,8 @@ class Settings(BaseSettings):
                 return "postgresql+psycopg://" + url[len(prefix):]
         return url
 
-    @field_validator("azure_speech_key", "azure_speech_region", "azure_docintel_endpoint", "azure_docintel_key", "typesafe_api_key")
+    @field_validator("azure_speech_key", "azure_speech_region", "azure_docintel_endpoint", "azure_docintel_key", "typesafe_api_key",
+                     "second_sensor_endpoint", "second_sensor_key", "second_sensor_deployment", "second_sensor_api_version")
     @classmethod
     def _blank_is_unset(cls, value: str | None) -> str | None:
         """An empty placeholder in .env means "not configured"."""
@@ -65,6 +79,10 @@ class Settings(BaseSettings):
     @property
     def docintel_configured(self) -> bool:
         return bool(self.azure_docintel_endpoint and self.azure_docintel_key)
+
+    @property
+    def second_sensor_configured(self) -> bool:
+        return bool(self.second_sensor_endpoint and self.second_sensor_key and self.second_sensor_deployment)
 
     @model_validator(mode="after")
     def _refuse_weak_jwt_secret(self) -> "Settings":

@@ -69,8 +69,9 @@ def test_match_p_override_keeps_default_behaviour():
 
 def test_scam_fallback_never_says_genuine_and_misses_nothing():
     result = scam_eval.evaluate_scam(live=False)
-    assert result["mode"] == "keyword_fallback" and result["n"] == 40
-    assert result["model_id"] is None and result["fallback_count"] == 40
+    assert result["mode"] == "keyword_fallback" and result["n"] == 80
+    assert result["model_id"] is None and result["fallback_count"] == 80
+    assert result["tiers"]["jev_only"]["status"] == "not_run" and result["tiers"]["cascade"]["status"] == "not_run"
     assert result["fnr"] == 0.0 and result["genuine_passed_rate"] == 0.0
     assert set(result["by_language"]) == {"en", "roman_ur", "ur"}
 

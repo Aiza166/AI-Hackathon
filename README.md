@@ -68,5 +68,11 @@ Filled in as we build. Final version goes in the submission README.
 | Document reading (OCR) | Real: Azure Document Intelligence `prebuilt-read` when keys are set, else Tesseract in the container. The documents are mock specimens |
 | Document checks (stamp copy-move, ELA, registry cross-check, Jev image questions) | Real code; indicators for an officer, never a verdict. The registry compared against is the mock one |
 | Login, roles, consent, audit log, rules engine | Real (implemented in this project) |
+| Scam Shield link checks (lookalike, shortener, punycode, IP, TLD, http) | Real code, deterministic, links never opened. Allowlist = mock `pension.gov.example` + real-world reference domains (gov.pk, bisp.gov.pk, ...) |
+| Scam Shield caller checks | Real code. Official short codes (8171, 0800-26477) appear as real-world patterns, treated as evidence never proof; app data uses mock numbers |
+| Screenshot check (OCR) | Real: Azure Document Intelligence / Tesseract on the uploaded screenshot. Not stored |
+| Voice note / call recording check | Real: ffmpeg conversion + Azure speech-to-text (`ur-IN`) when keys are set, else "type what was said". Not stored |
+| Share to Sahara from WhatsApp / SMS | Real PWA Web Share Target (installed app); stays on the phone until she taps Check |
+| Second sensor (cascade) | Real Azure OpenAI model (gpt-5-mini) when `SECOND_SENSOR_*` is set, called only when Jev is unsure; off without the settings |
 
 Infrastructure (Railway services, Azure resources, variable names): [docs/INFRA.md](docs/INFRA.md).

@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 
 from app.core import audit
 from app.core.auth import Principal
-from app.documents import consistency, forensics, indicators, jev_checks
+from app.documents import cascade_checks, consistency, forensics, indicators, jev_checks
 from app.documents.fields import Field, extract_fields
 from app.documents.imaging import BadImage, LoadedImage, check_quality, jpeg_bytes, load
 from app.documents.ocr import OcrUnavailable, run_ocr
@@ -62,8 +62,9 @@ def _registry_checks(db: Session, case: Case, kind: str, fields: dict[str, Field
 
 
 def _summarise(fields: dict[str, Field], checks: list, report: forensics.ForensicReport, jev: jev_checks.JevDocResult,
-               found: list, quality: dict) -> dict:
+               found: list, quality: dict, sensed: cascade_checks.DocCascade) -> dict:
     return {
+        **sensed.summary(),
         "quality": quality,
         "fields": {k: f.to_dict() for k, f in fields.items()},
         "checks": [c.to_dict() for c in checks],
@@ -89,14 +90,20 @@ def analyse_upload(db: Session, principal: Principal, case: Case, kind: str, dat
     checks, check_indicators = _registry_checks(db, case, kind, fields)
     report, heatmap = forensics.analyse(loaded.image, loaded.exif)
     jev = jev_checks.ask_document_questions(kind, loaded.image)
-    found = indicators.dedupe([*found, *check_indicators, *indicators.from_forensics(report), *indicators.from_jev(jev)])
+    sensed = cascade_checks.run(kind, loaded.image, fields, report, jev)
+    disagree = [indicators.make("SENSORS_DISAGREE", questions=sensed.fused.disagreements)] \
+        if sensed.fused and sensed.fused.disagreements else []
+    if sensed.second_only_flags:
+        disagree.append(indicators.make("SECOND_SENSOR_FLAG", questions=sensed.second_only_flags))
+    found = indicators.dedupe([*found, *check_indicators, *indicators.from_forensics(report),
+                               *indicators.from_jev(sensed.jev), *disagree])
     risk = indicators.risk_level(found)
 
     doc = CaseDocument(
         case_id=case.id, tenant_id=case.tenant_id, kind=kind, sha256=loaded.sha256,
         width=loaded.image.width, height=loaded.image.height, ocr_engine=engine, jev_model=jev.model,
         risk_level=risk, indicator_codes=[i.code for i in found],
-        result=_summarise(fields, checks, report, jev, found, quality.to_dict()),
+        result=_summarise(fields, checks, report, jev, found, quality.to_dict(), sensed),
         image_jpeg=jpeg_bytes(loaded.image, OFFICER_COPY_QUALITY), ela_jpeg=heatmap, uploaded_by=principal.id,
     )
     db.add(doc)
@@ -106,7 +113,8 @@ def analyse_upload(db: Session, principal: Principal, case: Case, kind: str, dat
     audit.record(db, audit.AI, "DOCUMENT_ANALYSED", resource=f"document:{doc.id}", case_id=case.id, tenant_id=case.tenant_id,
                  details={"kind": kind, "sha256": loaded.sha256, "risk": risk, "indicators": doc.indicator_codes,
                           "ocr_engine": engine, "jev_model": jev.model, "jev_status": jev.status,
-                          "jev_question_set": jev.question_set, "jev_latency_ms": jev.latency_ms})
+                          "jev_question_set": jev.question_set, "jev_latency_ms": jev.latency_ms,
+                          "sensors": sensed.sensors, "cascade": sensed.fused.to_dict() if sensed.fused else None})
     redecide(db, case)
     return doc
 
@@ -177,5 +185,6 @@ def officer_view(doc: CaseDocument) -> dict:
         "fields": doc.result.get("fields", {}), "confirmed_fields": doc.confirmed_fields,
         "corrected_fields": doc.result.get("corrected_fields", []), "checks": doc.result.get("checks", []),
         "forensics": doc.result.get("forensics", {}), "jev": doc.result.get("jev", {}), "quality": doc.result.get("quality", {}),
+        "second_sensor": doc.result.get("second_sensor"), "cascade": doc.result.get("cascade"), "sensors": doc.result.get("sensors", []),
         "ocr_engine": doc.ocr_engine, "uploaded_by": doc.uploaded_by, "created_at": doc.created_at.isoformat(),
     }

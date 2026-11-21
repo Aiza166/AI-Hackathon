@@ -5,8 +5,9 @@ ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PIP_NO_CACHE_DIR=1
 WORKDIR /app
 
 # Tesseract is the free OCR fallback when Azure Document Intelligence is not configured.
+# ffmpeg converts browser (WebM/Opus) and phone (M4A/AMR/3GP) recordings to WAV for speech-to-text.
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends tesseract-ocr tesseract-ocr-eng tesseract-ocr-urd libglib2.0-0 \
+    && apt-get install -y --no-install-recommends tesseract-ocr tesseract-ocr-eng tesseract-ocr-urd libglib2.0-0 ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .

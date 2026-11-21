@@ -7,6 +7,7 @@
 
 ## 0. What changed overnight (read first)
 
+**Update Sun (Aiza + Claude): Scam Shield v2.** `src/pages/ScamShield.tsx` now has three modes (Message or link / Screenshot / Phone call), a Paste button, screenshot upload, voice-note upload and a Record button (only where the phone supports it). The result view moved to `src/components/ScamVerdict.tsx` and lists the links we checked (never opened) and what was read or heard. Installed app: "Share" from WhatsApp/SMS opens Scam Shield prefilled (`src/lib/share.ts`, `public/share-target-sw.js`). Please check at 360 px: the 3-mode choice, the file pickers, the Record button, Urdu line breaks; record clips for `prompt_scam_intro` (new text). Browser test of share/screenshot/recording is planned for the end.
 **Update Sun ~06:00 (Aiza + Claude): E2E bugs fixed** (details in `docs/TEST-REPORT.md`, "Fix status"). What changes for you:
 - Admin -> Rules -> Run Digital Twin now has an "On publish" column; publishing v2 caps the Haider heirs (Bilal sees "paid until 2034-11-01"), Rakha stays v1. Reset the demo to repeat it.
 - My data: the Pension Department card has no "Take back" while a claim is open; it explains why (Urdu + English) and offers "Withdraw my claim" for a claim still being decided (a paid pension keeps the department's access). Please check the Urdu wording and line breaks.

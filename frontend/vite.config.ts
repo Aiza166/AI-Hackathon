@@ -25,9 +25,24 @@ export default defineConfig({
         display: 'standalone',
         lang: 'ur',
         icons: [{ src: 'favicon.svg', sizes: 'any', type: 'image/svg+xml' }],
+        // "Share" from WhatsApp / SMS / gallery opens Scam Shield prefilled (installed app only).
+        // public/share-target-sw.js receives the POST inside the service worker; nothing goes to a server.
+        share_target: {
+          action: '/share-target',
+          method: 'POST',
+          enctype: 'multipart/form-data',
+          params: {
+            title: 'title',
+            text: 'text',
+            url: 'url',
+            files: [{ name: 'media', accept: ['image/*', 'audio/*', 'video/mp4', 'video/webm', 'video/3gpp'] }],
+          },
+        },
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,mp3,ogg,opus}'],
+        // Runs before Workbox's own routes so the share POST is caught first.
+        importScripts: ['share-target-sw.js'],
       },
     }),
   ],

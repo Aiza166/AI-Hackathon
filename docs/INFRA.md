@@ -23,7 +23,7 @@ All in resource group **`sahara-rg`**, region **UAE North** (`uaenorth`). The st
 |---|---|---|---|---|
 | `sahara-speech-aiza` | Speech | S0 | Urdu/English voice (`ur-PK-UzmaNeural`), speech to text | `AZURE_SPEECH_KEY`, `AZURE_SPEECH_REGION` |
 | `sahara-docs-aiza` | Document Intelligence | S0 | OCR of uploaded documents (prebuilt-read) | `AZURE_DOCINTEL_ENDPOINT`, `AZURE_DOCINTEL_KEY` |
-| `sahara-openai-aiza` | Azure OpenAI | S0 | Second sensor in the AI cascade (gpt-4o-mini), being set up | `SECOND_SENSOR_ENDPOINT`, `SECOND_SENSOR_KEY`, `SECOND_SENSOR_DEPLOYMENT`, `SECOND_SENSOR_API_VERSION` |
+| `sahara-openai-aiza` | Azure OpenAI | S0 | Second sensor in the AI cascade: deployment `gpt-5-mini` (model gpt-5-mini 2025-08-07, GlobalStandard, API version 2025-04-01-preview); gpt-4o-mini is deprecating and gpt-5.4-mini had no student quota | `SECOND_SENSOR_ENDPOINT`, `SECOND_SENSOR_KEY`, `SECOND_SENSOR_DEPLOYMENT`, `SECOND_SENSOR_API_VERSION` |
 
 S0 is pay-per-use (cents for the whole hackathon) and avoids the free tier's rate limits during judging. No commitment tiers.
 

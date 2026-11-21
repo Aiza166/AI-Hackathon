@@ -5,6 +5,7 @@ import { PrototypeBanner } from './components/PrototypeBanner'
 import { Icon } from './lib/icons'
 import { clearMe } from './lib/meCache'
 import { clearOwnerData, unsentCount } from './lib/outbox'
+import { clearPendingShare } from './lib/share'
 import { CitizenHome } from './pages/CitizenHome'
 import { Login } from './pages/Login'
 
@@ -65,6 +66,7 @@ export default function App() {
     clearMe()
     setToken(null)
     sessionStorage.removeItem(USER_KEY)
+    void clearPendingShare()
     setUnsent(0)
     setUser(null)
   }
