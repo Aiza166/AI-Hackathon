@@ -24,6 +24,7 @@ interface ClaimWizardProps {
 
 interface ClaimDraft {
   relation: Relation
+  dob: string // YYYY-MM-DD from <input type="date">, '' = not given
   deceasedName: string
   deceasedCnic: string
   documents: DocumentKind[]
@@ -43,14 +44,24 @@ const DOCS: { key: DocumentKind; ur: string; en: string }[] = [
 ]
 const STEPS = [
   { key: 'prompt_relation', icon: 'family', ur: 'آپ مرحوم کی کون ہیں؟', en: 'How were you related to him?' },
+  { key: 'prompt_dob', icon: 'calendar', ur: 'آپ کی تاریخ پیدائش کیا ہے؟', en: 'What is your date of birth?' },
   { key: 'prompt_deceased', icon: 'person', ur: 'مرحوم کا پورا نام کیا تھا؟', en: 'What was his full name?' },
   { key: 'prompt_deceased_cnic', icon: 'id-card', ur: 'مرحوم کا شناختی کارڈ نمبر', en: 'His CNIC number (if you know it)' },
   { key: 'prompt_documents', icon: 'document', ur: 'آپ کے پاس کون سے کاغذات ہیں؟', en: 'Which papers do you have? Tap all that apply.' },
   { key: 'prompt_account', icon: 'bank', ur: 'پنشن کس بینک اکاؤنٹ میں آئے؟', en: 'Which bank account should the pension go to?' },
   { key: 'prompt_review', icon: 'check', ur: 'دعویٰ بھیجنے سے پہلے دیکھ لیں', en: 'Check everything before sending' },
-]
+] as const
 // Demo prefill so judges can run the golden path quickly (all mock data).
 const DEMO_DECEASED = { name: 'Muhammad Aslam', cnic: '9000000000011', iban: 'PK00MOCK0000000000000001' }
+// Mock DOB of the demo widow (Zainab Bibi), so her demo claim can auto-approve.
+const DEMO_CLAIMANT = { cnic: '9000000000022', dob: '1962-06-01' }
+const DOB_PATTERN = /^\d{4}-\d{2}-\d{2}$/
+type StepKey = (typeof STEPS)[number]['key']
+const stepIndex = (key: StepKey): number => STEPS.findIndex((s) => s.key === key)
+
+function todayIso(): string {
+  return new Date().toISOString().slice(0, 10)
+}
 
 // A stored draft comes from the phone's database: check its shape before using it.
 function asClaimDraft(value: unknown): ClaimDraft | null {
@@ -62,6 +73,7 @@ function asClaimDraft(value: unknown): ClaimDraft | null {
   if (typeof v.deceasedName !== 'string' || typeof v.deceasedCnic !== 'string' || typeof v.iban !== 'string') return null
   return {
     relation,
+    dob: typeof v.dob === 'string' && DOB_PATTERN.test(v.dob) ? v.dob : '', // older drafts have no DOB
     deceasedName: v.deceasedName.slice(0, 120),
     deceasedCnic: v.deceasedCnic.replace(/\D/g, '').slice(0, 13),
     documents: docs as DocumentKind[],
@@ -78,6 +90,7 @@ const snapshot = (step: number, data: ClaimDraft) => JSON.stringify({ step, data
 export function ClaimWizard({ ownerId, claimant, onDone, onQueued, onCancel }: ClaimWizardProps) {
   const [step, setStep] = useState(0)
   const [relation, setRelation] = useState<Relation>('widow')
+  const [dob, setDob] = useState('')
   const [deceasedName, setDeceasedName] = useState('')
   const [deceasedCnic, setDeceasedCnic] = useState('')
   const [documents, setDocuments] = useState<DocumentKind[]>([])
@@ -97,6 +110,7 @@ export function ClaimWizard({ ownerId, claimant, onDone, onQueued, onCancel }: C
       const start = data && stored ? clampStep(stored.step) : 0
       if (data) {
         setRelation(data.relation)
+        setDob(data.dob)
         setDeceasedName(data.deceasedName)
         setDeceasedCnic(data.deceasedCnic)
         setDocuments(data.documents)
@@ -104,7 +118,7 @@ export function ClaimWizard({ ownerId, claimant, onDone, onQueued, onCancel }: C
         setStep(start)
         setSavedOnPhone(true)
       }
-      lastSaved.current = snapshot(start, data ?? { relation: 'widow', deceasedName: '', deceasedCnic: '', documents: [], iban: '' })
+      lastSaved.current = snapshot(start, data ?? { relation: 'widow', dob: '', deceasedName: '', deceasedCnic: '', documents: [], iban: '' })
       setRestored(true)
     })
     return () => {
@@ -114,7 +128,7 @@ export function ClaimWizard({ ownerId, claimant, onDone, onQueued, onCancel }: C
 
   useEffect(() => {
     if (!restored) return
-    const data: ClaimDraft = { relation, deceasedName, deceasedCnic, documents, iban }
+    const data: ClaimDraft = { relation, dob, deceasedName, deceasedCnic, documents, iban }
     const current = snapshot(step, data)
     if (current === lastSaved.current) return // nothing changed: do not write an empty draft
     lastSaved.current = current
@@ -125,7 +139,7 @@ export function ClaimWizard({ ownerId, claimant, onDone, onQueued, onCancel }: C
     return () => {
       active = false
     }
-  }, [restored, ownerId, claimant.cnic, step, relation, deceasedName, deceasedCnic, documents, iban])
+  }, [restored, ownerId, claimant.cnic, step, relation, dob, deceasedName, deceasedCnic, documents, iban])
 
   async function cancel(): Promise<void> {
     // Leaving the claim on purpose: do not keep her details on a shared phone.
@@ -135,7 +149,7 @@ export function ClaimWizard({ ownerId, claimant, onDone, onQueued, onCancel }: C
 
   const prompt = STEPS[step]
   const isLast = step === STEPS.length - 1
-  const canNext = step !== 1 || deceasedName.trim().length >= 2
+  const canNext = prompt.key !== 'prompt_deceased' || deceasedName.trim().length >= 2
   const toggleDoc = (doc: DocumentKind) =>
     setDocuments((current) => (current.includes(doc) ? current.filter((d) => d !== doc) : [...current, doc]))
 
@@ -145,13 +159,14 @@ export function ClaimWizard({ ownerId, claimant, onDone, onQueued, onCancel }: C
     const claim: ClaimIn = {
       claimant_cnic: claimant.cnic,
       claimant_name: claimant.name,
+      claimant_dob: DOB_PATTERN.test(dob) ? dob : null, // blank: the system asks her to confirm it, never rejects
       relation_claimed: relation,
       deceased_cnic: deceasedCnic.trim() || null,
       deceased_name: deceasedName.trim(),
       payout_iban: iban.trim().toUpperCase(),
       documents,
     }
-    const data: ClaimDraft = { relation, deceasedName, deceasedCnic, documents, iban }
+    const data: ClaimDraft = { relation, dob, deceasedName, deceasedCnic, documents, iban }
     try {
       const result = await submitQueued<CaseView>({
         owner: ownerId, subject: claimant.cnic, subjectName: claimant.name, path: '/api/v1/cases', body: claim, draft: { step, data },
@@ -178,6 +193,7 @@ export function ClaimWizard({ ownerId, claimant, onDone, onQueued, onCancel }: C
     setDeceasedCnic(DEMO_DECEASED.cnic)
     setIban(DEMO_DECEASED.iban)
     setDocuments(DOCS.map((d) => d.key))
+    if (claimant.cnic === DEMO_CLAIMANT.cnic && !dob) setDob(DEMO_CLAIMANT.dob)
   }
 
   const relationLabel = RELATIONS.find((r) => r.key === relation)
@@ -207,7 +223,7 @@ export function ClaimWizard({ ownerId, claimant, onDone, onQueued, onCancel }: C
       </header>
 
       <div className="answer">
-        {step === 0 && (
+        {prompt.key === 'prompt_relation' && (
           <div className="choice-grid choice-3">
             {RELATIONS.map((r) => (
               <button key={r.key} type="button" className="choice" aria-pressed={relation === r.key} onClick={() => setRelation(r.key)}>
@@ -220,7 +236,38 @@ export function ClaimWizard({ ownerId, claimant, onDone, onQueued, onCancel }: C
           </div>
         )}
 
-        {step === 1 && (
+        {prompt.key === 'prompt_dob' && (
+          <div className="stack">
+            <label className="field">
+              <span className="field-label">
+                <Icon name="id-card" size={22} />
+                <span lang="ur" dir="rtl">تاریخ پیدائش (شناختی کارڈ پر لکھی ہے)</span>
+                <span>Date of birth</span>
+              </span>
+              <span dir="ltr" className="ltr-island">
+                <input
+                  className="input input-big input-digits"
+                  type="date"
+                  lang="en"
+                  min="1900-01-01"
+                  max={todayIso()}
+                  value={dob}
+                  onChange={(e) => setDob(e.target.value)}
+                  aria-describedby="dob-hint"
+                />
+              </span>
+              <span id="dob-hint" className="field-hint">
+                <span lang="ur" dir="rtl">یہ آپ کے شناختی کارڈ پر چھپی ہے۔ معلوم نہ ہو تو خالی چھوڑ دیں، ہم بعد میں پوچھ لیں گے۔</span>
+                <span>Printed on your CNIC. If you are not sure, leave it empty: we will ask you to confirm it later.</span>
+              </span>
+            </label>
+            {claimant.cnic === DEMO_CLAIMANT.cnic && (
+              <button type="button" className="btn btn-quiet btn-sm self-start" onClick={() => setDob(DEMO_CLAIMANT.dob)}>Fill demo DOB (mock)</button>
+            )}
+          </div>
+        )}
+
+        {prompt.key === 'prompt_deceased' && (
           <div className="stack">
             <label className="field">
               <span className="field-label">Name of the deceased</span>
@@ -230,7 +277,7 @@ export function ClaimWizard({ ownerId, claimant, onDone, onQueued, onCancel }: C
           </div>
         )}
 
-        {step === 2 && (
+        {prompt.key === 'prompt_deceased_cnic' && (
           <label className="field">
             <span className="field-label">13 digits, no dashes. Leave empty if you do not know it.</span>
             <input
@@ -243,7 +290,7 @@ export function ClaimWizard({ ownerId, claimant, onDone, onQueued, onCancel }: C
           </label>
         )}
 
-        {step === 3 && (
+        {prompt.key === 'prompt_documents' && (
           <div className="choice-grid choice-2">
             {DOCS.map((d) => {
               const on = documents.includes(d.key)
@@ -259,20 +306,21 @@ export function ClaimWizard({ ownerId, claimant, onDone, onQueued, onCancel }: C
           </div>
         )}
 
-        {step === 4 && (
+        {prompt.key === 'prompt_account' && (
           <label className="field">
             <span className="field-label">IBAN of an account in your own name</span>
             <input className="input input-big input-digits" autoComplete="off" autoCapitalize="characters" value={iban} onChange={(e) => setIban(e.target.value)} />
           </label>
         )}
 
-        {step === 5 && (
+        {prompt.key === 'prompt_review' && (
           <dl className="review">
-            <ReviewRow icon="family" label="Relation" value={relationLabel ? `${relationLabel.en} / ${relationLabel.ur}` : relation} onEdit={() => setStep(0)} />
-            <ReviewRow icon="person" label="Deceased" value={deceasedName || '-'} onEdit={() => setStep(1)} />
-            <ReviewRow icon="id-card" label="His CNIC" value={deceasedCnic || 'Not given'} onEdit={() => setStep(2)} />
-            <ReviewRow icon="document" label="Papers" value={`${documents.length} of ${DOCS.length}`} onEdit={() => setStep(3)} />
-            <ReviewRow icon="bank" label="Account" value={iban || 'Not given'} onEdit={() => setStep(4)} />
+            <ReviewRow icon="family" label="Relation" value={relationLabel ? `${relationLabel.en} / ${relationLabel.ur}` : relation} onEdit={() => setStep(stepIndex('prompt_relation'))} />
+            <ReviewRow icon="calendar" label="Your date of birth" value={dob || 'Not given (we will ask)'} onEdit={() => setStep(stepIndex('prompt_dob'))} />
+            <ReviewRow icon="person" label="Deceased" value={deceasedName || '-'} onEdit={() => setStep(stepIndex('prompt_deceased'))} />
+            <ReviewRow icon="id-card" label="His CNIC" value={deceasedCnic || 'Not given'} onEdit={() => setStep(stepIndex('prompt_deceased_cnic'))} />
+            <ReviewRow icon="document" label="Papers" value={`${documents.length} of ${DOCS.length}`} onEdit={() => setStep(stepIndex('prompt_documents'))} />
+            <ReviewRow icon="bank" label="Account" value={iban || 'Not given'} onEdit={() => setStep(stepIndex('prompt_account'))} />
             <ReviewRow icon="helper" label="Claim for" value={claimant.name} />
           </dl>
         )}

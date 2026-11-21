@@ -633,3 +633,89 @@ td.codes .code { margin: 2px; }
 
 /* Short bilingual labels share one left edge in the LTR shell; long Urdu sentences stay right-aligned. */
 .bi, .question-text, .verdict-text, .switch-label, .acting-text, .login-sub { align-items: flex-start; }
+
+/* ---------- shared form bits ---------- */
+/* Digits, dates and IBANs stay left-to-right even inside Urdu (RTL) text. */
+.ltr-island { display: block; direction: ltr; unicode-bidi: isolate; }
+.field-hint { display: flex; flex-direction: column; gap: 2px; font-size: var(--t-sm); color: var(--ink-soft); }
+.field-hint :lang(ur) { font-size: 1.05em; line-height: 1.8; }
+.mono { font-family: ui-monospace, Consolas, monospace; letter-spacing: 0.04em; }
+
+/* ---------- citizen home tiles ---------- */
+.tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s3); }
+.tile {
+  display: flex; flex-direction: column; align-items: flex-start; gap: var(--s3);
+  min-height: 132px; padding: var(--s4);
+  background: var(--surface); border: 2px solid var(--line); border-radius: var(--r-panel);
+  text-align: start; cursor: pointer;
+}
+.tile:hover:not(:disabled) { border-color: var(--indigo); }
+.tile:disabled { opacity: 0.55; cursor: not-allowed; }
+.tile .bi-ur { line-height: 1.7; }
+
+/* ---------- scam shield ---------- */
+.verdict .bi-ur { font-size: var(--t-lg); line-height: 1.8; }
+.verdict .bi-en { font-size: var(--t-base); color: var(--tone); font-weight: 600; }
+.reason-list, .route-list, .bars { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--s2); }
+.reason-item {
+  display: flex; align-items: flex-start; gap: var(--s3);
+  padding: var(--s3) var(--s4); background: var(--surface);
+  border: 1.5px solid var(--line); border-inline-start: 4px solid var(--attn); border-radius: var(--r-ctl);
+}
+.reason-item .icon { color: var(--attn); margin-top: 4px; }
+.reason-item .bi-ur { font-size: var(--t-md); line-height: 1.8; font-weight: 600; }
+.report-card {
+  display: flex; flex-direction: column; gap: var(--s3);
+  padding: var(--s4); background: var(--risk-wash); border: 2px solid var(--risk); border-radius: var(--r-panel);
+}
+.route-item { display: flex; flex-direction: column; gap: var(--s1); }
+.route-action {
+  display: flex; align-items: center; gap: var(--s3);
+  min-height: var(--touch-big); padding: var(--s2) var(--s4);
+  background: var(--surface); border: 2px solid var(--line-strong); border-radius: var(--r-ctl);
+  color: var(--ink); text-decoration: none;
+}
+a.route-action:hover { border-color: var(--indigo); background: var(--indigo-wash); }
+.route-action .icon { color: var(--risk); }
+.route-action .bi-ur { line-height: 1.7; }
+.route-info { border-style: dashed; }
+.route-meta { display: flex; align-items: center; gap: var(--s2); padding-inline-start: var(--s2); }
+
+/* ---------- safeswitch ---------- */
+.payee {
+  display: flex; align-items: flex-start; gap: var(--s4);
+  padding: var(--s4); background: var(--surface);
+  border: 2px solid var(--tone); border-radius: var(--r-panel);
+}
+.payee-body { flex: 1; min-width: 0; }
+.countdown { font-size: var(--t-md); }
+.countdown strong { font-variant-numeric: tabular-nums; }
+.claim-item-static { cursor: default; }
+.claim-item-static:hover { border-color: var(--line); }
+.change-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: var(--s4); }
+
+/* ---------- scam map ---------- */
+.stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: var(--s3); }
+.stat {
+  display: flex; flex-direction: column; gap: var(--s1);
+  padding: var(--s4); background: var(--surface);
+  border: 1px solid var(--line); border-top: 4px solid var(--tone); border-radius: var(--r-ctl);
+}
+.stat-n { font-size: var(--t-2xl); font-weight: 800; color: var(--tone); font-variant-numeric: tabular-nums; line-height: 1.1; }
+.stat-label { font-size: var(--t-sm); color: var(--ink-soft); font-weight: 600; }
+.map-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: var(--s4); }
+.bar-row { display: grid; grid-template-columns: minmax(7rem, 9rem) 1fr auto; align-items: center; gap: var(--s3); }
+.bar-label { text-transform: capitalize; font-size: var(--t-sm); font-weight: 600; }
+.bar-track { height: 12px; background: var(--quiet-wash); border-radius: var(--r-pill); overflow: hidden; }
+.bar-fill { display: block; height: 100%; background: var(--risk); border-radius: var(--r-pill); }
+.hours { display: grid; grid-template-columns: repeat(24, 1fr); gap: 2px; align-items: end; height: 96px; }
+.hour { position: relative; height: 100%; background: var(--quiet-wash); border-radius: 3px; overflow: hidden; }
+.hour-fill { position: absolute; inset-inline: 0; bottom: 0; background: var(--risk); }
+.hours-axis { display: flex; justify-content: space-between; }
+
+@media (max-width: 480px) {
+  .tiles { grid-template-columns: 1fr; }
+  .tile { min-height: 96px; flex-direction: row; align-items: center; }
+  .change-grid { grid-template-columns: 1fr; }
+  .payee { flex-direction: column; }
+}

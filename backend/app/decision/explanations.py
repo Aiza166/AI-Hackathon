@@ -120,6 +120,17 @@ _EXPLANATIONS: dict[ReasonCode, tuple[str, str, str]] = {
         "More than one person with this name is in the records. Please give the deceased's CNIC number.",
         "id-card",
     ),
+    ReasonCode.CONFIRM_DOB: (
+        "براہ کرم اپنی تاریخ پیدائش کی تصدیق کریں۔ یہ آپ کے شناختی کارڈ پر لکھی ہے۔",
+        "Please confirm your date of birth. It is printed on your CNIC.",
+        "calendar",
+    ),
+    ReasonCode.DOB_MISMATCH: (
+        "آپ کی بتائی ہوئی تاریخ پیدائش ریکارڈ سے نہیں ملتی۔ اپنے شناختی کارڈ سے دیکھ کر دوبارہ بتائیں، یا مددگار کو کارڈ دکھائیں۔",
+        "The date of birth you gave does not match the records. "
+        "Check it on your CNIC and give it again, or show your CNIC to the helper.",
+        "calendar",
+    ),
 }
 
 

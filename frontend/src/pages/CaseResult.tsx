@@ -87,7 +87,7 @@ export function CaseResult({ caseId, onBack }: CaseResultProps) {
           </h2>
           <ul className="doc-chips">
             {data.missing_items.map((m) => (
-              <li key={m}><Icon name={DOC_ICONS[m] ?? 'document'} size={26} /> {humanize(m)}</li>
+              <li key={m}><Icon name={DOC_ICONS[m] ?? 'document'} size={26} /> {m === 'claimant_dob' ? 'Your date of birth (as on your CNIC)' : humanize(m)}</li>
             ))}
           </ul>
         </section>

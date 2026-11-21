@@ -16,8 +16,7 @@ from sqlalchemy.orm import Session
 
 from app.core import audit
 from app.core.auth import Principal
-from app.decision.matching import name_similarity
-from app.mock import registry
+from app.mock import raast, registry
 from app.models.payout import PayoutChangeRequest
 from app.models.platform import Case, Person, utcnow
 
@@ -25,6 +24,7 @@ STANDARD_HOLD = timedelta(hours=48)
 FLAGGED_BUSINESS_DAYS = 4
 RECENT_DEATH_DAYS = 30
 OPEN_STATUSES = ("held", "confirmed", "flagged", "approved")
+CANCELLABLE = OPEN_STATUSES
 
 
 def add_business_days(start: datetime, days: int) -> datetime:
@@ -36,19 +36,21 @@ def add_business_days(start: datetime, days: int) -> datetime:
     return current
 
 
-def payee_check(db: Session, iban: str, claimant: Person) -> str:
-    """Mock Confirmation of Payee: does the account belong to, and carry the name of, the claimant?"""
-    account = registry.get_account(db, iban)
-    if account is None or account.owner_cnic != claimant.cnic:
-        return "no_match"
-    score = name_similarity(account.title, claimant.display_name)
-    return "match" if score >= 95 else "close_match" if score >= 70 else "no_match"
+def payee_check(db: Session, iban: str, claimant: Person) -> raast.TitleFetch:
+    """Mock Raast title fetch + our Confirmation-of-Payee verdict for the new account."""
+    return raast.title_fetch(db, iban, claimant.display_name, claimant.cnic)
 
 
-def _flags(db: Session, case: Case, new_iban: str, payee: str) -> list[str]:
+def _flags(db: Session, case: Case, new_iban: str, check: raast.TitleFetch) -> list[str]:
     flags = []
-    if payee != "match":
-        flags.append(f"PAYEE_{payee.upper()}")
+    if check.status == "TIMEOUT":
+        flags.append("PAYEE_CHECK_TIMEOUT")  # never auto-accept: an officer decides, hold extended
+    elif check.status == "UNAVAILABLE":
+        flags.append(f"SERVICE_UNAVAILABLE:{raast.SERVICE}")
+    elif check.payee != "match":
+        flags.append(f"PAYEE_{check.payee.upper()}")
+    if check.account_holding == "JOINT":
+        flags.append("JOINT_ACCOUNT")  # federal pensions must not go to a joint account (AGPR DCS): ask for proof
     reused = db.execute(select(Case.reference).where(Case.payout_iban == new_iban, Case.id != case.id,
                                                      Case.claimant_person_id != case.claimant_person_id)).first()
     if reused:
@@ -65,15 +67,17 @@ def request_change(db: Session, principal: Principal, case: Case, new_iban: str)
                                                      PayoutChangeRequest.status.in_(OPEN_STATUSES))).first():
         raise HTTPException(status_code=409, detail="A payout change is already in progress for this claim")
     claimant = db.get(Person, case.claimant_person_id)
+    check = payee_check(db, new_iban, claimant)
+    payee = check.payee
     try:
-        payee = payee_check(db, new_iban, claimant)
-        flags = _flags(db, case, new_iban, payee)
+        flags = _flags(db, case, new_iban, check)
     except registry.MockServiceUnavailable as exc:
-        payee, flags = "no_match", [f"SERVICE_UNAVAILABLE:{exc.service}"]
+        flags = [f"SERVICE_UNAVAILABLE:{exc.service}"]
     now = utcnow()
     hold_until = add_business_days(now, FLAGGED_BUSINESS_DAYS) if flags else now + STANDARD_HOLD
     change = PayoutChangeRequest(case_id=case.id, tenant_id=case.tenant_id, old_iban=case.payout_iban, new_iban=new_iban,
                                  requested_by=principal.id, requested_role=principal.role, payee_result=payee, flags=flags,
+                                 payee_check=check.to_dict(),
                                  status="flagged" if flags else "held", hold_until=hold_until)
     db.add(change)
     db.flush()
@@ -101,6 +105,20 @@ def confirm(db: Session, principal: Principal, change_id: str) -> PayoutChangeRe
     if change.status in ("held", "approved"):  # a flagged change still waits for the officer
         change.status = "confirmed"
     audit.record(db, principal.actor, "PAYOUT_CHANGE_CONFIRMED", resource=f"payout_change:{change.id}", case_id=case.id)
+    return change
+
+
+def cancel(db: Session, principal: Principal, change_id: str) -> PayoutChangeRequest:
+    """The claimant herself (or the helper who started it) can stop a change before it is applied."""
+    change = _get(db, change_id)
+    case = db.get(Case, change.case_id)
+    own = principal.person_id is not None and principal.person_id == case.claimant_person_id
+    if not own and principal.id != change.requested_by:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only the claimant or the person who started it can cancel")
+    if change.status not in CANCELLABLE:
+        raise HTTPException(status_code=409, detail=f"This change is {change.status}")
+    change.status = "cancelled"
+    audit.record(db, principal.actor, "PAYOUT_CHANGE_CANCELLED", resource=f"payout_change:{change.id}", case_id=case.id)
     return change
 
 
@@ -138,4 +156,6 @@ def view(change: PayoutChangeRequest) -> dict:
     return {"id": change.id, "case_id": change.case_id, "status": change.status, "payee_result": change.payee_result,
             "flags": change.flags, "hold_until": change.hold_until.isoformat(), "new_iban_last4": change.new_iban[-4:],
             "requested_role": change.requested_role, "confirmed": change.confirmed_at is not None,
-            "applied_at": change.applied_at.isoformat() if change.applied_at else None}
+            "applied_at": change.applied_at.isoformat() if change.applied_at else None,
+            "created_at": change.created_at.isoformat() if change.created_at else None,
+            "payee_check": change.payee_check}

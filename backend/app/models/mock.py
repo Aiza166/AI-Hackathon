@@ -67,6 +67,8 @@ class MockAccount(Base):
     title: Mapped[str] = mapped_column(String(120))
     owner_cnic: Mapped[str] = mapped_column(String(13))
     bank: Mapped[str] = mapped_column(String(60))
+    account_type: Mapped[str] = mapped_column(String(10), default="ACCOUNT", server_default="ACCOUNT")  # ACCOUNT | WALLET
+    holding: Mapped[str] = mapped_column(String(10), default="SINGLE", server_default="SINGLE")  # SINGLE | JOINT
 
 
 class MockFault(Base):
@@ -74,5 +76,5 @@ class MockFault(Base):
 
     __tablename__ = "mock_faults"
     service: Mapped[str] = mapped_column(String(30), primary_key=True)
-    mode: Mapped[str] = mapped_column(String(10), default="ok")  # ok | error | slow
+    mode: Mapped[str] = mapped_column(String(10), default="ok")  # ok | error | slow | timeout (raast)
     latency_ms: Mapped[int] = mapped_column(Integer, default=0)

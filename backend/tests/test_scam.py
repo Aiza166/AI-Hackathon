@@ -86,3 +86,20 @@ def test_api_key_with_scam_scope_can_check(client, login, jev):
     response = client.post("/api/v1/public/scam/check", json={"text": FEE_SCAM}, headers={"X-API-Key": key})
     assert response.status_code == 200
     assert response.json()["data"]["verdict"] == "LIKELY_SCAM"
+
+
+def test_scam_verdict_lists_real_report_routes_with_1799_and_no_1991(client, login, jev):
+    jev({"asks_fee": 0.98, "has_link": 0.97, "claims_government": 0.9, "claims_payment_ready": 0.95})
+    routes = _check(client, login("rafiq"), FEE_SCAM)["report_routes"]
+    urls = [r["url"] for r in routes]
+    assert "tel:1799" in urls and "https://complaint.pta.gov.pk/" in urls and "https://sunwai.sbp.org.pk/" in urls
+    assert not any("1991" in (u or "") for u in urls)
+    assert all(r["name"] and r["name_ur"] and r["confidence"] for r in routes)
+    assert "tel:080026477" not in urls  # BISP line only when the message is about BISP
+
+
+def test_bisp_message_adds_the_bisp_helpline(client, login, jev):
+    jev({"asks_fee": 0.98, "claims_government": 0.9})
+    text = "BISP: your Benazir payment is ready, pay Rs 2000 fee to receive it."
+    routes = _check(client, login("rafiq"), text, sender="8171")["report_routes"]
+    assert "tel:080026477" in [r["url"] for r in routes]

@@ -4,16 +4,17 @@ Admin/auditor only: these hold (mock) personal records, and every read is
 audited. The decision engine calls app.mock.registry directly in-process.
 """
 from collections.abc import Callable
-from typing import Any
+from typing import Any, Literal
 
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.core import audit
 from app.core.auth import Principal, require_roles
 from app.core.envelope import ok
 from app.db import get_db
-from app.mock import registry
+from app.mock import raast, registry
 from app.schemas.contracts import Role
 
 router = APIRouter(prefix="/mock", tags=["mock government services (simulated)"])
@@ -62,3 +63,23 @@ def pension(cnic: str, principal: Principal = Depends(READERS), db: Session = De
 def account_title(iban: str, principal: Principal = Depends(READERS), db: Session = Depends(get_db)) -> dict:
     a = _lookup(db, principal, f"account:{iban[-4:]}", registry.get_account, iban)
     return ok({"iban": a.iban, "title": a.title, "bank": a.bank})
+
+
+class TitleFetchIn(BaseModel):
+    request_id: str | None = Field(default=None, max_length=64)
+    proxy_type: Literal["IBAN"] = "IBAN"  # RAAST_ID (mobile alias) is not simulated
+    proxy_value: str = Field(min_length=10, max_length=34, pattern=r"^[A-Z0-9]+$")
+    expected_name: str = Field(min_length=2, max_length=120)
+    expected_cnic: str | None = Field(default=None, pattern=r"^\d{13}$")
+
+
+@router.post("/raast/title-fetch")
+def title_fetch(body: TitleFetchIn, principal: Principal = Depends(READERS), db: Session = Depends(get_db)) -> dict:
+    """Simulated Raast title fetch plus OUR Confirmation-of-Payee verdict. Returns a masked title,
+    account type, SINGLE/JOINT holding and `cnic_match` (true/false), never the CNIC itself.
+    Break it from the judge console: POST /api/v1/admin/faults {"service": "raast", "mode": "timeout"}."""
+    result = raast.title_fetch(db, body.proxy_value, body.expected_name, body.expected_cnic)
+    audit.record(db, principal.actor, "MOCK_RECORD_READ", resource=f"raast:{body.proxy_value[-4:]}",
+                 details={"status": result.status, "match_level": result.match_level})
+    db.commit()
+    return ok({"request_id": body.request_id, **result.to_dict()})

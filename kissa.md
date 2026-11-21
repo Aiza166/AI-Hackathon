@@ -7,6 +7,20 @@
 
 ## 0. What changed overnight (read first)
 
+**Update Sat ~23:30 (Aiza + Claude): Scam Shield, SafeSwitch, Scam Map and officer payout screens are built** (first versions, yours to polish). What is new:
+- Claim wizard has a **date of birth step** (step 2). Auto-approval now needs her DOB to match the record; blank DOB = "Please confirm your date of birth", never a rejection. "Fill demo DOB" appears for Zainab.
+- Citizen and helper home: two new tiles, **"Is this message a scam?"** (`src/pages/ScamShield.tsx`) and **"Change payout account"** (`src/pages/SafeSwitch.tsx`). Both are lazy-loaded so the first screen stays small.
+- Officer: tabs **Review queue / Payout changes / Scam map** (`OfficerPayouts.tsx`, `ScamMap.tsx`). Admin has a Scam map tab too.
+- Backend: mock Raast title fetch (masked title like "ZA**** BI**", joint/single, wallet/account), cancel a payout change, officer list of flagged changes, real report routes (1799, PTA, Sunwai, BISP when relevant).
+
+**Please test on your phone (live app after deploy):**
+1. Zainab: new claim, fill demo DOB + demo data, send: should be auto-approved. Try again with the DOB empty on a fresh reset: should ask to confirm the DOB.
+2. Zainab: "Is this message a scam?", Fill demo scam SMS, say Yes to "someone on the phone", Check: red verdict, reasons, Listen, and the "Report this scam" card (tap 1799 should open the dialer).
+3. Zainab: "Change payout account", Demo: Joint account: close match, joint account reason, ~5 day countdown; Cancel this change. Then Demo: Own wallet: match, enter PIN 1234, "Confirmed".
+4. Ayesha (helper), pick Zainab, Change payout account: she sees the change but no PIN box.
+5. Kamran (officer): Payout changes tab (flag one first with Zainab using "Demo: Someone else's"), reject with a note; Scam map tab shows counts.
+6. Check Urdu line breaks and 48 px targets at 360 px width; record Urdu clips for `prompt_dob`, `prompt_scam_intro`, `prompt_safeswitch`, `scam_likely_scam`, `scam_not_sure`, `scam_looks_genuine`, `reason_confirm_dob`, `reason_dob_mismatch`.
+
 **Update Sat ~05:30:** the UI was redesigned (design system in `src/index.css`, pictograms in `src/lib/icons.tsx`, shared pieces in `src/components/ui.tsx`). Already built: My data (consent) screen, helper lock states, admin Rules + Digital Twin, officer and auditor layouts, Demo mode toggle on login. **Still yours:** Scam Shield screen + Scam Map, SafeSwitch (change payout account + confirm with PIN) screens, offline outbox (Dexie), Urdu audio clips, phone-width check, Playwright E2E. Backend endpoints for all of these are listed below.
 
 - The backend for Phase 1 is done and tested (83 tests). Run it with the steps in [docs/STATUS.md](docs/STATUS.md).
@@ -82,8 +96,8 @@ You own **Stream C (Frontend PWA)** and **Stream D (Demo & quality)**. Aiza owns
 - [ ] Urdu audio clips for every prompt and reason code (Stream D), cached by the PWA.
 
 ### Phase 3 (Sat 23:00 to Sun 03:30)
-- [ ] Scam Shield screen (paste/forward message, verdict, reasons, "is someone on the phone with you?" question).
-- [ ] Scam Map + analytics dashboard.
+- [x] Scam Shield screen (paste/forward message, verdict, reasons, "is someone on the phone with you?" question). First version built; polish it.
+- [x] Scam Map (officer + admin tab, counts by district/type/hour). Analytics dashboard still open.
 - [ ] Eval page (cost curve chart, false alarms, wrong approvals).
 - [ ] Judge console page (buttons listed in docs/05-DEMO-SCRIPT.md).
 - [ ] Audit replay screen.

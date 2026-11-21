@@ -4,10 +4,11 @@ import type { RuleVersionRow, Simulation, TwinCase } from '../api/types'
 import { Badge, ErrorNote, Loading, toneFor } from '../components/ui'
 import { Icon } from '../lib/icons'
 import { AuditorHome } from './AuditorHome'
+import { ScamMap } from './ScamMap'
 
 // Admin: versioned eligibility rules (Digital Twin + publish) and the audit log.
 
-type Tab = 'rules' | 'audit'
+type Tab = 'rules' | 'audit' | 'scams'
 
 export function AdminHome() {
   const [tab, setTab] = useState<Tab>('rules')
@@ -20,9 +21,14 @@ export function AdminHome() {
         <button type="button" role="tab" id="tab-audit" aria-selected={tab === 'audit'} aria-controls="panel-admin" className="tab" onClick={() => setTab('audit')}>
           <Icon name="shield" size={20} /> Audit log
         </button>
+        <button type="button" role="tab" id="tab-scams" aria-selected={tab === 'scams'} aria-controls="panel-admin" className="tab" onClick={() => setTab('scams')}>
+          <Icon name="warning" size={20} /> Scam map
+        </button>
       </div>
       <div role="tabpanel" id="panel-admin" aria-labelledby={`tab-${tab}`}>
-        {tab === 'rules' ? <RulesPanel /> : <AuditorHome embedded />}
+        {tab === 'rules' && <RulesPanel />}
+        {tab === 'audit' && <AuditorHome embedded />}
+        {tab === 'scams' && <ScamMap />}
       </div>
     </div>
   )

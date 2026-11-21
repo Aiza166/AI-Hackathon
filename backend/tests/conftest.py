@@ -25,6 +25,7 @@ BACKEND_DIR = os.path.join(os.path.dirname(__file__), "..")
 BASE_CLAIM = {
     "claimant_cnic": "9000000000022",
     "claimant_name": "Zainab Bibi",
+    "claimant_dob": "1962-06-01",
     "relation_claimed": "widow",
     "deceased_cnic": "9000000000011",
     "deceased_name": "Muhammad Aslam",

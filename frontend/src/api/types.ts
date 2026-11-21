@@ -55,6 +55,7 @@ export type CitizenExplanation = {
 export type ClaimIn = {
   claimant_cnic: string
   claimant_name: string
+  claimant_dob: string | null
   relation_claimed: 'widow' | 'son' | 'daughter'
   deceased_cnic: string | null
   deceased_name: string
@@ -117,3 +118,67 @@ export type TwinOutcome = { route: string; reasons: string[]; entitlement_end: s
 export type TwinCase = { case: string; status: string; before: TwinOutcome; after: TwinOutcome; changed: string[] }
 
 export type Simulation = { draft_version: number; checked: number; changed: number; cases: TwinCase[] }
+
+// Scam Shield (backend/app/api/scam.py)
+export type ScamVerdict = 'LIKELY_SCAM' | 'LOOKS_GENUINE' | 'NOT_SURE'
+
+export type ReportRoute = {
+  id: string
+  kind: 'call' | 'link' | 'sms' | 'info'
+  name: string
+  name_ur: string
+  url: string | null
+  confidence: string
+  source: string | null
+}
+
+export type ScamResult = {
+  verdict: ScamVerdict
+  confidence: number
+  reasons: string[]
+  reasons_ur: string[]
+  case_cross_check: string | null
+  model_id: string | null
+  report_routes: ReportRoute[]
+}
+
+export type ScamMapData = {
+  total_checked: number
+  by_verdict: Record<string, number>
+  scams_by_type: Record<string, number>
+  scams_by_area: Record<string, number>
+  scams_by_hour: Record<string, number>
+}
+
+// SafeSwitch (backend/app/api/payout.py) + mock Raast title fetch (backend/app/mock/raast.py)
+export type PayeeCheck = {
+  status: 'OK' | 'ACCOUNT_NOT_FOUND' | 'UNAVAILABLE' | 'TIMEOUT'
+  match_level: 'MATCH' | 'CLOSE_MATCH' | 'NO_MATCH' | 'UNAVAILABLE'
+  masked_title: string | null
+  account_type: 'ACCOUNT' | 'WALLET' | null
+  account_holding: 'SINGLE' | 'JOINT' | null
+  bank_code: string | null
+  cnic_match: boolean | null
+  reason_codes: string[]
+  latency_ms: number
+  simulated: boolean
+  route: 'OK' | 'ASK_PROOF' | 'UNSURE'
+}
+
+export type PayoutChangeStatus = 'held' | 'flagged' | 'confirmed' | 'approved' | 'applied' | 'rejected' | 'cancelled'
+
+export type PayoutChange = {
+  id: string
+  case_id: string
+  status: PayoutChangeStatus
+  payee_result: 'match' | 'close_match' | 'no_match' | 'unavailable'
+  flags: string[]
+  hold_until: string
+  new_iban_last4: string
+  requested_role: string
+  confirmed: boolean
+  applied_at: string | null
+  created_at: string | null
+  payee_check: PayeeCheck | null
+  case_reference?: string
+}

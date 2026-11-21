@@ -77,3 +77,27 @@ def test_withdrawn_payout_consent_blocks_the_helper(client, login, file_claim):
     helper_consent = next(c for c in consents if c["grantee_type"] == "helper")
     client.patch(f"/api/v1/me/consents/{helper_consent['id']}", json={"fields": ["case_details"]}, headers=zainab)
     assert _request(client, login("helper"), case_id, "PK00MOCK0000000000000007").status_code == 403
+
+
+def test_claimant_can_cancel_a_pending_change_and_start_again(client, login, file_claim):
+    case_id = _zainab_case(file_claim)
+    change = _request(client, login("zainab"), case_id, "PK00MOCK0000000000000013").json()["data"]
+    cancelled = client.post(f"/api/v1/payout-changes/{change['id']}/cancel", headers=login("zainab"))
+    assert cancelled.status_code == 200 and cancelled.json()["data"]["status"] == "cancelled"
+    assert client.post(f"/api/v1/payout-changes/{change['id']}/cancel", headers=login("zainab")).status_code == 409
+    assert _request(client, login("zainab"), case_id, "PK00MOCK0000000000000013").status_code == 201
+
+
+def test_other_citizen_cannot_cancel(client, login, file_claim):
+    case_id = _zainab_case(file_claim)
+    change = _request(client, login("zainab"), case_id, "PK00MOCK0000000000000013").json()["data"]
+    assert client.post(f"/api/v1/payout-changes/{change['id']}/cancel", headers=login("rukhsana")).status_code == 403
+
+
+def test_officer_lists_flagged_changes_with_case_reference(client, login, file_claim):
+    case = file_claim("zainab")["data"]
+    _request(client, login("zainab"), case["id"], "PK00MOCK0000000000000008")
+    rows = client.get("/api/v1/payout-changes", headers=login("officer")).json()["data"]
+    assert len(rows) == 1 and rows[0]["case_reference"] == case["reference"] and rows[0]["status"] == "flagged"
+    assert client.get("/api/v1/payout-changes", headers=login("zainab")).status_code == 403
+    assert client.get("/api/v1/payout-changes", headers=login("welfare_officer")).json()["data"] == []

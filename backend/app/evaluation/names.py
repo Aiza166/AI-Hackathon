@@ -13,8 +13,9 @@ Hard negatives: different people who look alike on paper.
 
 Separately reported (not in the headline rates): exact_cnic_impostor, someone
 who typed another person's real CNIC with a guessed name variant and a wrong
-or missing DOB. A DOB that conflicts with the record routes ASK; with the DOB
-left blank the exact CNIC still dominates the score (the known weak spot).
+or missing DOB. Pairs are scored the way the app scores a claimant
+(require_dob=True): MATCH needs the typed DOB to equal the record, so a wrong
+or blank DOB routes ASK.
 
 A "false match" is a negative routed MATCH. A "false non-match" is a positive
 not routed MATCH (it goes to ASK or UNSURE: slower, but safe).
@@ -98,7 +99,7 @@ def evaluate_names(seed: int = SEED) -> dict:
     for p in pairs:
         claimed, record, claimed_cnic, record_cnic, claimed_dob, record_dob = p["args"]
         result = match_identity(claimed, record, claimed_cnic=claimed_cnic, record_cnic=record_cnic,
-                                claimed_dob=claimed_dob, record_dob=record_dob)
+                                claimed_dob=claimed_dob, record_dob=record_dob, require_dob=True)
         rows.append((p, result.route))
     pos = [r for p, r in rows if p["label"] == "same"]
     neg = [r for p, r in rows if p["label"] == "different"]
@@ -116,6 +117,6 @@ def evaluate_names(seed: int = SEED) -> dict:
         "unsure_rate": round(all_routes.count("UNSURE") / len(all_routes), 4),
         "same_person": _rates(pos), "different_person": _rates(neg),
         "exact_cnic_impostor": {**_rates(impostor), "false_match_rate": round(impostor.count("MATCH") / len(impostor), 4),
-                                "note": "Not in the headline rates. A conflicting DOB routes ASK; a missing DOB lets the exact CNIC dominate."},
+                                "note": "Not in the headline rates. MATCH needs the typed DOB to equal the record, so a wrong or blank DOB routes ASK."},
         "by_kind": {k: _rates(v) for k, v in sorted(by_kind.items())},
     }

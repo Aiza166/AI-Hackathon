@@ -3,6 +3,8 @@ import { api, errorText, post } from '../api/client'
 import type { CaseView } from '../api/types'
 import { Badge, ErrorNote, Loading, humanize, toneFor } from '../components/ui'
 import { Icon } from '../lib/icons'
+import { OfficerPayouts } from './OfficerPayouts'
+import { ScamMap } from './ScamMap'
 
 // Officer review queue: highest priority first, lowest confidence first.
 // Desktop: queue on the left, case detail and decision trace on the right.
@@ -24,7 +26,34 @@ type Trace = {
   }
 }
 
+type Tab = 'queue' | 'payouts' | 'scams'
+const TABS: { key: Tab; icon: string; label: string }[] = [
+  { key: 'queue', icon: 'list', label: 'Review queue' },
+  { key: 'payouts', icon: 'bank', label: 'Payout changes' },
+  { key: 'scams', icon: 'warning', label: 'Scam map' },
+]
+
 export function OfficerHome() {
+  const [tab, setTab] = useState<Tab>('queue')
+  return (
+    <div className="stack-lg">
+      <div className="tabs" role="tablist" aria-label="Officer sections">
+        {TABS.map((t) => (
+          <button key={t.key} type="button" role="tab" id={`tab-${t.key}`} aria-selected={tab === t.key} aria-controls="panel-officer" className="tab" onClick={() => setTab(t.key)}>
+            <Icon name={t.icon} size={20} /> {t.label}
+          </button>
+        ))}
+      </div>
+      <div role="tabpanel" id="panel-officer" aria-labelledby={`tab-${tab}`}>
+        {tab === 'queue' && <QueuePanel />}
+        {tab === 'payouts' && <OfficerPayouts />}
+        {tab === 'scams' && <ScamMap />}
+      </div>
+    </div>
+  )
+}
+
+function QueuePanel() {
   const [queue, setQueue] = useState<CaseView[] | null>(null)
   const [selected, setSelected] = useState<CaseView | null>(null)
   const [trace, setTrace] = useState<Trace | null>(null)

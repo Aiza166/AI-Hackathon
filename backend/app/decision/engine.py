@@ -10,6 +10,13 @@ about 20x a delay, so approve only when p > 20 / (20 + 1) = 0.952.
 from dataclasses import dataclass
 
 from app.decision.facts import Signals
+from app.decision.matching import (
+    REASON_DOB_CONFLICT,
+    REASON_DOB_MISSING,
+    REASON_DOB_NOT_EXACT,
+    REASON_DOB_NOT_ON_RECORD,
+    MatchResult,
+)
 from app.decision.rules import RuleResult, evaluate
 from app.schemas.contracts import ReasonCode, Route
 
@@ -46,9 +53,31 @@ def _needs_proof(signals: Signals, rules: RuleResult) -> tuple[list[ReasonCode],
     if signals.payee == "close_match":
         reasons.append(ReasonCode.PAYEE_CLOSE_MATCH)
         missing.append("payout_account_confirmation")
-    if any(m and m.route == "ASK" for m in [signals.claimant_match, *signals.deceased_matches.values()]):
+    claimant_codes, claimant_missing = _claimant_ask(signals.claimant_match)
+    reasons.extend(claimant_codes)
+    missing.extend(claimant_missing)
+    if any(m and m.route == "ASK" for m in signals.deceased_matches.values()):
         reasons.append(ReasonCode.NAME_MISMATCH)
     return reasons, missing
+
+
+# Claimant identity is ASK for a DOB reason: say exactly what to do, never "name mismatch".
+_DOB_CODES = {
+    REASON_DOB_MISSING: (ReasonCode.CONFIRM_DOB, "claimant_dob"),
+    REASON_DOB_CONFLICT: (ReasonCode.DOB_MISMATCH, "claimant_dob"),
+    REASON_DOB_NOT_EXACT: (ReasonCode.DOB_MISMATCH, "claimant_dob"),
+    REASON_DOB_NOT_ON_RECORD: (ReasonCode.LOW_CONFIDENCE, None),
+}
+
+
+def _claimant_ask(match: MatchResult | None) -> tuple[list[ReasonCode], list[str]]:
+    if match is None or match.route != "ASK":
+        return [], []
+    for reason in match.reasons:
+        if reason in _DOB_CODES:
+            code, item = _DOB_CODES[reason]
+            return [code], [item] if item else []
+    return [ReasonCode.NAME_MISMATCH], []
 
 
 def _confidence(signals: Signals) -> float:

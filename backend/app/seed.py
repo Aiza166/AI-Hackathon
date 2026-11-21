@@ -21,7 +21,7 @@ from app.models.platform import Case, CaseEvent, HelperAssignment, Person, RuleV
 
 DEMO_PIN = "1234"
 # Bump when the demo world changes: deployed databases re-seed once on the next boot.
-SEED_VERSION = "phase2-idempotency"
+SEED_VERSION = "phase2-dob-raast"
 RULESET_DIR = Path(__file__).parent / "decision" / "rulesets"
 RESET_TABLES = (
     "idempotency_keys", "scam_checks", "payout_change_requests", "consents", "correction_requests", "decisions", "case_events", "cases", "api_keys", "helper_assignments", "users", "persons", "rule_versions", "tenants",
@@ -37,7 +37,7 @@ PEOPLE = [
     ("9000000000033", "Rukhsana", "Abdul Majeed", date(1975, 1, 20), "F", "Hyderabad", "widowed", False),
     ("9000000000044", "Muhammad Aslam", "Fazal Din", date(1955, 9, 2), "M", "Lahore", "married", False),
     ("9000000000055", "Abdul Rauf", "Noor Muhammad", date(1958, 11, 5), "M", "Sukkur", "married", False),
-    ("9000000000056", "Saima", "Abdul Rauf", None, "F", "Sukkur", "widowed", False),
+    ("9000000000056", "Saima", "Abdul Rauf", date(1970, 2, 15), "F", "Sukkur", "widowed", False),
     ("9000000000057", "Nasreen", "Abdul Rauf", date(1966, 4, 18), "F", "Sukkur", "widowed", False),
     ("9000000000066", "Ghulam Haider", "Allah Ditta", date(1950, 7, 7), "M", "Multan", "married", False),
     ("9000000000067", "Shamim Akhtar", "Ghulam Haider", date(1957, 3, 3), "F", "Multan", "widowed", False),
@@ -102,6 +102,11 @@ ACCOUNTS = [  # iban, title, owner, bank
     ("PK00MOCK0000000000000010", "SAJIDA RAKHA", "9000000000103", "Mock Bank"),
     ("PK00MOCK0000000000000011", "NAVEED RAKHA", "9000000000104", "Mock Bank"),
 ]
+# Extra accounts for the Raast title-fetch demo: iban, title, owner, bank, account type, holding.
+RAAST_ACCOUNTS = [
+    ("PK00MOCK0000000000000012", "ZAINAB BIBI & IMRAN ASLAM", "9000000000022", "Mock Bank", "ACCOUNT", "JOINT"),
+    ("PK00MOCK0000000000000013", "ZAINAB BIBI", "9000000000022", "Mock Wallet", "WALLET", "SINGLE"),
+]
 CITIZENS = [  # phone, person cnic
     ("00000000001", "9000000000022"),
     ("00000000002", "9000000000033"),
@@ -147,6 +152,8 @@ def _seed_registry(db: Session) -> None:
     db.add(MockFamilyPensionDrawn(cnic="9000000000088", since=date(2019, 6, 1)))
     for iban, title, owner, bank in ACCOUNTS:
         db.add(MockAccount(iban=iban, title=title, owner_cnic=owner, bank=bank))
+    for iban, title, owner, bank, account_type, holding in RAAST_ACCOUNTS:
+        db.add(MockAccount(iban=iban, title=title, owner_cnic=owner, bank=bank, account_type=account_type, holding=holding))
 
 
 def _seed_rules(db: Session) -> None:
@@ -207,6 +214,7 @@ def _seed_past_cases(db: Session) -> None:
     pension = db.query(Tenant).filter(Tenant.slug == "pension").one()
     officer = db.query(User).filter(User.phone == "00000000020").one()
     names = {p[0]: p[1] for p in PEOPLE}
+    dobs = {p[0]: p[3] for p in PEOPLE}
     docs = ["death_certificate", "claimant_cnic", "frc"]
     for number, (cnic, relation, deceased_cnic, deceased_name, iban) in enumerate(PAST_CASES, start=1):
         person = db.query(Person).filter(Person.cnic == cnic).one_or_none()
@@ -216,7 +224,8 @@ def _seed_past_cases(db: Session) -> None:
             db.flush()
             db.add(Consent(subject_person_id=person.id, grantee_type="department", grantee_id=pension.id,
                            purpose=PURPOSE, fields=list(CONSENT_FIELDS)))
-        claim = {"claimant_cnic": cnic, "claimant_name": names[cnic], "relation_claimed": relation, "deceased_cnic": deceased_cnic,
+        claim = {"claimant_cnic": cnic, "claimant_name": names[cnic], "claimant_dob": dobs[cnic].isoformat(),
+                 "relation_claimed": relation, "deceased_cnic": deceased_cnic,
                  "deceased_name": deceased_name, "payout_iban": iban, "documents": docs}
         case = Case(reference=f"SP-0{number:03d}", tenant_id=pension.id, claimant_person_id=person.id, created_by=officer.id,
                     status="submitted", claim=claim, deceased_cnic=deceased_cnic, payout_iban=iban)
