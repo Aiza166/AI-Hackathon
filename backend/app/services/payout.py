@@ -16,6 +16,8 @@ from sqlalchemy.orm import Session
 
 from app.core import audit
 from app.core.auth import Principal
+from app.core.consent import active_consent, person_resource
+from app.schemas.contracts import Role
 from app.mock import raast, registry
 from app.models.payout import PayoutChangeRequest
 from app.models.platform import Case, Person, utcnow
@@ -117,6 +119,11 @@ def cancel(db: Session, principal: Principal, change_id: str) -> PayoutChangeReq
     own = principal.person_id is not None and principal.person_id == case.claimant_person_id
     if not own and principal.id != change.requested_by:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only the claimant or the person who started it can cancel")
+    if not own and principal.role == Role.HELPER and active_consent(db, principal, case.claimant_person_id, "payout_account") is None:
+        audit.record(db, principal.actor, "CONSENT_DENIED", resource=person_resource(case.claimant_person_id),
+                     details={"field": "payout_account", "path": f"cancel payout_change:{change.id}"})
+        db.commit()
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="This person has not shared this information with you")
     if change.status not in CANCELLABLE:
         raise HTTPException(status_code=409, detail=f"This change is {change.status}")
     change.status = "cancelled"
@@ -147,6 +154,8 @@ def apply_due(db: Session, now: datetime | None = None) -> list[str]:
     applied = []
     for change in due:
         case = db.get(Case, change.case_id)
+        if case.status in ("rejected", "closed", "withdrawn"):
+            continue  # the claim ended during the hold: never move money
         case.payout_iban = change.new_iban
         case.claim = {**case.claim, "payout_iban": change.new_iban}
         change.status, change.applied_at = "applied", now

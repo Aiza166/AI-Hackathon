@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { api, errorText, post } from '../api/client'
-import type { PayoutChange } from '../api/types'
+import type { PayoutChange, PayoutChangeStub } from '../api/types'
+import { isPayoutChangeStub } from '../api/types'
 import { Badge, ErrorNote, Loading, formatTime, humanize } from '../components/ui'
 import { Icon } from '../lib/icons'
 import { PayeeCard } from './SafeSwitch'
@@ -12,13 +13,13 @@ type Filter = 'flagged' | 'all'
 
 export function OfficerPayouts() {
   const [filter, setFilter] = useState<Filter>('flagged')
-  const [rows, setRows] = useState<PayoutChange[] | null>(null)
+  const [rows, setRows] = useState<(PayoutChange | PayoutChangeStub)[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
 
   const load = useCallback(async (which: Filter) => {
     try {
-      setRows((await api<PayoutChange[]>(`/api/v1/payout-changes?status=${which}`)).data)
+      setRows((await api<(PayoutChange | PayoutChangeStub)[]>(`/api/v1/payout-changes?status=${which}`)).data)
       setError(null)
     } catch (e) {
       setError(errorText(e))
@@ -53,7 +54,15 @@ export function OfficerPayouts() {
       {!rows && !error && <Loading label="Loading payout changes" />}
       {rows && rows.length === 0 && <p className="empty">No payout changes need a person right now.</p>}
       <div className="change-grid">
-        {rows?.map((c) => <ChangeCard key={c.id} change={c} onDone={(m) => void done(m)} />)}
+        {rows?.map((c) => isPayoutChangeStub(c) ? (
+          <article key={c.id} className="detail" aria-label={`Payout change for ${c.case_reference}`}>
+            <header className="detail-head">
+              <h2 className="detail-title">{c.case_reference}</h2>
+              <Badge tone="info">{humanize(c.status)}</Badge>
+            </header>
+            <p className="muted"><span lang="ur" dir="rtl">اجازت واپس لے لی گئی</span> Consent withdrawn: account details hidden.</p>
+          </article>
+        ) : <ChangeCard key={c.id} change={c} onDone={(m) => void done(m)} />)}
       </div>
     </section>
   )

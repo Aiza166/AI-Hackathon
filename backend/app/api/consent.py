@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.core import audit
 from app.core.auth import Principal, deny, require_roles
-from app.core.consent import PURPOSE, person_resource
+from app.core.consent import PURPOSE, list_access, person_resource
 from app.core.envelope import ok
 from app.db import get_db
 from app.decision.facts import ACTIVE_STATUSES
@@ -203,9 +203,18 @@ def my_corrections(principal: Principal = Depends(CITIZEN), db: Session = Depend
 
 
 @router.get("/corrections")
-def pending_corrections(principal: Principal = Depends(require_roles(Role.OFFICER, Role.ADMIN)), db: Session = Depends(get_db)) -> dict:
-    rows = db.execute(select(CorrectionRequest).where(CorrectionRequest.tenant_id == principal.tenant_id, CorrectionRequest.status == "pending")).scalars()
-    return ok([_correction_row(c) for c in rows])
+def pending_corrections(request: Request, principal: Principal = Depends(require_roles(Role.OFFICER, Role.ADMIN)),
+                        db: Session = Depends(get_db)) -> dict:
+    """Per-row consent (case_details): without it the officer sees a redacted stub, and the refusal is logged."""
+    rows = db.execute(select(CorrectionRequest).where(CorrectionRequest.tenant_id == principal.tenant_id,
+                                                      CorrectionRequest.status == "pending")).scalars().all()
+    allowed = list_access(db, principal, request, (c.person_id for c in rows), "case_details")
+    return ok([
+        {**_correction_row(c), "consent_active": True} if allowed[c.person_id] else
+        {"id": c.id, "person_id": c.person_id, "field": c.field, "status": c.status,
+         "created_at": c.created_at.isoformat(), "consent_active": False}
+        for c in rows
+    ])
 
 
 @router.post("/corrections/{correction_id}/{decision}")

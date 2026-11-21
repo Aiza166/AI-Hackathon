@@ -1,6 +1,7 @@
 import { Suspense, lazy, useEffect, useState } from 'react'
 import { api, errorText } from '../api/client'
-import type { CaseView, Family, Me, SessionUser } from '../api/types'
+import type { CaseRow, CaseStub, CaseView, Family, Me, SessionUser } from '../api/types'
+import { isCaseStub } from '../api/types'
 import { OutboxStrip } from '../components/OutboxStrip'
 import { loadMe, saveMe } from '../lib/meCache'
 import { takeForFixing, type OutboxRow } from '../lib/outbox'
@@ -47,6 +48,7 @@ export function CitizenHome({ user, onSignInAgain }: CitizenHomeProps) {
   const [families, setFamilies] = useState<Family[]>([])
   const [actingFor, setActingFor] = useState<Family | null>(null)
   const [cases, setCases] = useState<CaseView[]>([])
+  const [stubs, setStubs] = useState<CaseStub[]>([])
   const [view, setView] = useState<View>({ kind: 'list' })
   const [error, setError] = useState<string | null>(null)
   const [refreshKey, setRefreshKey] = useState(0)
@@ -67,13 +69,14 @@ export function CitizenHome({ user, onSignInAgain }: CitizenHomeProps) {
     const load = async () => {
       try {
         const meResult = await api<Me>('/api/v1/me')
-        const caseResult = await api<CaseView[]>('/api/v1/cases')
+        const caseResult = await api<CaseRow[]>('/api/v1/cases')
         const familyResult = isHelper ? await api<Family[]>('/api/v1/helper/families') : null
         if (!active) return
         setError(null) // a successful reload (e.g. after reconnect) clears an old "No connection" note
         setMe(meResult.data)
         if (!isHelper) saveMe(user.id, meResult.data)
-        setCases(caseResult.data)
+        setCases(caseResult.data.filter((c): c is CaseView => !isCaseStub(c)))
+        setStubs(caseResult.data.filter(isCaseStub))
         if (familyResult) setFamilies(familyResult.data)
       } catch (e) {
         if (active) setError(errorText(e))
@@ -194,7 +197,7 @@ export function CitizenHome({ user, onSignInAgain }: CitizenHomeProps) {
 
       <section className="stack" aria-labelledby="claims-title">
         <Bilingual as="h2" id="claims-title" k={isHelper ? 'home.claims' : 'home.myClaims'} ur={isHelper ? 'دعوے' : 'میرے دعوے'} en={isHelper ? 'Claims filed from this phone' : 'My claims'} />
-        {cases.length === 0 && <p className="empty">No claims yet. Start one with the big button above.</p>}
+        {cases.length === 0 && stubs.length === 0 && <p className="empty">No claims yet. Start one with the big button above.</p>}
         <ul className="claim-list">
           {cases.map((c) => (
             <li key={c.id}>
@@ -206,6 +209,17 @@ export function CitizenHome({ user, onSignInAgain }: CitizenHomeProps) {
                   <Badge tone={toneFor(c.status)}>{humanize(c.status)}</Badge>
                 </span>
               </button>
+            </li>
+          ))}
+          {isHelper && stubs.map((s) => (
+            <li key={s.reference}>
+              <div className="claim-item" aria-disabled="true">
+                <span className="claim-ref">{s.reference}</span>
+                <span className="claim-status">
+                  <span lang="ur" dir="rtl">اجازت واپس لے لی گئی</span>{' '}
+                  <Badge tone="quiet">Consent withdrawn</Badge>
+                </span>
+              </div>
             </li>
           ))}
         </ul>
