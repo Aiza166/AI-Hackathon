@@ -15,7 +15,8 @@ Your tasks now (details in HANDOFF section 5):
 - [ ] 2. One real-user test (10 min, anonymous) -> `docs/USER-TEST.md`
 - [ ] 3. Sindhi + Punjabi text for citizen screens (labelled machine-assisted)
 - [ ] 4. Demo script trimmed to one story
-- [ ] 5. Q&A cheat-sheet (`docs/QA-CHEATSHEET.md`), rehearse Sunday
+- [x] 5. Q&A cheat-sheet (`docs/QA-CHEATSHEET.md`), rehearse Sunday
+  - Written Sun (`docs/c-qa-cheatsheet`): weak spots to say first, the product questions, decisions and AI (0.95, Jev, Jev/Azure down, cascade), security and privacy (consent take-back, who sees what, edited documents, scam false alarms, "I am not sure" hand-off, SafeSwitch, audit chain, PINs, logs), real vs simulated, prior work, and the evaluation numbers with their limits (from the app's Evaluation tab). **Still to do:** rehearse with Aiza; update the user-test line after task 2; check the "coming soon" items once the security-fixes branch merges.
 
 **Dependabot PRs #9-#18: leave them open. Do not merge or close.** You may squash-merge your own PRs once CI is green; ask Aiza for backend logic, security or migration changes.
 
