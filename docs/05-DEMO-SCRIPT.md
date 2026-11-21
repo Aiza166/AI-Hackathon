@@ -1,8 +1,137 @@
-# 05. Demo Script, Judge Console and Q&A
+# 05. Demo script: one story
 
-> Judges score behaviour, not claims. The demo is built so judges can **break it themselves** and then watch the audit replay.
+> Everything in the app is mock: people, records, bank accounts and government services. The PROTOTYPE banner stays on screen the whole time.
 
-## Seed personas (all mock)
+The live demo is one story of about 7 minutes. A widow claims her late husband's pension, a scammer goes after the money, the app protects her, and a person decides the case the app was not sure about. Judges score behaviour, so every beat is something they watch happen on the phone. Digital Twin, the Evaluation page and the Judge console come out only if judges ask (see "If judges ask" below).
+
+Every beat below was run on a local stack on Sun 22 Nov with these exact clicks and gave these results.
+
+## People in the story (all mock, PIN 1234)
+
+| Persona | Phone | Part in the story |
+|---|---|---|
+| Zainab Bibi | 00000000001 | The widow. Her husband "Muhammad Aslam" is "Mohd. Aslam" on the death certificate and "Muhammed Aslam" at the pension office |
+| Rukhsana | 00000000002 | Claims the same pension. She is not in the family record |
+| Kamran | 00000000020 | Pension officer |
+| Auditor | 00000000040 | Checks the audit log at the end |
+| Admin | 00000000030 | Resets the demo before you start |
+
+The full persona list is under "If judges ask".
+
+## Before you start (5 minutes)
+
+1. Sign in as Admin, open the Judge console tab, tap Reset demo data, then Yes. This restores the seed data, ends any faults and signs everyone out.
+2. Use one phone, or a laptop browser at phone width (about 390 px), for every persona. To switch: Sign out, then "Demo accounts (mock)" on the login screen.
+3. Turn the volume up and tap Listen on the login screen once.
+4. Optional: set the browser to Slow 3G for the opening (Chrome DevTools, Network).
+5. Keep the backup video open in another tab.
+
+## The story (about 7 minutes)
+
+### 0:00-0:30 Opening
+
+Show the login screen.
+
+Say: "Zainab can't read forms, her signal is weak, and scammers go after widows like her. Sahara helps her claim her husband's pension and keeps the money safe."
+
+Judges see the PROTOTYPE banner, Urdu text with a Listen button, and (once PR #28 is merged) the language choice: Urdu, Sindhi, Punjabi.
+
+### 0:30-2:00 Zainab claims
+
+Click: Demo accounts (mock), Zainab, "Start a new pension claim", Widow, Next, "Fill demo DOB (mock)", Next, "Fill demo data (mock)", Next until the review screen, Send claim, then Continue on the photo step.
+
+Say: "One question per screen, with a picture and Urdu, and she can tap Listen on every step. Each step is saved on the phone, so a dropped signal loses nothing."
+
+Judges see: approved, with the reason in Urdu and English. Tap Listen. Her husband's name matched across three spellings because his CNIC matched; a name alone never matches.
+
+Optional, 30 seconds: turn on airplane mode just before Send claim. The claim waits on the phone with "saved on this phone, waiting to send". Turn signal back on and it is sent once.
+
+### 2:00-3:00 A scam SMS arrives
+
+Click: Back to home, "Is this message a scam?", "Fill demo scam SMS (mock)", answer Yes to "Is someone on the phone telling you to do this right now?", then "Check this message".
+
+Say: "Someone calls her: your pension is released, pay a fee at this link. She pastes the message."
+
+Judges see a red "likely scam" verdict (0.98 on our run) with reasons in Urdu and English: it asks for a fee, the link imitates an official address, it did not come from the official sender, it pressures her, and someone is on the phone. Below that, the "Report this scam" card with NCCIA 1799 and PTA.
+
+### 3:00-4:00 The caller wants the pension moved
+
+Click: Back, "Change payout account", "Demo: Someone else's", "Check account and request change". Optional: enter PIN 1234.
+
+Say: "The caller tells her to move her pension to a new account. SafeSwitch checks whose name is on that account."
+
+Judges see: no match. The change is flagged and held for about 4 working days for an officer. Even when she enters her own PIN it stays held. No money moves.
+
+### 4:00-4:45 A second woman claims the same pension
+
+Click: Sign out, Demo accounts (mock), Rukhsana, "Start a new pension claim", Widow, Next (leave the date of birth empty), "Fill demo data (mock)", Next until the review screen, Send claim, Continue.
+
+Say: "Another woman says she is the widow and asks for the same pension, paid to the same account."
+
+Judges see: the app does not reject her. It says an officer will look at her claim. Zainab's approved claim is paused as well, because two people now claim one pension.
+
+### 4:45-6:15 The officer decides
+
+Click: Sign out, Kamran, Review queue. Open Rukhsana's claim: read the reason codes and the decision trace, type a reason, Reject. Open Zainab's claim: type a reason, Approve. Then the Payout changes tab: open the flagged change, type a note, Reject.
+
+Say: "The app never rejects anyone on its own. When it is not sure, a person decides and writes down why."
+
+Judges see the codes the app gave: ACCOUNT_REUSED, ACCOUNT_NOT_OWNED and NOT_IN_FAMILY_RECORD on Rukhsana's claim, DUPLICATE_CLAIM on Zainab's. Each decision needs a written reason, and the flagged account change is rejected.
+
+### 6:15-7:00 Close
+
+Click: Sign out, Auditor, verify the chain.
+
+Say: "Every action, by a person, the AI or the system, goes into a log that can't be quietly changed." Then the honest limits: everything is mock; the claim decision is rules plus name matching; the AI is in Scam Shield, the document checks and the voice; our test sets are small and invented, and we say so on screen.
+
+Judges see "Chain intact" with the number of events checked (1,005 on our run).
+
+## If something goes wrong on stage
+
+| What happens | Do this |
+|---|---|
+| "You already have an open claim" | The demo was not reset. Admin, Judge console, Reset demo data |
+| Listen is silent | Check the volume. Without signal or without the Azure voice, the phone's own voice reads it |
+| A demo account is locked (5 wrong PINs) | Use another persona, or reset the demo |
+| Venue internet fails | Switch to the local stack on the laptop, or play the backup video |
+
+## If judges ask
+
+### Things judges can try
+
+| They want to see | Show |
+|---|---|
+| The rules change (Digital Twin) | **Publish rule v2: federal 10-year cap for heirs after the spouse (O.M. 10-09-2024).** v1 = O.M. No. 1(13)-Reg.6/83 as updated 24-06-2024 (widow for life till remarriage, then children/daughters, no time cap). v2 = O.M. F.No. 9(3)R-6/2024-264 dated 10-09-2024 (+ clarifications 10-10-2024, 22-01-2025). Admin, Rules, v2 (draft), **Run Digital Twin**: 4 past cases checked, 2 change (SP-0001, SP-0002: "Paid until" No limit -> 2034-11-01), and the "On publish" column says SP-0001/SP-0002 "Re-decided" (pending, entitled after 10-09-2024) and SP-0003/SP-0004 "Keeps its version" (decided). Nothing is saved. **Publish v2**, Yes: v1 retired, v2 live; SP-0001/SP-0002 get a new decision under v2 (audited `CASE_REDECIDED`, from v1 to v2; `RULES_PUBLISHED` lists them), stay in the officer's queue, and Bilal (`00000000005`) sees "paid until 2034-11-01" on his claim. The Rakha cases (approved, 2019) still show "decided under rule v1". Zainab (widow) files a new claim: decided under v2, unaffected by the heir cap. Reset the demo to run it again. Sources: [v1](https://www.finance.gov.pk/circulars/circular_24062024.pdf), [v2](https://www.finance.gov.pk/circulars/circular_10092024_1.pdf), [10-10-2024](https://www.finance.gov.pk/circulars/circular_10102024_1.pdf), [22-01-2025](https://www.finance.gov.pk/circulars/circular_22012025.pdf) |
+| Why 0.95, and how good it is | Evaluation tab (officer, admin or auditor), labelled "synthetic test set": the cost curve with 0.95 and the never-auto-approve line (arrow keys step through thresholds; "Show as table" under every chart), wrong approvals by kind, human-review rate, name-matching rates, and per-tier tables for Scam Shield and documents (deterministic only, Jev only, full cascade: accuracy, FPR, FNR, NOT SURE, median and p95 latency, cost per check, model ids). The cost curve is flat (110 from 0.50 to 0.99), so 0.95 comes from the 20:1 cost ratio and the safety comes from hard flags and routing: 2 wrong approvals of 200 (both identity theft with full credentials), cost 110 vs 130 for never auto-approving, 69% sent to a person, clean claims 40/40 auto-approved |
+| A helper on a shared phone | Ayesha (`00000000010`): 40 families, Mehrunnisa shows locked (no consent). Pick Zainab: "Now acting for: Zainab Bibi". She can start a payout change but sees no PIN box; the PIN confirm is refused on the server (403) |
+| Consent take-back | Zainab, My data: take back Ayesha's access. Ayesha's next request returns 403, logged as `CONSENT_DENIED`. The Pension Department card has no "Take back" while she has an open claim (server refuses with 409, audited `CONSENT_CHANGE_REFUSED`); for a claim still being decided it offers "Withdraw my claim" |
+| An edited death certificate | Download `death_certificate_aslam_edited.png` from the Judge console, upload it from Zainab's claim ("Send photos of papers"): the case goes to an officer (`DOC_EDIT_RISK`, with a heatmap for the officer); the citizen hears a polite "needs checking", never "fake" |
+| The look-alike name | A claim for the other "Muhammad Aslam" (different CNIC and date of birth): not matched, `NAME_MISMATCH`, no money moves |
+| A blank date of birth | File Zainab's claim with the DOB empty ("Fill demo data" never fills it): "Please confirm your date of birth. It is printed on your CNIC." Never a rejection. A wrong DOB gives `DOB_MISMATCH` |
+| A borderline message | Ambiguous message: "not sure", never silently "looks genuine" |
+| Offline | File a claim offline, reconnect: sent exactly once. Reload with no signal: "No signal, you can continue your saved claim" and the saved draft opens |
+| A citizen calling an officer endpoint | In Swagger with a citizen token: 403 on approve, attempt logged |
+
+### Judge console (admin only, every action audited)
+
+Sign in as **Admin** (`00000000030`, PIN 1234) and open the **Judge console** tab (yellow "PROTOTYPE / DEMO CONTROLS" banner). The server checks every call (platform admin only; citizens, helpers, officers and auditors get 403, logged `ACCESS_DENIED`) and writes every change to the audit log.
+
+| Panel | Click | What they should see |
+|---|---|---|
+| Break a mock government service | NADRA identity / FRC / Death registry / Pension office: **timeout** or **error** | The next claim goes to an officer with `SERVICE_UNAVAILABLE`, no guess, no crash. **slow** waits 1.5 s and still answers. Set **ok** to restore |
+| | Raast title fetch: **timeout** | New claim UNSURE; a payout change is flagged `PAYEE_CHECK_TIMEOUT`, held 4 business days |
+| Simulate an AI provider outage | Jev: **Simulate down** | Live status shows "simulated outage"; Scam Shield still answers from keyword + link rules and never says "looks genuine"; a document upload still gets copy-move + registry checks (Jev recorded "unavailable"); a clean claim can still auto-approve (Jev is not used for claims) |
+| | Second sensor (gpt-5-mini): **Simulate down** | Cascade = Jev + deterministic checks; conflicts stay "unresolved" |
+| | Azure OCR: **Simulate down** | Screenshot / document reading falls back to Tesseract (or "an officer will read it") |
+| | Azure speech: **Simulate down** | Listen buttons use the phone's own voice; voice-note check asks her to type |
+| | Every outage switch | Turns itself off after 15 minutes and on demo reset; audited `AI_OUTAGE_SIMULATED` |
+| Live status | **Refresh** | DB, Jev reachable + `jev-1.14.0`, which AI providers are configured (yes/no only, never a key), last evaluation run, audit chain "Intact" |
+| Recent activity | (auto, every 10 s) | The judge's own actions appear within 10 s: `MOCK_FAULT_SET identity: timeout`, `DECISION_MADE UNSURE: SERVICE_UNAVAILABLE`, `ACCESS_DENIED` rows highlighted |
+| Demo shortcuts | **Rules: Digital Twin and publish v2**; **Reset demo data** (in-page confirm) | Opens the rules tab; reset restores the seed, ends faults and outages, signs everyone out |
+| Scam Shield: messages to paste | **Copy** message + sender, then sign in as Rafiq or Zainab, "Is this message a scam?" | Fee scam, look-alike link and spoofed 8171 call = LIKELY_SCAM; "call this number" = NOT_SURE; genuine notice = LOOKS_GENUINE |
+| Sample documents | Download `death_certificate_aslam_edited.png`, upload it from Zainab's claim ("Send photos of papers") | Case goes to an officer (`DOC_EDIT_RISK`), citizen hears a polite "needs checking" |
+
+### All seed personas (all mock)
 
 | Persona | Role | What is special about their data |
 |---|---|---|
@@ -18,59 +147,6 @@
 | Admin | Admin | Rule editor, judge console |
 | Auditor | Auditor | Read-only traces and replay |
 
-## The 8-minute live demo
-
-| Time | Segment | What happens on screen | Challenge |
-|---|---|---|---|
-| 0:00-0:45 | Hook | Zainab's story in one sentence. Phone on throttled "Slow 3G". PROTOTYPE banner visible. | 7 |
-| 0:45-2:15 | Golden path | Ayesha switches to Zainab (Helper Mode). Claim by voice and icons; connection drops mid-way, progress saved, resumes. Name variants matched safely. Auto-approved with Urdu audio reason. Payout to her verified account. | 3, 5, 7 |
-| 2:15-3:00 | Cost of being wrong | Eval page: cost curve is flat (110 from 0.50 to 0.99), so 0.95 comes from the 20:1 cost ratio and the safety comes from hard flags and routing. Show the measured numbers: 2 wrong approvals of 200 (both identity theft with full credentials, which needs an account takeover), cost 110 vs 130 for never auto-approving, 69% sent to a person, clean claims 40/40 auto-approved, payee/duplicate/already-drawing never auto-approved. Auto-approval needs her typed DOB to equal the record; a blank DOB is asked again, never rejected. Say plainly what is still open. | 1 |
-| 3:00-6:00 | **Judges break it** (judge console) | See the console list below. Each action shows its effect live. | 2, 3, 4, 6, 8 |
-| 6:00-7:00 | Auditor replay | Auditor steps through the events just triggered: actor, role, rule version, model ID, probabilities, blocked attempts. `/audit/verify` shows the chain is intact. | 5 |
-| 7:00-8:00 | Honest limits | What is real vs simulated, measured false-alarm rate, what we would validate next. | all |
-
-## Judge console (admin-only, every action audited)
-
-Sign in as **Admin** (`00000000030`, PIN 1234) and open the **Judge console** tab (yellow "PROTOTYPE / DEMO CONTROLS" banner). The server checks every call (platform admin only; citizens, helpers, officers and auditors get 403, logged `ACCESS_DENIED`) and writes every change to the audit log. Where judges click to break things:
-
-| Panel | Click | What they should see |
-|---|---|---|
-| Break a mock government service | NADRA identity / FRC / Death registry / Pension office: **timeout** or **error** | The next claim (Zainab, or Swagger) goes to an officer with `SERVICE_UNAVAILABLE`, no guess, no crash. **slow** waits 1.5 s and still answers. Set **ok** to restore |
-| | Raast title fetch: **timeout** | New claim UNSURE; a payout change is flagged `PAYEE_CHECK_TIMEOUT`, held 4 business days |
-| Simulate an AI provider outage | Jev: **Simulate down** | Live status shows "simulated outage"; Scam Shield still answers from keyword + link rules and never says "looks genuine"; a document upload still gets copy-move + registry checks (Jev recorded "unavailable"); a clean claim can still auto-approve (Jev is not used for claims) |
-| | Second sensor (gpt-5-mini): **Simulate down** | Cascade = Jev + deterministic checks; conflicts stay "unresolved" |
-| | Azure OCR: **Simulate down** | Screenshot / document reading falls back to Tesseract (or "an officer will read it") |
-| | Azure speech: **Simulate down** | Listen buttons use the phone's own voice; voice-note check asks her to type |
-| | Every outage switch | Turns itself off after 15 minutes and on demo reset; audited `AI_OUTAGE_SIMULATED` |
-| Live status | **Refresh** | DB, Jev reachable + `jev-1.14.0`, which AI providers are configured (yes/no only, never a key), last evaluation run, audit chain "Intact" |
-| Recent activity | (auto, every 10 s) | The judge's own actions appear within 10 s: `MOCK_FAULT_SET identity: timeout`, `DECISION_MADE UNSURE: SERVICE_UNAVAILABLE`, `ACCESS_DENIED` rows highlighted |
-| Demo shortcuts | **Rules: Digital Twin and publish v2**; **Reset demo data** (in-page confirm) | Opens the rules tab; reset restores the seed, ends faults and outages, signs everyone out |
-| Scam Shield: messages to paste | **Copy** message + sender, then sign in as Rafiq or Zainab -> "Is this message a scam?" | Fee scam, look-alike link and spoofed 8171 call = LIKELY_SCAM; "call this number" = NOT_SURE; genuine notice = LOOKS_GENUINE |
-| Sample documents | Download `death_certificate_aslam_edited.png`, upload it from Zainab's claim ("Send photos of papers") | Case goes to an officer (`DOC_EDIT_RISK`), citizen hears a polite "needs checking" |
-
-The **Evaluation** tab (admin, officer, auditor) shows the numbers behind the thresholds, labelled "synthetic test set": the cost curve with 0.95 and the never-auto-approve line (arrow keys step through thresholds; "Show as table" under every chart), wrong approvals by kind, human-review rate, name-matching rates, and per-tier tables for Scam Shield and documents (deterministic only, Jev only, full cascade: accuracy, FPR, FNR, NOT SURE, median and p95 latency, cost per check, model ids). **Re-run now** re-measures offline (AI tiers then show the last live run, labelled with its time); admin **Run live** calls Jev and gpt-5-mini (several minutes).
-
-The buttons below are the story moments; most are done from the citizen, officer and admin screens, the console covers the "break it" ones.
-
-| Button | Expected behaviour |
-|---|---|
-| **Add competing claimant** | Rukhsana claims the same pension: Zainab's case pauses, route UNSURE, officer sees both side by side |
-| **Try the look-alike name** | Claim using the other "Muhammad Aslam": not matched, NAME_MISMATCH, no money moves |
-| **Publish rule v2: federal 10-year cap for heirs after the spouse (O.M. 10-09-2024)** | v1 = O.M. No. 1(13)-Reg.6/83 as updated 24-06-2024 (widow for life till remarriage, then children/daughters, no time cap). v2 = O.M. F.No. 9(3)R-6/2024-264 dated 10-09-2024 (+ clarifications 10-10-2024, 22-01-2025). Admin -> Rules -> v2 (draft) -> **Run Digital Twin**: 4 past cases checked, 2 change (SP-0001, SP-0002: "Paid until" No limit -> 2034-11-01), and the "On publish" column says SP-0001/SP-0002 "Re-decided" (pending, entitled after 10-09-2024) and SP-0003/SP-0004 "Keeps its version" (decided). Nothing is saved. **Publish v2** -> Yes: v1 retired, v2 live; SP-0001/SP-0002 get a new decision under v2 (audited `CASE_REDECIDED`, from v1 to v2; `RULES_PUBLISHED` lists them), stay in the officer's queue, and Bilal (`00000000005`) sees "paid until 2034-11-01" on his claim. The Rakha cases (approved, 2019) still show "decided under rule v1". Zainab (widow) files a new claim: decided under v2, unaffected by the heir cap. Reset the demo to run it again. Sources: [v1](https://www.finance.gov.pk/circulars/circular_24062024.pdf), [v2](https://www.finance.gov.pk/circulars/circular_10092024_1.pdf), [10-10-2024](https://www.finance.gov.pk/circulars/circular_10102024_1.pdf), [22-01-2025](https://www.finance.gov.pk/circulars/circular_22012025.pdf) |
-| **Withdraw consent** | Zainab withdraws Ayesha's access: Ayesha's next request returns 403, logged as CONSENT_DENIED. Helper access is always freely revocable |
-| **Take back the department's access with a claim open** | Zainab -> My data -> Pension Department card: no "Take back" button while she has an open claim. The server refuses the take-back (409, audited `CONSENT_CHANGE_REFUSED`) and also refuses hiding single fields; helper access stays freely revocable. If the claim is still being decided (e.g. blank DOB -> "One more paper is needed"), the card explains in Urdu + English and offers **Withdraw my claim**: status `withdrawn` (audited `CASE_WITHDRAWN`, final: officers, uploads and payout changes can no longer act on it; an open payout change is cancelled), then the department's access ends with it. If the claim is already approved and being paid (golden path), the card says the department keeps this access while the pension is paid (no button). With the department's access taken back, a new claim is refused until she shares again |
-| **Upload edited certificate** | Edit-risk indicators raised, case to officer, citizen hears a polite "needs checking" message |
-| **Send scam SMS** | Fee/OTP message from an unofficial sender: LIKELY_SCAM, reasons shown, case cross-check says no payment pending. The same message "from 8171" is still LIKELY_SCAM: content outweighs sender ID because 8171 has been spoofed |
-| **Scam Shield screen (citizen or helper)** | Tile "Is this message a scam?": paste the message (or "Fill demo scam SMS"), sender, "is someone on the phone with you?" yes/no, district. LIKELY_SCAM shows reasons in Urdu + English with Listen, the case cross-check line, and a "Report this scam" card: NCCIA 1799 (tel:), NCCIA portal, PTA complaint portal + 0800-55055, forward to 9000 (per PTA, 2023), call your bank, SBP Sunwai; BISP 0800-26477 only when the message mentions BISP. Officer and admin see it on the **Scam map** tab |
-| **Send borderline message** | Ambiguous message: NOT_SURE, never silently labelled safe |
-| **Change payout account** | Zainab's tile "Change payout account" (demo buttons fill mock IBANs). Own wallet (...0013): mock Raast title fetch shows "ZA**** BI**", match, held 48 hours with a countdown, confirmed with her own PIN. Joint account (...0012): close match + "joint account, proof needed", flagged, 4 business days. Someone else's account (...0008): no match, flagged. A helper can start a change but sees no PIN box. Cancel any time. Officer tab **Payout changes** approves or rejects flagged ones with a note (approval still needs her PIN and the hold) |
-| **Break the bank check (Raast timeout)** | Judge console -> Raast title fetch -> **timeout** (or `POST /api/v1/admin/faults {"service": "raast", "mode": "timeout"}`): a new claim goes UNSURE with SERVICE_UNAVAILABLE; a payout change is flagged PAYEE_CHECK_TIMEOUT, held 4 business days, her PIN alone does not release it. Set mode `ok` to restore |
-| **Leave the DOB blank** | File Zainab's claim with the DOB step empty (the later "Fill demo data" button never fills the DOB): ASK_PROOF, "Please confirm your date of birth. It is printed on your CNIC." Never a rejection. A wrong DOB gives DOB_MISMATCH |
-| **Break the identity service** | Judge console -> NADRA identity -> **error**: mock NADRA returns errors: case routes UNSURE with SERVICE_UNAVAILABLE, no crash, no guess |
-| **Go offline** | File a claim offline, reconnect: syncs exactly once. Reload the app with no signal: home says "No signal, you can continue your saved claim" and the saved draft opens (last profile cached in this tab only) |
-| **Citizen calls officer API** | In Swagger with a citizen token: 403 on approve endpoint, attempt logged |
-| **Reset demo** | Judge console -> Reset demo data -> Yes: seed data restored, faults and simulated outages end |
-
 ## Logins at the venue
 
 Judges share one venue IP. Login is limited to **60 per minute per IP** (still rate limited), and wrong PINs lock **only that account**: 5 wrong PINs = 15 minutes locked (`LOGIN_LOCKED` in the audit log); other accounts on the same IP keep working. If a judge locks a demo account, use another persona or reset the demo.
@@ -83,6 +159,8 @@ Judges share one venue IP. Login is limited to **60 per minute per IP** (still r
 - Seed reset button in case a judge leaves the data in a strange state.
 
 ## Q&A prep: likely judge questions
+
+The full cheat-sheet is coming in `docs/QA-CHEATSHEET.md` (task 5). Until then:
 
 | Question | Our answer (short) |
 |---|---|

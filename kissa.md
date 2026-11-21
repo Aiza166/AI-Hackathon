@@ -15,6 +15,8 @@ Your tasks now (details in HANDOFF section 5):
 - [ ] 2. One real-user test (10 min, anonymous) -> `docs/USER-TEST.md`
 - [x] 3. Sindhi + Punjabi text for citizen screens (labelled machine-assisted)
   - Done Sun early (`feat/c-sindhi-punjabi`): language picker (اردو / سنڌي / پنجابی) on login and home, remembered on the phone; ~60 fixed lines (home, wizard, decision headline + all 25 reason codes, Scam Shield verdicts) in `frontend/src/i18n/sd.ts` and `pa.ts`, each its own 2 KB chunk. Labelled "machine-assisted translation, to be reviewed" on screen; audio stays Urdu. **Still wanted:** a native Sindhi and a native Punjabi speaker to read the two files.
+- [x] 4. Demo script trimmed to one story
+  - Done Sun (`docs/c-demo-one-story`): `docs/05-DEMO-SCRIPT.md` now opens with one 7-minute story (Zainab claims, scam SMS caught, SafeSwitch holds a payout change to someone else's account, Rukhsana's competing claim goes to Kamran, auditor verifies the chain) with exact clicks, one line to say per beat, and what judges see. Every beat was run on the local stack first. Digital Twin, Evaluation, Judge console and the full persona list moved under "If judges ask". Rehearse it once with Aiza.
 - [ ] 4. Demo script trimmed to one story
 - [ ] 5. Q&A cheat-sheet (`docs/QA-CHEATSHEET.md`), rehearse Sunday
 
