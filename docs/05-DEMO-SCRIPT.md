@@ -160,7 +160,7 @@ Judges share one venue IP. Login is limited to **60 per minute per IP** (still r
 
 ## Q&A prep: likely judge questions
 
-The full cheat-sheet is coming in `docs/QA-CHEATSHEET.md` (task 5). Until then:
+The full cheat-sheet, with the security answers and the measured numbers, is `docs/QA-CHEATSHEET.md`. The short version:
 
 | Question | Our answer (short) |
 |---|---|

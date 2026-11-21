@@ -1,6 +1,19 @@
 # Sahara E2E test report
 
-## Run 2: full test of the merged app (Sat 21 Nov 2026, evening, Kissa)
+## Run 3: after the consent and Scam Shield security merges (Sun 22 Nov 2026, about 01:40 PKT, Kissa)
+
+- **Build tested:** `main` at `93ef5c3`, which adds #31 (consent checked per row on list endpoints), #32 (README), #33 (Scam Shield link unpacking and Jev reply checks), and Kissa's #28-#30. Same localhost setup and keys as Run 2 (Jev key, no Azure keys).
+- **No reason-code, migration or package changes** between Run 2 and this build (`explanations.py`, `alembic/`, `requirements.txt` and `package.json` untouched), so no new Sindhi or Punjabi lines were needed.
+
+| Suite | Result |
+|---|---|
+| Frontend unit tests | 37 passed, 0 failed (includes the check that every backend reason code has a Sindhi and a Punjabi line) |
+| Playwright full suite (28 tests, 5.4 min) | **27 passed, 0 failed, 1 skipped** (Jev unreachable, opt-in; it passed separately in Run 2) |
+| Console errors | Only the expected 503 from server speech (no Azure key here), in J1 and J13 |
+| Production build | passes; main JS 90.3 KB gzipped |
+
+Not covered: the new "Consent withdrawn" row (#31) in the officer queue and payout list has no browser test yet; J3 covers the helper's locked family. PR A (sec/a-decisions) is not merged, so its screens were not tested. Backend pytest was not rerun locally (about 30 minutes on this laptop); CI ran it on every PR.
+
 
 - **Build tested:** `main` at `12423bd` (after #19-#22 and #25), plus this branch's one CSS fix.
 - **Where:** localhost only, on Kissa's laptop. Backend :8010 on its own database `sahara_e2e`, Vite dev :5180, production build via `vite preview` :5181. The live Railway site was not used.
