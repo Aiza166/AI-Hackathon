@@ -9,7 +9,7 @@ Legend: P = Planned, B = Built, T = Tested, X = Cut
 | Requirement | How we meet it | Demo proof | State |
 |---|---|---|---|
 | Wrong approvals cost more than slow ones | Cost ratio 20:1 gives auto-approve threshold 0.95; never auto-reject; any red flag goes to a human | Evaluation page: cost curve, wrong approvals = 0 on test set | B |
-| Weak internet | Offline-first PWA, outbox with idempotency keys, saved progress, small pages, cached audio | Throttle to "Slow 3G", go offline mid-claim, come back, claim syncs once | P (server `Idempotency-Key` on `POST /cases` built and tested: replay, 422 on a changed body, 409 while in flight; frontend outbox in PR #3) |
+| Weak internet | Offline-first PWA, outbox with idempotency keys, saved progress, small pages, cached audio | Throttle to "Slow 3G", go offline mid-claim, come back, claim syncs once | B (outbox with a UUID Idempotency-Key per claim, honoured by `POST /cases` (replay / 422 / 409, tested); every wizard step saved on the phone; sync on app open, reconnect, backoff timer and Send now; cross-tab lock; a 401 keeps the claim until sign-in. Still to do: cached Urdu audio, Background Sync, Slow 3G phone test) |
 | Low literacy | Icons, Urdu audio for every prompt, voice input confirmed by tap, minimal text | Complete a claim without reading | P |
 | Rules change without notice | Rules are versioned JSON in the database (own small rules engine), edited by admin, no redeploy | Publish v2 (federal O.M. F.No. 9(3)R-6/2024-264, 10-09-2024: 10-year cap for heirs after the spouse) live; a new heir case (entitled after 10-09-2024) is capped under v2; an old heir case (entitled 2019) stays pinned to v1 | B (API, tested) |
 | Bad data | Name normaliser + fuzzy match + CNIC/DOB agreement (never an auto-match without an exact CNIC); dedupe; missing fields lead to "ask for proof", never a crash | Muhammad/Mohd./Muhammed matched; the other Muhammad Aslam not matched | B |
@@ -45,7 +45,7 @@ Legend: P = Planned, B = Built, T = Tested, X = Cut
 |---|---|
 | Admin rule editor (change eligibility without code) | B (API) |
 | Officer review queue with priority and confidence sorting | B |
-| Low-bandwidth / offline mode | P |
+| Low-bandwidth / offline mode | B (outbox + saved steps; Dexie lazy-loaded only when something is stored; no Background Sync yet) |
 | Notifications (in-app + mock SMS inbox) | P |
 | Rate limiting and error handling | B |
 | Multi-tenant workspaces (pension dept, social welfare dept) | B |
@@ -91,7 +91,7 @@ Legend: P = Planned, B = Built, T = Tested, X = Cut
 |---|---|
 | Digital Twin (replay rule change on past cases) | B (API, tested) |
 | Helper Mode (one phone, many families, separate consent) | P |
-| Offline-First Sync | P (part of core) |
+| Offline-First Sync | B (part of core: outbox per user and per family in Helper Mode, server idempotency, drafts deleted on sign-out and after 7 days) |
 | Scam Map (scam patterns by type, area, time) | P |
 
 ## Rules (section 06)
