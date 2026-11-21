@@ -71,3 +71,7 @@ Demo logins (PIN 1234): Zainab 00000000001, Rukhsana 00000000002, helper 0000000
 - Contract changes (`backend/app/schemas/*`, reason codes) affect the frontend: tell the other person.
 - When you finish something or get blocked: add a line to `docs/STATUS.md`, tick `docs/02-COMPLIANCE.md`.
 - Useful ECC tools (if installed): `/plan`, `tdd-workflow`, `/code-review`, agents `code-reviewer`, `security-reviewer`, `react-reviewer`, `a11y-architect`, `e2e-runner`.
+
+## Skills
+
+See [docs/SKILLS.md](docs/SKILLS.md) for which installed skills to use for each build step.
