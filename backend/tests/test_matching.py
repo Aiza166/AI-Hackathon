@@ -66,3 +66,43 @@ def test_one_digit_cnic_typo_is_not_a_match():
 def test_weights_are_recorded_for_the_auditor():
     result = match_identity("Mohd. Aslam", "Muhammad Aslam", claimed_cnic="9000000000011", record_cnic="9000000000011")
     assert set(result.weights) == {"prior", "name", "cnic", "dob"}
+
+
+@pytest.mark.parametrize("honorific", ["Sahib", "Sahab", "Saheb"])
+def test_sahib_style_honorifics_are_ignored(honorific):
+    assert name_similarity(f"Mohammad Aslam {honorific}", "Muhammad Aslam") >= 95
+    assert honorific.lower() in parse_name(f"Mohammad Aslam {honorific}").honorifics
+
+
+def test_exact_cnic_with_conflicting_dob_is_never_a_match():
+    result = match_identity(
+        "Muhammad Aslam", "Muhammad Aslam", claimed_cnic="9000000000011", record_cnic="9000000000011",
+        claimed_dob=date(1958, 9, 2), record_dob=date(1955, 9, 2),
+    )
+    assert result.levels["dob"] == "different"
+    assert result.route == "ASK"
+    assert result.reasons == ("DOB conflicts with the record",)
+
+
+def test_exact_cnic_with_missing_dob_still_matches():
+    result = match_identity(
+        "Muhammad Aslam", "Muhammad Aslam", claimed_cnic="9000000000011", record_cnic="9000000000011",
+        claimed_dob=None, record_dob=date(1955, 9, 2),
+    )
+    assert result.route == "MATCH"
+
+
+def test_exact_cnic_with_exact_dob_matches():
+    result = match_identity(
+        "Muhammad Aslam", "Muhammad Aslam", claimed_cnic="9000000000011", record_cnic="9000000000011",
+        claimed_dob=date(1955, 9, 2), record_dob=date(1955, 9, 2),
+    )
+    assert result.route == "MATCH"
+
+
+def test_conflicting_dob_does_not_override_cnic_conflict():
+    result = match_identity(
+        "Muhammad Aslam", "Muhammad Aslam", claimed_cnic="9000000000011", record_cnic="9000000000044",
+        claimed_dob=date(1958, 9, 2), record_dob=date(1955, 9, 2),
+    )
+    assert result.route == "UNSURE"

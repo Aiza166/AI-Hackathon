@@ -2,8 +2,8 @@
 
 Pipeline (docs/research/survivor-pension.md section 3):
 parse -> canonicalise -> score (Fellegi-Sunter style log2(m/u) weights) -> route.
-Rules that never bend: no match without an exact CNIC, "muhammad" carries
-little evidence, phonetic codes and token_set_ratio are never used as evidence.
+Rules that never bend: no match without an exact CNIC, no match when the
+DOB given conflicts with the record, "muhammad" carries little evidence, phonetic codes and token_set_ratio are never used as evidence.
 """
 import math
 import re
@@ -14,7 +14,7 @@ from datetime import date
 from rapidfuzz import fuzz
 
 RELATION_MARKERS = {"s/o", "w/o", "d/o", "bin", "bint", "ibn"}
-HONORIFICS = {"syed", "sheikh", "shaikh", "haji", "hajji", "chaudhry", "chaudhary", "malik", "begum", "bibi", "mst", "mrs", "mr", "miss"}
+HONORIFICS = {"syed", "sheikh", "shaikh", "haji", "hajji", "chaudhry", "chaudhary", "malik", "begum", "bibi", "mst", "mrs", "mr", "miss", "sahib", "sahab", "saheb"}
 MUHAMMAD_VARIANTS = {"muhammad", "mohammad", "mohammed", "muhammed", "mohamad", "mohamed", "mohd", "md", "muhamad"}
 COMMON_TOKEN = "muhammad"
 
@@ -130,6 +130,7 @@ def match_identity(
     record_cnic: str | None,
     claimed_dob: date | None = None,
     record_dob: date | None = None,
+    match_p: float = MATCH_P,
 ) -> MatchResult:
     score = name_similarity(claimed_name, record_name)
     levels = {
@@ -145,18 +146,22 @@ def match_identity(
         "dob": round(DOB_WEIGHTS[levels["dob"]], 2),
     }
     probability = 1 / (1 + 2 ** (-sum(weights.values())))
-    route, reasons = _route(probability, levels)
+    route, reasons = _route(probability, levels, match_p)
     return MatchResult(round(probability, 4), route, levels, weights, reasons)
 
 
-def _route(probability: float, levels: dict) -> tuple[str, tuple[str, ...]]:
+def _route(probability: float, levels: dict, match_p: float = MATCH_P) -> tuple[str, tuple[str, ...]]:
     if levels["cnic"] == "different":
         return "UNSURE", ("CNIC conflict",)
     if levels["name"] == "lt70":
         return "UNSURE", ("name does not match the record",)
     if levels["cnic"] != "exact":
         return "ASK", ("no exact CNIC: a match is never accepted without it",)
-    if probability >= MATCH_P:
+    if levels["dob"] == "different":
+        # An exact CNIC alone makes p ~0.998, but a CNIC number is easy to copy from a
+        # photocopy. A DOB that conflicts with the record must be checked by a person.
+        return "ASK", ("DOB conflicts with the record",)
+    if probability >= match_p:
         return "MATCH", ()
     if probability >= REVIEW_P:
         return "ASK", ("match not strong enough",)

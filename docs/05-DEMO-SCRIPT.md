@@ -24,7 +24,7 @@
 |---|---|---|---|
 | 0:00-0:45 | Hook | Zainab's story in one sentence. Phone on throttled "Slow 3G". PROTOTYPE banner visible. | 7 |
 | 0:45-2:15 | Golden path | Ayesha switches to Zainab (Helper Mode). Claim by voice and icons; connection drops mid-way, progress saved, resumes. Name variants matched safely. Auto-approved with Urdu audio reason. Payout to her verified account. | 3, 5, 7 |
-| 2:15-3:00 | Cost of being wrong | Eval page: cost curve, why 0.95, wrong approvals = 0, UNSURE rate. | 1 |
+| 2:15-3:00 | Cost of being wrong | Eval page: cost curve is flat (164 from 0.50 to 0.99), so 0.95 comes from the 20:1 cost ratio and the safety comes from hard flags and routing. Show the measured numbers: 5 wrong approvals of 200 (2 identity theft with full credentials, which needs an account takeover; 3 stolen CNIC with DOB left blank), 64.5% sent to a person, clean claims 40/40 auto-approved, payee/duplicate/already-drawing never auto-approved. Say plainly what is still open. | 1 |
 | 3:00-6:00 | **Judges break it** (judge console) | See the console list below. Each action shows its effect live. | 2, 3, 4, 6, 8 |
 | 6:00-7:00 | Auditor replay | Auditor steps through the events just triggered: actor, role, rule version, model ID, probabilities, blocked attempts. `/audit/verify` shows the chain is intact. | 5 |
 | 7:00-8:00 | Honest limits | What is real vs simulated, measured false-alarm rate, what we would validate next. | all |
@@ -57,7 +57,7 @@
 
 | Question | Our answer (short) |
 |---|---|
-| Why 0.95? | Cost ratio 20:1 between wrong approval and delay gives p > 0.952; the eval page sweep shows it is near the minimum-cost point on our test set. |
+| Why 0.95? | Cost ratio 20:1 between wrong approval and delay gives p > 0.952. Our own sweep is honest about it: on the 200-case test set the cost is flat from 0.50 to 0.99, so the threshold is not what keeps people safe there. Hard flags (payee, duplicate, already drawing), "no match without exact CNIC" and "DOB conflict goes to a person" do that. The eval shows 5 wrong approvals at 0.95, all people holding the widow's real CNIC; 2 also know her exact name and DOB, which in the app needs her phone/PIN or a helper with her consent. |
 | What if Jev is wrong? | Jev only answers small factual questions. Rules and code decide. Undecided Jev answers (0.3-0.7) and any money move with doubt go to a human. |
 | What if Jev is down? | Money never moves; the case routes UNSURE with SERVICE_UNAVAILABLE and the citizen hears that the claim is saved. |
 | How do you stop a wrong name match? | Names alone never match, and nothing auto-matches without an exact CNIC. DOB plus husband/father name can only lead to "ask for proof" or a human. We show the false-match rate. |

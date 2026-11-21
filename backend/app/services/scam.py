@@ -92,9 +92,13 @@ def _citizen_has_payment(db: Session, person_id: str | None) -> bool | None:
     return db.execute(select(Case.id).where(Case.claimant_person_id == person_id, Case.status.in_(PAID_STATUSES))).first() is not None
 
 
-def check(db: Session, text: str, sender: str | None, on_call: bool | None, person_id: str | None) -> ScamResult:
+def check(db: Session | None, text: str, sender: str | None, on_call: bool | None, person_id: str | None,
+          *, use_jev: bool = True) -> ScamResult:
+    """use_jev=False forces the keyword fallback (used by the offline evaluation)."""
     text = normalise(text)
     try:
+        if not use_jev:
+            raise JevUnavailable("Jev disabled for this check")
         nouls, model_id = _jev_signals(text)
         fallback = False
     except JevUnavailable:

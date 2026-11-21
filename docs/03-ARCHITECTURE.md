@@ -158,7 +158,7 @@ Thresholds live in the ruleset, so they are versioned and editable too.
 - Cost of a wrong approval `C_wrong` = 20 units (wrong heir paid, recovery effort, real widow delayed further, lost trust). Cost of a delay `C_delay` = 1 unit (one more week of waiting).
 - Auto-approving is worth it only when the expected cost of approving is lower than the expected cost of waiting: `(1 - p) * C_wrong < p * C_delay`, which gives `p > C_wrong / (C_wrong + C_delay) = 0.952`.
 - Below 0.70, one more document rarely resolves the doubt in our test set, so a human looks at it directly.
-- The evaluation page **sweeps T_AUTO from 0.50 to 0.99** on the labelled mock case set and plots total cost, wrong approvals and average delay, so judges see that 0.95 sits near the lowest-cost point.
+- The evaluation page **sweeps T_AUTO from 0.50 to 0.99** on the labelled mock case set and reports total cost, wrong approvals and how many claims need a person. Measured result: the cost curve is **flat across the whole sweep** (164 at every threshold from 0.50 to 0.99), so the sweep does not pick 0.95 for us. 0.95 follows from the 20:1 cost ratio above. On this set, most of the safety comes from the hard flags and the matcher's routing rules (no MATCH without an exact CNIC, no MATCH when the DOB conflicts with the record), not from where the threshold sits. See [Evaluation](#evaluation-challenges-1-3-and-8).
 
 ### Step 5: explanation
 
@@ -340,7 +340,7 @@ Source: [docs/research/survivor-pension.md](research/survivor-pension.md).
 | Canonicalise | Mohd, Md, M., Mohammad, Mohammed, Muhammed map to `muhammad`; expand "M." only if the other record has a Muhammad-family token. |
 | Block | CNIC exact, OR key token + birth year, OR phonetic key + district. Phonetic codes only **propose** pairs, never count as evidence. |
 | Score | Fellegi-Sunter style: sum log2(m/u) per field; `muhammad` down-weighted (term frequency). Name `token_sort_ratio` bands >=95 / 85-95 / 70-85 / <70; CNIC exact / one-digit typo / different / missing; DOB exact / year / +-1 / different / missing. Never `token_set_ratio`. |
-| Route | p >= 0.95 **and exact CNIC** and no flag: match. 0.70-0.95: ask for the missing field. < 0.70, CNIC conflict, or two candidates above 0.70: UNSURE. **No auto-match without exact CNIC.** |
+| Route | p >= 0.95 **and exact CNIC** and no flag: match. 0.70-0.95: ask for the missing field. < 0.70, CNIC conflict, or two candidates above 0.70: UNSURE. **No auto-match without exact CNIC.** Exact CNIC but a DOB that conflicts with the record (both given, different year): ASK, "DOB conflicts with the record". A blank DOB does not count against the claimant. |
 
 - The CNIC father/husband field is weak evidence: since 2021 married women may keep their father's name there, so Zainab's CNIC may not name Aslam.
 - NADRA CNIC DOB is the single source of truth (EOBI paid Rs2.79bn on altered ages from other documents).
@@ -383,3 +383,32 @@ Report routes shown after a scam verdict (Round 2 research): NCCIA helpline 1799
 - Outbox key = UUID created when the user taps save. Flush on app open, `online` event, Background Sync (Chromium only) and a "Send now" button. Call `navigator.storage.persist()`.
 - Server Idempotency-Key (IETF draft): unique per principal, replay stored response, 422 if the same key comes with a different body, 409 while in flight.
 - Outbox partitioned per family in Helper Mode.
+
+## Evaluation (Challenges 1, 3 and 8)
+
+The numbers behind the thresholds, computed on labelled synthetic mock data (fixed seeds, all CNICs `90000...`). Code: `backend/app/evaluation/`; committed sample: `backend/results/eval_latest.json` (regenerate with `python -m app.evaluation.runner`).
+
+| Endpoint | Who | What |
+|---|---|---|
+| `GET /api/v1/eval/latest` | officer, admin, auditor | Last run in this process, else the committed sample |
+| `POST /api/v1/eval/run` | officer, admin, auditor | Re-runs all three sets (about 2 s), caches the result, writes an `EVAL_RUN` audit event with the headline numbers |
+| `POST /api/v1/eval/run?live=true` | admin only | Same, but the scam set goes through the real Jev (needs `TYPESAFE_API_KEY`, else 409 `JEV_NOT_CONFIGURED`) |
+
+**1. Claim decisions and the T_AUTO sweep (`data.claims`).** 200 in-memory cases run through the real `decide()` and rules engine (no DB): clean (40), same person with name variants (40), look-alike different person (30), duplicate claimant (20, half genuine), missing document (25), payee close match (15), payee no match (15), already drawing (15). Each has a ground-truth `should_approve`. For T_AUTO = 0.50 to 0.99 (step 0.01; the matcher's MATCH cut-off moves with it) the sweep reports `total_cost` = `C_wrong` x wrong approvals + `C_delay` x genuine claims not auto-approved (costs read from the ruleset: 20 and 1), plus `wrong_approvals`, `auto_approve_rate`, `ask_proof_rate` and `human_rate` (UNSURE share). `min_cost` is the cheapest threshold; `at_configured` is the value at the live threshold (0.95).
+
+Current result (ruleset v1, after the DOB-conflict rule): **5 wrong approvals** out of 200 at 0.95, 64 genuine claims not auto-approved, total cost **164**. The curve is **flat from 0.50 to 0.99** (cost 164 at every step), so `min_cost` reports 0.50 only because it is the first of many equal points. Hard flags and matcher routing decide almost every case before the threshold matters, and an exact CNIC pushes identity probability to about 0.998 or more. At 0.95: 35.5% auto-approved, 19% asked for proof, 45.5% sent to an officer (64.5% need a person). Clean claims: 40 of 40 auto-approved. Payee no match, already drawing and duplicate claims: 0 auto-approved.
+
+The 5 wrong approvals are all look-alike impostors who typed the widow's real CNIC, in two labelled kinds (`wrong_approvals_by_kind_at_configured`):
+
+- **Identity theft with full credentials (2):** exact CNIC, exact name and exact DOB, account in her name. No data match can separate them from the widow. In the app this needs an account takeover: the claimant CNIC must belong to the logged-in user's own linked person, and a helper can only file for a family assigned to them that has given consent (`services/cases.py` `_claimant_person`, `assert_consent`). The synthetic set skips that login step, so these 2 cases show what happens after a takeover.
+- **Stolen CNIC, guessed details (3):** exact CNIC, a name variant, and the DOB left blank. A blank DOB is allowed (many genuine claimants skip it), so the exact CNIC still dominates.
+
+Before the rule, the same set gave 8 wrong approvals and cost 222 at 0.95 (cheapest 202 at 0.99). The rule removed the 3 impostors who typed a wrong DOB. Its price: genuine claimants who mistype their DOB now get ASK instead of MATCH (2 more delayed genuine claims here, 64 vs 62). If nothing is ever auto-approved, the cost is 130 (every genuine claim waits). That is still cheaper than 164, because the 5 impostors cost 100 on their own. Without them, the cost at 0.95 would be 64. So auto-approval only pays off on this set if those impostors are stopped by something outside the data match: the PIN login and consent step, the document checks, or the payee check.
+
+**2. Name matching (`data.names`).** 502 identity pairs through `match_identity` at the routing thresholds (MATCH 0.95, review 0.70): 250 same-person variants (Muhammad forms, transliteration, honorifics, word order, typos, s/o w/o d/o, first name only, 5% CNIC typos) and 252 hard negatives (same full name, same name + birth year, siblings, CNIC one digit off). `false_match_rate` = negatives routed MATCH: **0.0**. `false_non_match_rate` = positives not routed MATCH: **0.248** (was 0.176 before the DOB-conflict rule), mostly "first name only", CNIC typos, and genuine people who typed a wrong DOB (these now get ASK). These go to ASK or UNSURE, which is slower but safe. `ask_rate` 0.187, `unsure_rate` 0.438. Reported separately: `exact_cnic_impostor` (40 pairs, someone else's real CNIC with a guessed name and a wrong or missing DOB) routes MATCH **47.5%** of the time (was 87.5%). All remaining matches left the DOB blank; every impostor who typed a wrong DOB now gets ASK or UNSURE. Honorifics now also drop "sahib", "sahab" and "saheb" ("Mohammad Aslam Sahib" vs "Muhammad Aslam" scored 62.5, now 100).
+
+**3. Scam Shield (`data.scam`).** 40 invented messages (22 scam, 18 genuine; English, Roman Urdu, Urdu) through `services.scam.check`. Default mode uses the keyword fallback, and by design it never says LOOKS_GENUINE. FPR (genuine called LIKELY_SCAM) is 0, FNR (scam called LOOKS_GENUINE) is 0, and NOT_SURE is 100%. Live Jev run on 21 Nov (`jev-1.14.0`): FPR 0, FNR 0.091 (2 misses: "call this number to receive it" with no fee, code or link), NOT_SURE 10% (link-only scams), 73% of scams caught, every genuine message passed, median latency about 1.05 s per message (7 questions).
+
+These are synthetic sets that we designed ourselves. They show how the code behaves and where it fails. They are not real-world accuracy figures.
+
+**Mock documents.** `backend/scripts/make_mock_docs.py` (Pillow) writes `backend/sample_docs/`: CNIC front/back for Zainab, CNIC front for Aslam, FRC-1001, death certificate DC-UC12-2026-0412 ("Mohd. Aslam", 14.08.2026, UC-12 Gulshan (mock)) and nikah nama. Each comes as the original PNG, a WhatsApp-style double-recompressed JPEG and a phone screenshot. One death certificate is edited (date to 14.06.2026, name to "Mohd. Akram", seal pasted twice) for the edit-risk demo. `manifest.json` records the edited boxes. Every image has a MOCK / SPECIMEN banner and diagonal watermark and `MOCK` in its metadata, and has no logo, emblem or government header. English labels only.

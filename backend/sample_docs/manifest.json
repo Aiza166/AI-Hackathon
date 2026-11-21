@@ -1,0 +1,207 @@
+{
+ "note": "MOCK / SPECIMEN - NOT A REAL DOCUMENT - SAHARA PROTOTYPE",
+ "files": [
+  {
+   "file": "cnic_front_zainab.png",
+   "doc": "cnic_front_zainab",
+   "variant": "original",
+   "description": "CNIC front, Zainab Bibi (claimant)",
+   "edited": false
+  },
+  {
+   "file": "cnic_front_zainab.whatsapp.jpg",
+   "doc": "cnic_front_zainab",
+   "variant": "whatsapp",
+   "description": "CNIC front, Zainab Bibi (claimant)",
+   "edited": false
+  },
+  {
+   "file": "cnic_front_zainab.screenshot.png",
+   "doc": "cnic_front_zainab",
+   "variant": "screenshot",
+   "description": "CNIC front, Zainab Bibi (claimant)",
+   "edited": false
+  },
+  {
+   "file": "cnic_back_zainab.png",
+   "doc": "cnic_back_zainab",
+   "variant": "original",
+   "description": "CNIC back, Zainab Bibi",
+   "edited": false
+  },
+  {
+   "file": "cnic_back_zainab.whatsapp.jpg",
+   "doc": "cnic_back_zainab",
+   "variant": "whatsapp",
+   "description": "CNIC back, Zainab Bibi",
+   "edited": false
+  },
+  {
+   "file": "cnic_back_zainab.screenshot.png",
+   "doc": "cnic_back_zainab",
+   "variant": "screenshot",
+   "description": "CNIC back, Zainab Bibi",
+   "edited": false
+  },
+  {
+   "file": "cnic_front_aslam.png",
+   "doc": "cnic_front_aslam",
+   "variant": "original",
+   "description": "CNIC front, Muhammad Aslam (deceased)",
+   "edited": false
+  },
+  {
+   "file": "cnic_front_aslam.whatsapp.jpg",
+   "doc": "cnic_front_aslam",
+   "variant": "whatsapp",
+   "description": "CNIC front, Muhammad Aslam (deceased)",
+   "edited": false
+  },
+  {
+   "file": "cnic_front_aslam.screenshot.png",
+   "doc": "cnic_front_aslam",
+   "variant": "screenshot",
+   "description": "CNIC front, Muhammad Aslam (deceased)",
+   "edited": false
+  },
+  {
+   "file": "frc_aslam_family.png",
+   "doc": "frc_aslam_family",
+   "variant": "original",
+   "description": "Family registration certificate FRC-1001",
+   "edited": false
+  },
+  {
+   "file": "frc_aslam_family.whatsapp.jpg",
+   "doc": "frc_aslam_family",
+   "variant": "whatsapp",
+   "description": "Family registration certificate FRC-1001",
+   "edited": false
+  },
+  {
+   "file": "frc_aslam_family.screenshot.png",
+   "doc": "frc_aslam_family",
+   "variant": "screenshot",
+   "description": "Family registration certificate FRC-1001",
+   "edited": false
+  },
+  {
+   "file": "death_certificate_aslam.png",
+   "doc": "death_certificate_aslam",
+   "variant": "original",
+   "description": "Death certificate DC-UC12-2026-0412 (name printed as Mohd. Aslam)",
+   "edited": false
+  },
+  {
+   "file": "death_certificate_aslam.whatsapp.jpg",
+   "doc": "death_certificate_aslam",
+   "variant": "whatsapp",
+   "description": "Death certificate DC-UC12-2026-0412 (name printed as Mohd. Aslam)",
+   "edited": false
+  },
+  {
+   "file": "death_certificate_aslam.screenshot.png",
+   "doc": "death_certificate_aslam",
+   "variant": "screenshot",
+   "description": "Death certificate DC-UC12-2026-0412 (name printed as Mohd. Aslam)",
+   "edited": false
+  },
+  {
+   "file": "nikah_nama_aslam_zainab.png",
+   "doc": "nikah_nama_aslam_zainab",
+   "variant": "original",
+   "description": "Nikah nama, Muhammad Aslam and Zainab Bibi",
+   "edited": false
+  },
+  {
+   "file": "nikah_nama_aslam_zainab.whatsapp.jpg",
+   "doc": "nikah_nama_aslam_zainab",
+   "variant": "whatsapp",
+   "description": "Nikah nama, Muhammad Aslam and Zainab Bibi",
+   "edited": false
+  },
+  {
+   "file": "nikah_nama_aslam_zainab.screenshot.png",
+   "doc": "nikah_nama_aslam_zainab",
+   "variant": "screenshot",
+   "description": "Nikah nama, Muhammad Aslam and Zainab Bibi",
+   "edited": false
+  },
+  {
+   "file": "death_certificate_aslam_edited.png",
+   "doc": "death_certificate_aslam",
+   "variant": "edited",
+   "description": "Date and name region repainted, seal pasted twice (needs a second look)",
+   "edited": true,
+   "edits": [
+    {
+     "field": "date_of_death",
+     "box": [
+      58,
+      468,
+      700,
+      510
+     ],
+     "new_value": "14.06.2026"
+    },
+    {
+     "field": "name_of_deceased",
+     "box": [
+      58,
+      258,
+      900,
+      300
+     ],
+     "new_value": "Mohd. Akram"
+    },
+    {
+     "field": "seal_copy_move",
+     "box": [
+      760,
+      1380,
+      950,
+      1570
+     ]
+    }
+   ]
+  },
+  {
+   "file": "death_certificate_aslam_edited.whatsapp.jpg",
+   "doc": "death_certificate_aslam",
+   "variant": "edited",
+   "description": "Date and name region repainted, seal pasted twice (needs a second look)",
+   "edited": true,
+   "edits": [
+    {
+     "field": "date_of_death",
+     "box": [
+      58,
+      468,
+      700,
+      510
+     ],
+     "new_value": "14.06.2026"
+    },
+    {
+     "field": "name_of_deceased",
+     "box": [
+      58,
+      258,
+      900,
+      300
+     ],
+     "new_value": "Mohd. Akram"
+    },
+    {
+     "field": "seal_copy_move",
+     "box": [
+      760,
+      1380,
+      950,
+      1570
+     ]
+    }
+   ]
+  }
+ ]
+}

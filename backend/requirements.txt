@@ -12,3 +12,4 @@ slowapi==0.1.*
 rapidfuzz==3.*
 python-multipart==0.0.*
 pytest==8.*
+pillow==13.*
