@@ -34,6 +34,8 @@ def summary(result: dict) -> dict:
         "min_cost": claims["min_cost"]["total_cost"],
         "cost_at_configured": claims["at_configured"]["total_cost"],
         "wrong_approvals_at_configured": claims["at_configured"]["wrong_approvals"],
+        "wrong_approvals_by_kind": claims["wrong_approvals_by_kind_at_configured"],
+        "human_review_rate_at_configured": claims["at_configured"]["needs_person_rate"],
         "name_false_match_rate": names["false_match_rate"],
         "name_false_non_match_rate": names["false_non_match_rate"],
         "scam_mode": scam["mode"], "scam_fpr": scam["fpr"], "scam_fnr": scam["fnr"],

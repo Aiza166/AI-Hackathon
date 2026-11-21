@@ -37,6 +37,13 @@ CATEGORIES = {
     "already_drawing": (15, False),
 }
 SWEEP_START, SWEEP_END, SWEEP_STEP = 0.50, 0.99, 0.01
+# Wrong approvals are reported by kind. "Full credentials" means the impostor typed the
+# victim's real CNIC, exact name and exact DOB: no data match can tell them apart. In the
+# app the claimant CNIC must belong to the logged-in user's own linked person (or a family
+# that consented to a helper), so this attack needs an account takeover, not just data.
+FULL_CREDENTIALS = "identity theft with full credentials"
+IMPOSTOR_KINDS = {"stolen full identity": FULL_CREDENTIALS,
+                  "stolen CNIC number, guessed details": "stolen CNIC, guessed details"}
 
 
 @dataclass(frozen=True)
@@ -215,8 +222,12 @@ def evaluate_claims(ruleset: dict, seed: int = SEED) -> dict:
     best_cost = min(row["total_cost"] for row in sweep)
     best = [row["threshold"] for row in sweep if row["total_cost"] == best_cost]
     at_configured = run_at(cases, ruleset, configured)
-    wrong_cases = [{"case_id": c.case_id, "category": c.category, "note": c.note}
+    wrong_cases = [{"case_id": c.case_id, "category": c.category, "note": c.note,
+                    "kind": IMPOSTOR_KINDS.get(c.note, "other")}
                    for c, r, _ in at_configured if r == Route.AUTO_APPROVE and not c.should_approve]
+    by_kind: dict[str, int] = {}
+    for w in wrong_cases:
+        by_kind[w["kind"]] = by_kind.get(w["kind"], 0) + 1
     return {
         "seed": seed, "n_cases": len(cases), "n_should_approve": sum(c.should_approve for c in cases),
         "cost_wrong_approval": c_wrong, "cost_delay": c_delay,
@@ -227,5 +238,6 @@ def evaluate_claims(ruleset: dict, seed: int = SEED) -> dict:
         "baseline_never_auto": len([c for c in cases if c.should_approve]) * c_delay,
         "by_category_at_configured": _by_category(at_configured),
         "wrong_approvals_at_configured": wrong_cases,
+        "wrong_approvals_by_kind_at_configured": by_kind,
         "sweep": sweep,
     }

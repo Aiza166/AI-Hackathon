@@ -1,7 +1,7 @@
 {
  "prototype": true,
  "note": "Synthetic mock data only. Numbers describe this prototype on invented cases, not real-world accuracy.",
- "generated_at": "2026-11-21T06:52:43+00:00",
+ "generated_at": "2026-11-21T07:07:21+00:00",
  "ruleset_version": 1,
  "claims": {
   "seed": 20261122,
@@ -12,22 +12,22 @@
   "analytic_threshold": 0.9524,
   "configured_threshold": 0.95,
   "min_cost": {
-   "threshold": 0.99,
+   "threshold": 0.5,
    "range": [
-    0.99,
+    0.5,
     0.99
    ],
-   "total_cost": 202
+   "total_cost": 164
   },
   "at_configured": {
    "threshold": 0.95,
-   "total_cost": 222,
-   "wrong_approvals": 8,
-   "delayed_genuine": 62,
-   "auto_approve_rate": 0.38,
-   "ask_proof_rate": 0.165,
+   "total_cost": 164,
+   "wrong_approvals": 5,
+   "delayed_genuine": 64,
+   "auto_approve_rate": 0.355,
+   "ask_proof_rate": 0.19,
    "human_rate": 0.455,
-   "needs_person_rate": 0.62
+   "needs_person_rate": 0.645
   },
   "baseline_never_auto": 130,
   "by_category_at_configured": {
@@ -41,15 +41,15 @@
    "name_variant_same_person": {
     "n": 40,
     "should_approve": 40,
-    "AUTO_APPROVE": 28,
-    "ASK_PROOF": 0,
+    "AUTO_APPROVE": 26,
+    "ASK_PROOF": 2,
     "UNSURE": 12
    },
    "lookalike_different_person": {
     "n": 30,
     "should_approve": 0,
-    "AUTO_APPROVE": 8,
-    "ASK_PROOF": 0,
+    "AUTO_APPROVE": 5,
+    "ASK_PROOF": 3,
     "UNSURE": 22
    },
    "duplicate_claimant": {
@@ -92,544 +92,538 @@
    {
     "case_id": "C082",
     "category": "lookalike_different_person",
-    "note": "stolen full identity"
+    "note": "stolen full identity",
+    "kind": "identity theft with full credentials"
    },
    {
     "case_id": "C083",
     "category": "lookalike_different_person",
-    "note": "stolen full identity"
+    "note": "stolen full identity",
+    "kind": "identity theft with full credentials"
    },
    {
     "case_id": "C089",
     "category": "lookalike_different_person",
-    "note": "stolen CNIC number, guessed details"
-   },
-   {
-    "case_id": "C097",
-    "category": "lookalike_different_person",
-    "note": "stolen CNIC number, guessed details"
-   },
-   {
-    "case_id": "C098",
-    "category": "lookalike_different_person",
-    "note": "stolen CNIC number, guessed details"
+    "note": "stolen CNIC number, guessed details",
+    "kind": "stolen CNIC, guessed details"
    },
    {
     "case_id": "C100",
     "category": "lookalike_different_person",
-    "note": "stolen CNIC number, guessed details"
+    "note": "stolen CNIC number, guessed details",
+    "kind": "stolen CNIC, guessed details"
    },
    {
     "case_id": "C101",
     "category": "lookalike_different_person",
-    "note": "stolen CNIC number, guessed details"
-   },
-   {
-    "case_id": "C110",
-    "category": "lookalike_different_person",
-    "note": "stolen CNIC number, guessed details"
+    "note": "stolen CNIC number, guessed details",
+    "kind": "stolen CNIC, guessed details"
    }
   ],
+  "wrong_approvals_by_kind_at_configured": {
+   "identity theft with full credentials": 2,
+   "stolen CNIC, guessed details": 3
+  },
   "sweep": [
    {
     "threshold": 0.5,
-    "total_cost": 222,
-    "wrong_approvals": 8,
-    "delayed_genuine": 62,
-    "auto_approve_rate": 0.38,
-    "ask_proof_rate": 0.165,
+    "total_cost": 164,
+    "wrong_approvals": 5,
+    "delayed_genuine": 64,
+    "auto_approve_rate": 0.355,
+    "ask_proof_rate": 0.19,
     "human_rate": 0.455,
-    "needs_person_rate": 0.62
+    "needs_person_rate": 0.645
    },
    {
     "threshold": 0.51,
-    "total_cost": 222,
-    "wrong_approvals": 8,
-    "delayed_genuine": 62,
-    "auto_approve_rate": 0.38,
-    "ask_proof_rate": 0.165,
+    "total_cost": 164,
+    "wrong_approvals": 5,
+    "delayed_genuine": 64,
+    "auto_approve_rate": 0.355,
+    "ask_proof_rate": 0.19,
     "human_rate": 0.455,
-    "needs_person_rate": 0.62
+    "needs_person_rate": 0.645
    },
    {
     "threshold": 0.52,
-    "total_cost": 222,
-    "wrong_approvals": 8,
-    "delayed_genuine": 62,
-    "auto_approve_rate": 0.38,
-    "ask_proof_rate": 0.165,
+    "total_cost": 164,
+    "wrong_approvals": 5,
+    "delayed_genuine": 64,
+    "auto_approve_rate": 0.355,
+    "ask_proof_rate": 0.19,
     "human_rate": 0.455,
-    "needs_person_rate": 0.62
+    "needs_person_rate": 0.645
    },
    {
     "threshold": 0.53,
-    "total_cost": 222,
-    "wrong_approvals": 8,
-    "delayed_genuine": 62,
-    "auto_approve_rate": 0.38,
-    "ask_proof_rate": 0.165,
+    "total_cost": 164,
+    "wrong_approvals": 5,
+    "delayed_genuine": 64,
+    "auto_approve_rate": 0.355,
+    "ask_proof_rate": 0.19,
     "human_rate": 0.455,
-    "needs_person_rate": 0.62
+    "needs_person_rate": 0.645
    },
    {
     "threshold": 0.54,
-    "total_cost": 222,
-    "wrong_approvals": 8,
-    "delayed_genuine": 62,
-    "auto_approve_rate": 0.38,
-    "ask_proof_rate": 0.165,
+    "total_cost": 164,
+    "wrong_approvals": 5,
+    "delayed_genuine": 64,
+    "auto_approve_rate": 0.355,
+    "ask_proof_rate": 0.19,
     "human_rate": 0.455,
-    "needs_person_rate": 0.62
+    "needs_person_rate": 0.645
    },
    {
     "threshold": 0.55,
-    "total_cost": 222,
-    "wrong_approvals": 8,
-    "delayed_genuine": 62,
-    "auto_approve_rate": 0.38,
-    "ask_proof_rate": 0.165,
+    "total_cost": 164,
+    "wrong_approvals": 5,
+    "delayed_genuine": 64,
+    "auto_approve_rate": 0.355,
+    "ask_proof_rate": 0.19,
     "human_rate": 0.455,
-    "needs_person_rate": 0.62
+    "needs_person_rate": 0.645
    },
    {
     "threshold": 0.56,
-    "total_cost": 222,
-    "wrong_approvals": 8,
-    "delayed_genuine": 62,
-    "auto_approve_rate": 0.38,
-    "ask_proof_rate": 0.165,
+    "total_cost": 164,
+    "wrong_approvals": 5,
+    "delayed_genuine": 64,
+    "auto_approve_rate": 0.355,
+    "ask_proof_rate": 0.19,
     "human_rate": 0.455,
-    "needs_person_rate": 0.62
+    "needs_person_rate": 0.645
    },
    {
     "threshold": 0.57,
-    "total_cost": 222,
-    "wrong_approvals": 8,
-    "delayed_genuine": 62,
-    "auto_approve_rate": 0.38,
-    "ask_proof_rate": 0.165,
+    "total_cost": 164,
+    "wrong_approvals": 5,
+    "delayed_genuine": 64,
+    "auto_approve_rate": 0.355,
+    "ask_proof_rate": 0.19,
     "human_rate": 0.455,
-    "needs_person_rate": 0.62
+    "needs_person_rate": 0.645
    },
    {
     "threshold": 0.58,
-    "total_cost": 222,
-    "wrong_approvals": 8,
-    "delayed_genuine": 62,
-    "auto_approve_rate": 0.38,
-    "ask_proof_rate": 0.165,
+    "total_cost": 164,
+    "wrong_approvals": 5,
+    "delayed_genuine": 64,
+    "auto_approve_rate": 0.355,
+    "ask_proof_rate": 0.19,
     "human_rate": 0.455,
-    "needs_person_rate": 0.62
+    "needs_person_rate": 0.645
    },
    {
     "threshold": 0.59,
-    "total_cost": 222,
-    "wrong_approvals": 8,
-    "delayed_genuine": 62,
-    "auto_approve_rate": 0.38,
-    "ask_proof_rate": 0.165,
+    "total_cost": 164,
+    "wrong_approvals": 5,
+    "delayed_genuine": 64,
+    "auto_approve_rate": 0.355,
+    "ask_proof_rate": 0.19,
     "human_rate": 0.455,
-    "needs_person_rate": 0.62
+    "needs_person_rate": 0.645
    },
    {
     "threshold": 0.6,
-    "total_cost": 222,
-    "wrong_approvals": 8,
-    "delayed_genuine": 62,
-    "auto_approve_rate": 0.38,
-    "ask_proof_rate": 0.165,
+    "total_cost": 164,
+    "wrong_approvals": 5,
+    "delayed_genuine": 64,
+    "auto_approve_rate": 0.355,
+    "ask_proof_rate": 0.19,
     "human_rate": 0.455,
-    "needs_person_rate": 0.62
+    "needs_person_rate": 0.645
    },
    {
     "threshold": 0.61,
-    "total_cost": 222,
-    "wrong_approvals": 8,
-    "delayed_genuine": 62,
-    "auto_approve_rate": 0.38,
-    "ask_proof_rate": 0.165,
+    "total_cost": 164,
+    "wrong_approvals": 5,
+    "delayed_genuine": 64,
+    "auto_approve_rate": 0.355,
+    "ask_proof_rate": 0.19,
     "human_rate": 0.455,
-    "needs_person_rate": 0.62
+    "needs_person_rate": 0.645
    },
    {
     "threshold": 0.62,
-    "total_cost": 222,
-    "wrong_approvals": 8,
-    "delayed_genuine": 62,
-    "auto_approve_rate": 0.38,
-    "ask_proof_rate": 0.165,
+    "total_cost": 164,
+    "wrong_approvals": 5,
+    "delayed_genuine": 64,
+    "auto_approve_rate": 0.355,
+    "ask_proof_rate": 0.19,
     "human_rate": 0.455,
-    "needs_person_rate": 0.62
+    "needs_person_rate": 0.645
    },
    {
     "threshold": 0.63,
-    "total_cost": 222,
-    "wrong_approvals": 8,
-    "delayed_genuine": 62,
-    "auto_approve_rate": 0.38,
-    "ask_proof_rate": 0.165,
+    "total_cost": 164,
+    "wrong_approvals": 5,
+    "delayed_genuine": 64,
+    "auto_approve_rate": 0.355,
+    "ask_proof_rate": 0.19,
     "human_rate": 0.455,
-    "needs_person_rate": 0.62
+    "needs_person_rate": 0.645
    },
    {
     "threshold": 0.64,
-    "total_cost": 222,
-    "wrong_approvals": 8,
-    "delayed_genuine": 62,
-    "auto_approve_rate": 0.38,
-    "ask_proof_rate": 0.165,
+    "total_cost": 164,
+    "wrong_approvals": 5,
+    "delayed_genuine": 64,
+    "auto_approve_rate": 0.355,
+    "ask_proof_rate": 0.19,
     "human_rate": 0.455,
-    "needs_person_rate": 0.62
+    "needs_person_rate": 0.645
    },
    {
     "threshold": 0.65,
-    "total_cost": 222,
-    "wrong_approvals": 8,
-    "delayed_genuine": 62,
-    "auto_approve_rate": 0.38,
-    "ask_proof_rate": 0.165,
+    "total_cost": 164,
+    "wrong_approvals": 5,
+    "delayed_genuine": 64,
+    "auto_approve_rate": 0.355,
+    "ask_proof_rate": 0.19,
     "human_rate": 0.455,
-    "needs_person_rate": 0.62
+    "needs_person_rate": 0.645
    },
    {
     "threshold": 0.66,
-    "total_cost": 222,
-    "wrong_approvals": 8,
-    "delayed_genuine": 62,
-    "auto_approve_rate": 0.38,
-    "ask_proof_rate": 0.165,
+    "total_cost": 164,
+    "wrong_approvals": 5,
+    "delayed_genuine": 64,
+    "auto_approve_rate": 0.355,
+    "ask_proof_rate": 0.19,
     "human_rate": 0.455,
-    "needs_person_rate": 0.62
+    "needs_person_rate": 0.645
    },
    {
     "threshold": 0.67,
-    "total_cost": 222,
-    "wrong_approvals": 8,
-    "delayed_genuine": 62,
-    "auto_approve_rate": 0.38,
-    "ask_proof_rate": 0.165,
+    "total_cost": 164,
+    "wrong_approvals": 5,
+    "delayed_genuine": 64,
+    "auto_approve_rate": 0.355,
+    "ask_proof_rate": 0.19,
     "human_rate": 0.455,
-    "needs_person_rate": 0.62
+    "needs_person_rate": 0.645
    },
    {
     "threshold": 0.68,
-    "total_cost": 222,
-    "wrong_approvals": 8,
-    "delayed_genuine": 62,
-    "auto_approve_rate": 0.38,
-    "ask_proof_rate": 0.165,
+    "total_cost": 164,
+    "wrong_approvals": 5,
+    "delayed_genuine": 64,
+    "auto_approve_rate": 0.355,
+    "ask_proof_rate": 0.19,
     "human_rate": 0.455,
-    "needs_person_rate": 0.62
+    "needs_person_rate": 0.645
    },
    {
     "threshold": 0.69,
-    "total_cost": 222,
-    "wrong_approvals": 8,
-    "delayed_genuine": 62,
-    "auto_approve_rate": 0.38,
-    "ask_proof_rate": 0.165,
+    "total_cost": 164,
+    "wrong_approvals": 5,
+    "delayed_genuine": 64,
+    "auto_approve_rate": 0.355,
+    "ask_proof_rate": 0.19,
     "human_rate": 0.455,
-    "needs_person_rate": 0.62
+    "needs_person_rate": 0.645
    },
    {
     "threshold": 0.7,
-    "total_cost": 222,
-    "wrong_approvals": 8,
-    "delayed_genuine": 62,
-    "auto_approve_rate": 0.38,
-    "ask_proof_rate": 0.165,
+    "total_cost": 164,
+    "wrong_approvals": 5,
+    "delayed_genuine": 64,
+    "auto_approve_rate": 0.355,
+    "ask_proof_rate": 0.19,
     "human_rate": 0.455,
-    "needs_person_rate": 0.62
+    "needs_person_rate": 0.645
    },
    {
     "threshold": 0.71,
-    "total_cost": 222,
-    "wrong_approvals": 8,
-    "delayed_genuine": 62,
-    "auto_approve_rate": 0.38,
-    "ask_proof_rate": 0.165,
+    "total_cost": 164,
+    "wrong_approvals": 5,
+    "delayed_genuine": 64,
+    "auto_approve_rate": 0.355,
+    "ask_proof_rate": 0.19,
     "human_rate": 0.455,
-    "needs_person_rate": 0.62
+    "needs_person_rate": 0.645
    },
    {
     "threshold": 0.72,
-    "total_cost": 222,
-    "wrong_approvals": 8,
-    "delayed_genuine": 62,
-    "auto_approve_rate": 0.38,
-    "ask_proof_rate": 0.165,
+    "total_cost": 164,
+    "wrong_approvals": 5,
+    "delayed_genuine": 64,
+    "auto_approve_rate": 0.355,
+    "ask_proof_rate": 0.19,
     "human_rate": 0.455,
-    "needs_person_rate": 0.62
+    "needs_person_rate": 0.645
    },
    {
     "threshold": 0.73,
-    "total_cost": 222,
-    "wrong_approvals": 8,
-    "delayed_genuine": 62,
-    "auto_approve_rate": 0.38,
-    "ask_proof_rate": 0.165,
+    "total_cost": 164,
+    "wrong_approvals": 5,
+    "delayed_genuine": 64,
+    "auto_approve_rate": 0.355,
+    "ask_proof_rate": 0.19,
     "human_rate": 0.455,
-    "needs_person_rate": 0.62
+    "needs_person_rate": 0.645
    },
    {
     "threshold": 0.74,
-    "total_cost": 222,
-    "wrong_approvals": 8,
-    "delayed_genuine": 62,
-    "auto_approve_rate": 0.38,
-    "ask_proof_rate": 0.165,
+    "total_cost": 164,
+    "wrong_approvals": 5,
+    "delayed_genuine": 64,
+    "auto_approve_rate": 0.355,
+    "ask_proof_rate": 0.19,
     "human_rate": 0.455,
-    "needs_person_rate": 0.62
+    "needs_person_rate": 0.645
    },
    {
     "threshold": 0.75,
-    "total_cost": 222,
-    "wrong_approvals": 8,
-    "delayed_genuine": 62,
-    "auto_approve_rate": 0.38,
-    "ask_proof_rate": 0.165,
+    "total_cost": 164,
+    "wrong_approvals": 5,
+    "delayed_genuine": 64,
+    "auto_approve_rate": 0.355,
+    "ask_proof_rate": 0.19,
     "human_rate": 0.455,
-    "needs_person_rate": 0.62
+    "needs_person_rate": 0.645
    },
    {
     "threshold": 0.76,
-    "total_cost": 222,
-    "wrong_approvals": 8,
-    "delayed_genuine": 62,
-    "auto_approve_rate": 0.38,
-    "ask_proof_rate": 0.165,
+    "total_cost": 164,
+    "wrong_approvals": 5,
+    "delayed_genuine": 64,
+    "auto_approve_rate": 0.355,
+    "ask_proof_rate": 0.19,
     "human_rate": 0.455,
-    "needs_person_rate": 0.62
+    "needs_person_rate": 0.645
    },
    {
     "threshold": 0.77,
-    "total_cost": 222,
-    "wrong_approvals": 8,
-    "delayed_genuine": 62,
-    "auto_approve_rate": 0.38,
-    "ask_proof_rate": 0.165,
+    "total_cost": 164,
+    "wrong_approvals": 5,
+    "delayed_genuine": 64,
+    "auto_approve_rate": 0.355,
+    "ask_proof_rate": 0.19,
     "human_rate": 0.455,
-    "needs_person_rate": 0.62
+    "needs_person_rate": 0.645
    },
    {
     "threshold": 0.78,
-    "total_cost": 222,
-    "wrong_approvals": 8,
-    "delayed_genuine": 62,
-    "auto_approve_rate": 0.38,
-    "ask_proof_rate": 0.165,
+    "total_cost": 164,
+    "wrong_approvals": 5,
+    "delayed_genuine": 64,
+    "auto_approve_rate": 0.355,
+    "ask_proof_rate": 0.19,
     "human_rate": 0.455,
-    "needs_person_rate": 0.62
+    "needs_person_rate": 0.645
    },
    {
     "threshold": 0.79,
-    "total_cost": 222,
-    "wrong_approvals": 8,
-    "delayed_genuine": 62,
-    "auto_approve_rate": 0.38,
-    "ask_proof_rate": 0.165,
+    "total_cost": 164,
+    "wrong_approvals": 5,
+    "delayed_genuine": 64,
+    "auto_approve_rate": 0.355,
+    "ask_proof_rate": 0.19,
     "human_rate": 0.455,
-    "needs_person_rate": 0.62
+    "needs_person_rate": 0.645
    },
    {
     "threshold": 0.8,
-    "total_cost": 222,
-    "wrong_approvals": 8,
-    "delayed_genuine": 62,
-    "auto_approve_rate": 0.38,
-    "ask_proof_rate": 0.165,
+    "total_cost": 164,
+    "wrong_approvals": 5,
+    "delayed_genuine": 64,
+    "auto_approve_rate": 0.355,
+    "ask_proof_rate": 0.19,
     "human_rate": 0.455,
-    "needs_person_rate": 0.62
+    "needs_person_rate": 0.645
    },
    {
     "threshold": 0.81,
-    "total_cost": 222,
-    "wrong_approvals": 8,
-    "delayed_genuine": 62,
-    "auto_approve_rate": 0.38,
-    "ask_proof_rate": 0.165,
+    "total_cost": 164,
+    "wrong_approvals": 5,
+    "delayed_genuine": 64,
+    "auto_approve_rate": 0.355,
+    "ask_proof_rate": 0.19,
     "human_rate": 0.455,
-    "needs_person_rate": 0.62
+    "needs_person_rate": 0.645
    },
    {
     "threshold": 0.82,
-    "total_cost": 222,
-    "wrong_approvals": 8,
-    "delayed_genuine": 62,
-    "auto_approve_rate": 0.38,
-    "ask_proof_rate": 0.165,
+    "total_cost": 164,
+    "wrong_approvals": 5,
+    "delayed_genuine": 64,
+    "auto_approve_rate": 0.355,
+    "ask_proof_rate": 0.19,
     "human_rate": 0.455,
-    "needs_person_rate": 0.62
+    "needs_person_rate": 0.645
    },
    {
     "threshold": 0.83,
-    "total_cost": 222,
-    "wrong_approvals": 8,
-    "delayed_genuine": 62,
-    "auto_approve_rate": 0.38,
-    "ask_proof_rate": 0.165,
+    "total_cost": 164,
+    "wrong_approvals": 5,
+    "delayed_genuine": 64,
+    "auto_approve_rate": 0.355,
+    "ask_proof_rate": 0.19,
     "human_rate": 0.455,
-    "needs_person_rate": 0.62
+    "needs_person_rate": 0.645
    },
    {
     "threshold": 0.84,
-    "total_cost": 222,
-    "wrong_approvals": 8,
-    "delayed_genuine": 62,
-    "auto_approve_rate": 0.38,
-    "ask_proof_rate": 0.165,
+    "total_cost": 164,
+    "wrong_approvals": 5,
+    "delayed_genuine": 64,
+    "auto_approve_rate": 0.355,
+    "ask_proof_rate": 0.19,
     "human_rate": 0.455,
-    "needs_person_rate": 0.62
+    "needs_person_rate": 0.645
    },
    {
     "threshold": 0.85,
-    "total_cost": 222,
-    "wrong_approvals": 8,
-    "delayed_genuine": 62,
-    "auto_approve_rate": 0.38,
-    "ask_proof_rate": 0.165,
+    "total_cost": 164,
+    "wrong_approvals": 5,
+    "delayed_genuine": 64,
+    "auto_approve_rate": 0.355,
+    "ask_proof_rate": 0.19,
     "human_rate": 0.455,
-    "needs_person_rate": 0.62
+    "needs_person_rate": 0.645
    },
    {
     "threshold": 0.86,
-    "total_cost": 222,
-    "wrong_approvals": 8,
-    "delayed_genuine": 62,
-    "auto_approve_rate": 0.38,
-    "ask_proof_rate": 0.165,
+    "total_cost": 164,
+    "wrong_approvals": 5,
+    "delayed_genuine": 64,
+    "auto_approve_rate": 0.355,
+    "ask_proof_rate": 0.19,
     "human_rate": 0.455,
-    "needs_person_rate": 0.62
+    "needs_person_rate": 0.645
    },
    {
     "threshold": 0.87,
-    "total_cost": 222,
-    "wrong_approvals": 8,
-    "delayed_genuine": 62,
-    "auto_approve_rate": 0.38,
-    "ask_proof_rate": 0.165,
+    "total_cost": 164,
+    "wrong_approvals": 5,
+    "delayed_genuine": 64,
+    "auto_approve_rate": 0.355,
+    "ask_proof_rate": 0.19,
     "human_rate": 0.455,
-    "needs_person_rate": 0.62
+    "needs_person_rate": 0.645
    },
    {
     "threshold": 0.88,
-    "total_cost": 222,
-    "wrong_approvals": 8,
-    "delayed_genuine": 62,
-    "auto_approve_rate": 0.38,
-    "ask_proof_rate": 0.165,
+    "total_cost": 164,
+    "wrong_approvals": 5,
+    "delayed_genuine": 64,
+    "auto_approve_rate": 0.355,
+    "ask_proof_rate": 0.19,
     "human_rate": 0.455,
-    "needs_person_rate": 0.62
+    "needs_person_rate": 0.645
    },
    {
     "threshold": 0.89,
-    "total_cost": 222,
-    "wrong_approvals": 8,
-    "delayed_genuine": 62,
-    "auto_approve_rate": 0.38,
-    "ask_proof_rate": 0.165,
+    "total_cost": 164,
+    "wrong_approvals": 5,
+    "delayed_genuine": 64,
+    "auto_approve_rate": 0.355,
+    "ask_proof_rate": 0.19,
     "human_rate": 0.455,
-    "needs_person_rate": 0.62
+    "needs_person_rate": 0.645
    },
    {
     "threshold": 0.9,
-    "total_cost": 222,
-    "wrong_approvals": 8,
-    "delayed_genuine": 62,
-    "auto_approve_rate": 0.38,
-    "ask_proof_rate": 0.165,
+    "total_cost": 164,
+    "wrong_approvals": 5,
+    "delayed_genuine": 64,
+    "auto_approve_rate": 0.355,
+    "ask_proof_rate": 0.19,
     "human_rate": 0.455,
-    "needs_person_rate": 0.62
+    "needs_person_rate": 0.645
    },
    {
     "threshold": 0.91,
-    "total_cost": 222,
-    "wrong_approvals": 8,
-    "delayed_genuine": 62,
-    "auto_approve_rate": 0.38,
-    "ask_proof_rate": 0.165,
+    "total_cost": 164,
+    "wrong_approvals": 5,
+    "delayed_genuine": 64,
+    "auto_approve_rate": 0.355,
+    "ask_proof_rate": 0.19,
     "human_rate": 0.455,
-    "needs_person_rate": 0.62
+    "needs_person_rate": 0.645
    },
    {
     "threshold": 0.92,
-    "total_cost": 222,
-    "wrong_approvals": 8,
-    "delayed_genuine": 62,
-    "auto_approve_rate": 0.38,
-    "ask_proof_rate": 0.165,
+    "total_cost": 164,
+    "wrong_approvals": 5,
+    "delayed_genuine": 64,
+    "auto_approve_rate": 0.355,
+    "ask_proof_rate": 0.19,
     "human_rate": 0.455,
-    "needs_person_rate": 0.62
+    "needs_person_rate": 0.645
    },
    {
     "threshold": 0.93,
-    "total_cost": 222,
-    "wrong_approvals": 8,
-    "delayed_genuine": 62,
-    "auto_approve_rate": 0.38,
-    "ask_proof_rate": 0.165,
+    "total_cost": 164,
+    "wrong_approvals": 5,
+    "delayed_genuine": 64,
+    "auto_approve_rate": 0.355,
+    "ask_proof_rate": 0.19,
     "human_rate": 0.455,
-    "needs_person_rate": 0.62
+    "needs_person_rate": 0.645
    },
    {
     "threshold": 0.94,
-    "total_cost": 222,
-    "wrong_approvals": 8,
-    "delayed_genuine": 62,
-    "auto_approve_rate": 0.38,
-    "ask_proof_rate": 0.165,
+    "total_cost": 164,
+    "wrong_approvals": 5,
+    "delayed_genuine": 64,
+    "auto_approve_rate": 0.355,
+    "ask_proof_rate": 0.19,
     "human_rate": 0.455,
-    "needs_person_rate": 0.62
+    "needs_person_rate": 0.645
    },
    {
     "threshold": 0.95,
-    "total_cost": 222,
-    "wrong_approvals": 8,
-    "delayed_genuine": 62,
-    "auto_approve_rate": 0.38,
-    "ask_proof_rate": 0.165,
+    "total_cost": 164,
+    "wrong_approvals": 5,
+    "delayed_genuine": 64,
+    "auto_approve_rate": 0.355,
+    "ask_proof_rate": 0.19,
     "human_rate": 0.455,
-    "needs_person_rate": 0.62
+    "needs_person_rate": 0.645
    },
    {
     "threshold": 0.96,
-    "total_cost": 222,
-    "wrong_approvals": 8,
-    "delayed_genuine": 62,
-    "auto_approve_rate": 0.38,
-    "ask_proof_rate": 0.165,
+    "total_cost": 164,
+    "wrong_approvals": 5,
+    "delayed_genuine": 64,
+    "auto_approve_rate": 0.355,
+    "ask_proof_rate": 0.19,
     "human_rate": 0.455,
-    "needs_person_rate": 0.62
+    "needs_person_rate": 0.645
    },
    {
     "threshold": 0.97,
-    "total_cost": 222,
-    "wrong_approvals": 8,
-    "delayed_genuine": 62,
-    "auto_approve_rate": 0.38,
-    "ask_proof_rate": 0.165,
+    "total_cost": 164,
+    "wrong_approvals": 5,
+    "delayed_genuine": 64,
+    "auto_approve_rate": 0.355,
+    "ask_proof_rate": 0.19,
     "human_rate": 0.455,
-    "needs_person_rate": 0.62
+    "needs_person_rate": 0.645
    },
    {
     "threshold": 0.98,
-    "total_cost": 222,
-    "wrong_approvals": 8,
-    "delayed_genuine": 62,
-    "auto_approve_rate": 0.38,
-    "ask_proof_rate": 0.165,
+    "total_cost": 164,
+    "wrong_approvals": 5,
+    "delayed_genuine": 64,
+    "auto_approve_rate": 0.355,
+    "ask_proof_rate": 0.19,
     "human_rate": 0.455,
-    "needs_person_rate": 0.62
+    "needs_person_rate": 0.645
    },
    {
     "threshold": 0.99,
-    "total_cost": 202,
-    "wrong_approvals": 7,
-    "delayed_genuine": 62,
-    "auto_approve_rate": 0.375,
-    "ask_proof_rate": 0.17,
+    "total_cost": 164,
+    "wrong_approvals": 5,
+    "delayed_genuine": 64,
+    "auto_approve_rate": 0.355,
+    "ask_proof_rate": 0.19,
     "human_rate": 0.455,
-    "needs_person_rate": 0.625
+    "needs_person_rate": 0.645
    }
   ]
  },
@@ -643,16 +637,16 @@
    "review_p": 0.7
   },
   "false_match_rate": 0.0,
-  "false_non_match_rate": 0.176,
-  "ask_rate": 0.1514,
+  "false_non_match_rate": 0.248,
+  "ask_rate": 0.1873,
   "unsure_rate": 0.4382,
   "same_person": {
    "n": 250,
-   "MATCH": 206,
-   "ASK": 13,
+   "MATCH": 188,
+   "ASK": 31,
    "UNSURE": 31,
-   "match_rate": 0.824,
-   "ask_rate": 0.052,
+   "match_rate": 0.752,
+   "ask_rate": 0.124,
    "unsure_rate": 0.124
   },
   "different_person": {
@@ -666,14 +660,14 @@
   },
   "exact_cnic_impostor": {
    "n": 40,
-   "MATCH": 35,
-   "ASK": 2,
+   "MATCH": 19,
+   "ASK": 18,
    "UNSURE": 3,
-   "match_rate": 0.875,
-   "ask_rate": 0.05,
+   "match_rate": 0.475,
+   "ask_rate": 0.45,
    "unsure_rate": 0.075,
-   "false_match_rate": 0.875,
-   "note": "Not in the headline rates. Exact CNIC outweighs a wrong or missing DOB."
+   "false_match_rate": 0.475,
+   "note": "Not in the headline rates. A conflicting DOB routes ASK; a missing DOB lets the exact CNIC dominate."
   },
   "by_kind": {
    "different:cnic_one_digit_off": {
@@ -714,11 +708,11 @@
    },
    "impostor:exact_cnic_impostor": {
     "n": 40,
-    "MATCH": 35,
-    "ASK": 2,
+    "MATCH": 19,
+    "ASK": 18,
     "UNSURE": 3,
-    "match_rate": 0.875,
-    "ask_rate": 0.05,
+    "match_rate": 0.475,
+    "ask_rate": 0.45,
     "unsure_rate": 0.075
    },
    "same:cnic_typo": {
@@ -732,11 +726,11 @@
    },
    "same:drop_muhammad": {
     "n": 12,
-    "MATCH": 12,
-    "ASK": 0,
+    "MATCH": 11,
+    "ASK": 1,
     "UNSURE": 0,
-    "match_rate": 1.0,
-    "ask_rate": 0.0,
+    "match_rate": 0.9167,
+    "ask_rate": 0.0833,
     "unsure_rate": 0.0
    },
    "same:first_name_only": {
@@ -750,11 +744,11 @@
    },
    "same:honorific": {
     "n": 27,
-    "MATCH": 27,
-    "ASK": 0,
+    "MATCH": 25,
+    "ASK": 2,
     "UNSURE": 0,
-    "match_rate": 1.0,
-    "ask_rate": 0.0,
+    "match_rate": 0.9259,
+    "ask_rate": 0.0741,
     "unsure_rate": 0.0
    },
    "same:muhammad_form": {
@@ -768,38 +762,38 @@
    },
    "same:order": {
     "n": 51,
-    "MATCH": 51,
-    "ASK": 0,
+    "MATCH": 45,
+    "ASK": 6,
     "UNSURE": 0,
-    "match_rate": 1.0,
-    "ask_rate": 0.0,
+    "match_rate": 0.8824,
+    "ask_rate": 0.1176,
     "unsure_rate": 0.0
    },
    "same:relation": {
     "n": 30,
-    "MATCH": 30,
-    "ASK": 0,
+    "MATCH": 29,
+    "ASK": 1,
     "UNSURE": 0,
-    "match_rate": 1.0,
-    "ask_rate": 0.0,
+    "match_rate": 0.9667,
+    "ask_rate": 0.0333,
     "unsure_rate": 0.0
    },
    "same:transliteration": {
     "n": 33,
-    "MATCH": 30,
-    "ASK": 0,
+    "MATCH": 27,
+    "ASK": 3,
     "UNSURE": 3,
-    "match_rate": 0.9091,
-    "ask_rate": 0.0,
+    "match_rate": 0.8182,
+    "ask_rate": 0.0909,
     "unsure_rate": 0.0909
    },
    "same:typo": {
     "n": 37,
-    "MATCH": 35,
-    "ASK": 1,
+    "MATCH": 30,
+    "ASK": 6,
     "UNSURE": 1,
-    "match_rate": 0.9459,
-    "ask_rate": 0.027,
+    "match_rate": 0.8108,
+    "ask_rate": 0.1622,
     "unsure_rate": 0.027
    }
   }
@@ -816,7 +810,7 @@
   "not_sure_rate": 1.0,
   "not_sure_rate_scam": 1.0,
   "not_sure_rate_genuine": 1.0,
-  "median_latency_ms": 0.03,
+  "median_latency_ms": 0.04,
   "model_id": null,
   "fallback_count": 40,
   "by_language": {
@@ -866,7 +860,7 @@
     "score": 0.543,
     "fallback": true,
     "model_id": null,
-    "latency_ms": 0.09
+    "latency_ms": 0.11
    },
    {
     "id": "S02",
@@ -886,7 +880,7 @@
     "score": 0.403,
     "fallback": true,
     "model_id": null,
-    "latency_ms": 0.06
+    "latency_ms": 0.07
    },
    {
     "id": "S04",
@@ -896,7 +890,7 @@
     "score": 0.383,
     "fallback": true,
     "model_id": null,
-    "latency_ms": 0.04
+    "latency_ms": 0.05
    },
    {
     "id": "S05",
@@ -906,7 +900,7 @@
     "score": 0.529,
     "fallback": true,
     "model_id": null,
-    "latency_ms": 0.04
+    "latency_ms": 0.05
    },
    {
     "id": "S06",
@@ -916,7 +910,7 @@
     "score": 0.383,
     "fallback": true,
     "model_id": null,
-    "latency_ms": 0.03
+    "latency_ms": 0.04
    },
    {
     "id": "S07",
@@ -926,7 +920,7 @@
     "score": 0.336,
     "fallback": true,
     "model_id": null,
-    "latency_ms": 0.03
+    "latency_ms": 0.13
    },
    {
     "id": "S08",
@@ -936,7 +930,7 @@
     "score": 0.193,
     "fallback": true,
     "model_id": null,
-    "latency_ms": 0.03
+    "latency_ms": 0.04
    },
    {
     "id": "S09",
@@ -946,7 +940,7 @@
     "score": 0.383,
     "fallback": true,
     "model_id": null,
-    "latency_ms": 0.03
+    "latency_ms": 0.04
    },
    {
     "id": "S10",
@@ -956,7 +950,7 @@
     "score": 0.529,
     "fallback": true,
     "model_id": null,
-    "latency_ms": 0.03
+    "latency_ms": 0.04
    },
    {
     "id": "S11",
@@ -966,7 +960,7 @@
     "score": 0.403,
     "fallback": true,
     "model_id": null,
-    "latency_ms": 0.04
+    "latency_ms": 0.06
    },
    {
     "id": "S12",
@@ -976,7 +970,7 @@
     "score": 0.383,
     "fallback": true,
     "model_id": null,
-    "latency_ms": 0.03
+    "latency_ms": 0.04
    },
    {
     "id": "S13",
@@ -996,7 +990,7 @@
     "score": 0.383,
     "fallback": true,
     "model_id": null,
-    "latency_ms": 0.03
+    "latency_ms": 0.04
    },
    {
     "id": "S15",
@@ -1016,7 +1010,7 @@
     "score": 0.193,
     "fallback": true,
     "model_id": null,
-    "latency_ms": 0.03
+    "latency_ms": 0.04
    },
    {
     "id": "S17",
@@ -1026,7 +1020,7 @@
     "score": 0.383,
     "fallback": true,
     "model_id": null,
-    "latency_ms": 0.04
+    "latency_ms": 0.05
    },
    {
     "id": "S18",
@@ -1036,7 +1030,7 @@
     "score": 0.383,
     "fallback": true,
     "model_id": null,
-    "latency_ms": 0.03
+    "latency_ms": 0.04
    },
    {
     "id": "S19",
@@ -1046,7 +1040,7 @@
     "score": 0.383,
     "fallback": true,
     "model_id": null,
-    "latency_ms": 0.03
+    "latency_ms": 0.04
    },
    {
     "id": "S20",
@@ -1056,7 +1050,7 @@
     "score": 0.403,
     "fallback": true,
     "model_id": null,
-    "latency_ms": 0.04
+    "latency_ms": 0.05
    },
    {
     "id": "S21",
@@ -1066,7 +1060,7 @@
     "score": 0.383,
     "fallback": true,
     "model_id": null,
-    "latency_ms": 0.02
+    "latency_ms": 0.03
    },
    {
     "id": "S22",
@@ -1076,7 +1070,7 @@
     "score": 0.383,
     "fallback": true,
     "model_id": null,
-    "latency_ms": 0.02
+    "latency_ms": 0.03
    },
    {
     "id": "G01",
@@ -1086,7 +1080,7 @@
     "score": 0.104,
     "fallback": true,
     "model_id": null,
-    "latency_ms": 0.03
+    "latency_ms": 0.04
    },
    {
     "id": "G02",
@@ -1096,7 +1090,7 @@
     "score": 0.104,
     "fallback": true,
     "model_id": null,
-    "latency_ms": 0.03
+    "latency_ms": 0.04
    },
    {
     "id": "G03",
@@ -1106,7 +1100,7 @@
     "score": 0.104,
     "fallback": true,
     "model_id": null,
-    "latency_ms": 0.03
+    "latency_ms": 0.04
    },
    {
     "id": "G04",
@@ -1126,7 +1120,7 @@
     "score": 0.104,
     "fallback": true,
     "model_id": null,
-    "latency_ms": 0.04
+    "latency_ms": 0.05
    },
    {
     "id": "G06",
@@ -1136,7 +1130,7 @@
     "score": 0.336,
     "fallback": true,
     "model_id": null,
-    "latency_ms": 0.03
+    "latency_ms": 0.04
    },
    {
     "id": "G07",
@@ -1146,7 +1140,7 @@
     "score": 0.104,
     "fallback": true,
     "model_id": null,
-    "latency_ms": 0.03
+    "latency_ms": 0.04
    },
    {
     "id": "G08",
@@ -1156,7 +1150,7 @@
     "score": 0.315,
     "fallback": true,
     "model_id": null,
-    "latency_ms": 0.03
+    "latency_ms": 0.04
    },
    {
     "id": "G09",
@@ -1166,7 +1160,7 @@
     "score": 0.315,
     "fallback": true,
     "model_id": null,
-    "latency_ms": 0.03
+    "latency_ms": 0.04
    },
    {
     "id": "G10",
@@ -1176,7 +1170,7 @@
     "score": 0.104,
     "fallback": true,
     "model_id": null,
-    "latency_ms": 0.03
+    "latency_ms": 0.04
    },
    {
     "id": "G11",
@@ -1186,7 +1180,7 @@
     "score": 0.104,
     "fallback": true,
     "model_id": null,
-    "latency_ms": 0.02
+    "latency_ms": 0.03
    },
    {
     "id": "G12",
@@ -1196,7 +1190,7 @@
     "score": 0.104,
     "fallback": true,
     "model_id": null,
-    "latency_ms": 0.02
+    "latency_ms": 0.03
    },
    {
     "id": "G13",
@@ -1206,7 +1200,7 @@
     "score": 0.104,
     "fallback": true,
     "model_id": null,
-    "latency_ms": 0.02
+    "latency_ms": 0.03
    },
    {
     "id": "G14",
@@ -1226,7 +1220,7 @@
     "score": 0.104,
     "fallback": true,
     "model_id": null,
-    "latency_ms": 0.03
+    "latency_ms": 0.04
    },
    {
     "id": "G16",
@@ -1236,7 +1230,7 @@
     "score": 0.104,
     "fallback": true,
     "model_id": null,
-    "latency_ms": 0.02
+    "latency_ms": 0.03
    },
    {
     "id": "G17",
@@ -1256,18 +1250,23 @@
     "score": 0.476,
     "fallback": true,
     "model_id": null,
-    "latency_ms": 0.02
+    "latency_ms": 0.03
    }
   ]
  },
  "summary": {
   "ruleset_version": 1,
-  "min_cost_threshold": 0.99,
-  "min_cost": 202,
-  "cost_at_configured": 222,
-  "wrong_approvals_at_configured": 8,
+  "min_cost_threshold": 0.5,
+  "min_cost": 164,
+  "cost_at_configured": 164,
+  "wrong_approvals_at_configured": 5,
+  "wrong_approvals_by_kind": {
+   "identity theft with full credentials": 2,
+   "stolen CNIC, guessed details": 3
+  },
+  "human_review_rate_at_configured": 0.645,
   "name_false_match_rate": 0.0,
-  "name_false_non_match_rate": 0.176,
+  "name_false_non_match_rate": 0.248,
   "scam_mode": "keyword_fallback",
   "scam_fpr": 0.0,
   "scam_fnr": 0.0,

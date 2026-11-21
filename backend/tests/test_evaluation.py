@@ -106,3 +106,17 @@ def test_live_scam_eval_is_admin_only_and_needs_a_key(client, login):
     response = client.post("/api/v1/eval/run?live=true", headers=login("admin"))
     assert response.status_code == 409
     assert response.json()["error"]["code"] == "JEV_NOT_CONFIGURED"
+
+
+def test_wrong_approvals_are_labelled_by_kind(claim_result):
+    by_kind = claim_result["wrong_approvals_by_kind_at_configured"]
+    assert sum(by_kind.values()) == claim_result["at_configured"]["wrong_approvals"]
+    assert all(w["kind"] != "other" for w in claim_result["wrong_approvals_at_configured"])
+
+
+def test_impostor_with_conflicting_dob_is_never_auto_approved(ruleset):
+    cases = [c for c in claims.generate_cases()
+             if c.category == "lookalike_different_person" and c.claimant_dob_entered is not None
+             and c.claimant_dob_entered != c.claimant_record.dob]
+    assert cases
+    assert all(route != Route.AUTO_APPROVE for _, route, _ in claims.run_at(cases, ruleset, 0.95))

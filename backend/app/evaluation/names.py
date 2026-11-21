@@ -13,7 +13,8 @@ Hard negatives: different people who look alike on paper.
 
 Separately reported (not in the headline rates): exact_cnic_impostor, someone
 who typed another person's real CNIC with a guessed name variant and a wrong
-or missing DOB. This is the known weak spot: an exact CNIC dominates the score.
+or missing DOB. A DOB that conflicts with the record routes ASK; with the DOB
+left blank the exact CNIC still dominates the score (the known weak spot).
 
 A "false match" is a negative routed MATCH. A "false non-match" is a positive
 not routed MATCH (it goes to ASK or UNSURE: slower, but safe).
@@ -115,6 +116,6 @@ def evaluate_names(seed: int = SEED) -> dict:
         "unsure_rate": round(all_routes.count("UNSURE") / len(all_routes), 4),
         "same_person": _rates(pos), "different_person": _rates(neg),
         "exact_cnic_impostor": {**_rates(impostor), "false_match_rate": round(impostor.count("MATCH") / len(impostor), 4),
-                                "note": "Not in the headline rates. Exact CNIC outweighs a wrong or missing DOB."},
+                                "note": "Not in the headline rates. A conflicting DOB routes ASK; a missing DOB lets the exact CNIC dominate."},
         "by_kind": {k: _rates(v) for k, v in sorted(by_kind.items())},
     }
