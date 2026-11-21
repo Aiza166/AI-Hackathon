@@ -64,7 +64,7 @@ export async function apiCall<T = unknown>(
   url: string,
   data?: unknown,
 ): Promise<{ status: number; body: { success: boolean; data: T; error: { code: string; message: string } | null } }> {
-  const res = await request.fetch(url, { method, data, headers: { Authorization: `Bearer ${session.token}` } })
+  const res = await request.fetch(url, { method, data, headers: { Authorization: `Bearer ${session.token}` }, timeout: 60_000 })
   return { status: res.status(), body: await res.json().catch(() => ({ success: false, data: null, error: null })) }
 }
 
