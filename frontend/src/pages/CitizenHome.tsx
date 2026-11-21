@@ -6,6 +6,7 @@ import { loadMe, saveMe } from '../lib/meCache'
 import { takeForFixing, type OutboxRow } from '../lib/outbox'
 import { hasPendingShare } from '../lib/share'
 import { useOutbox } from '../lib/useOutbox'
+import { LanguagePicker } from '../components/LanguagePicker'
 import { Badge, Bilingual, ErrorNote, ListenButton, Loading, Pictogram, humanize, toneFor } from '../components/ui'
 import { Icon } from '../lib/icons'
 import { CaseResult } from './CaseResult'
@@ -138,7 +139,7 @@ export function CitizenHome({ user, onSignInAgain }: CitizenHomeProps) {
   return (
     <section className="stack-lg">
       <div className="hello">
-        <Bilingual as="h1" ur={isHelper ? 'خاندان منتخب کریں' : 'السلام علیکم'} en={isHelper ? `Helper mode, ${user.name}` : `Welcome, ${greetingName}`} />
+        <Bilingual as="h1" k={isHelper ? 'home.chooseFamily' : 'home.greeting'} ur={isHelper ? 'خاندان منتخب کریں' : 'السلام علیکم'} en={isHelper ? `Helper mode, ${user.name}` : `Welcome, ${greetingName}`} />
         <ListenButton audioKey="prompt_home" text={HOME_UR} />
       </div>
       <ErrorNote message={error} />
@@ -151,7 +152,7 @@ export function CitizenHome({ user, onSignInAgain }: CitizenHomeProps) {
 
       <button type="button" className="action-main" disabled={!claimant} onClick={() => setView({ kind: 'new' })}>
         <span className="action-main-icon"><Icon name="plus" size={36} /></span>
-        <Bilingual ur="نیا پنشن دعویٰ" en="Start a new pension claim" />
+        <Bilingual k="home.newClaim" ur="نیا پنشن دعویٰ" en="Start a new pension claim" />
       </button>
       {!outbox.online && claimant && (
         <p className="note note-attn" role="status">
@@ -175,24 +176,24 @@ export function CitizenHome({ user, onSignInAgain }: CitizenHomeProps) {
       <div className="tiles">
         <button type="button" className="tile" onClick={() => setView({ kind: 'scam' })}>
           <Pictogram name="warning" tone="risk" />
-          <Bilingual ur="کیا یہ پیغام دھوکہ ہے؟" en="Is this message a scam?" />
+          <Bilingual k="home.scam" ur="کیا یہ پیغام دھوکہ ہے؟" en="Is this message a scam?" />
         </button>
         <button type="button" className="tile" disabled={payoutCases.length === 0} onClick={() => setView({ kind: 'payout' })}>
           <Pictogram name="bank" tone="info" />
-          <Bilingual ur="پنشن کا اکاؤنٹ بدلیں" en={payoutCases.length === 0 ? 'Change payout account (needs a claim)' : 'Change payout account'} />
+          <Bilingual k="home.payout" ur="پنشن کا اکاؤنٹ بدلیں" en={payoutCases.length === 0 ? 'Change payout account (needs a claim)' : 'Change payout account'} />
         </button>
       </div>
 
       {!isHelper && (
         <button type="button" className="action-row" onClick={() => setView({ kind: 'data' })}>
           <Pictogram name="shield" tone="info" />
-          <Bilingual ur="میرا ڈیٹا اور اجازت" en="My data: who can see it, who saw it" />
+          <Bilingual k="home.myData" ur="میرا ڈیٹا اور اجازت" en="My data: who can see it, who saw it" />
           <Icon name="arrow-right" size={24} className="action-row-arrow" />
         </button>
       )}
 
       <section className="stack" aria-labelledby="claims-title">
-        <Bilingual as="h2" id="claims-title" ur={isHelper ? 'دعوے' : 'میرے دعوے'} en={isHelper ? 'Claims filed from this phone' : 'My claims'} />
+        <Bilingual as="h2" id="claims-title" k={isHelper ? 'home.claims' : 'home.myClaims'} ur={isHelper ? 'دعوے' : 'میرے دعوے'} en={isHelper ? 'Claims filed from this phone' : 'My claims'} />
         {cases.length === 0 && <p className="empty">No claims yet. Start one with the big button above.</p>}
         <ul className="claim-list">
           {cases.map((c) => (
@@ -209,6 +210,8 @@ export function CitizenHome({ user, onSignInAgain }: CitizenHomeProps) {
           ))}
         </ul>
       </section>
+
+      <LanguagePicker />
     </section>
   )
 }
