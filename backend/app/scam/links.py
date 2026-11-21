@@ -16,6 +16,9 @@ Each link gets a list of findings (codes), all computed in code:
   userinfo_trick        "official.site@other.site": the browser goes to the part after @
   odd_characters        characters no normal host has (e.g. "_" or "%"); never official
 A backslash is read as "/" the way browsers do, so "evil.com\\.bisp.gov.pk" is evil.com.
+  chat_link             wa.me / t.me style link that opens a chat with an unknown number
+Obfuscated links ("hxxp://evil[.]com", "evil(dot)com", "evil .com", "evil。com") are undone
+before parsing (deobfuscate_dots), without folding lookalike letters.
 An official link (allowlisted, ASCII, https or no scheme) has no lookalike finding.
 """
 import ipaddress
@@ -48,6 +51,8 @@ SHORTENERS = {
     "bit.ly", "tinyurl.com", "t.ly", "cutt.ly", "rb.gy", "is.gd", "goo.gl", "ow.ly", "shorturl.at", "tiny.cc",
     "t.co", "rebrand.ly", "s.id", "v.gd", "bl.ink", "short.io", "lnkd.in", "buff.ly", "shorturl.asia",
 }
+# Links that open a chat with whoever owns the number or handle: the real sender is hidden.
+CHAT_LINKS = {"wa.me", "t.me", "chat.whatsapp.com", "api.whatsapp.com", "telegram.me", "m.me"}
 SUSPICIOUS_TLDS = {
     "xyz", "top", "icu", "click", "live", "buzz", "shop", "online", "site", "cyou", "rest", "info", "monster",
     "sbs", "cfd", "quest", "lat", "vip", "work", "support", "gq", "tk", "ml", "cf", "ga", "loan", "win",
@@ -72,6 +77,22 @@ CONFUSABLES = str.maketrans({
 })
 HOST_CHARS = re.compile(r"[a-z0-9.\-\[\]:]+")  # letters, digits, dots, hyphens (and IPv6 brackets)
 MIN_FUZZY_BRAND = 5  # typo distance only for brands of 5+ letters ("pension", "nadra"), never "pta"
+
+
+DOT_OBFUSCATIONS = re.compile(r"\s*(?:\[\s*(?:\.|dot)\s*\]|\(\s*(?:\.|dot)\s*\)|\{\s*(?:\.|dot)\s*\}|\s+dot\s+)\s*", re.I)
+ODD_DOTS = re.compile("[。．｡․‧・·]")
+SPACED_DOT = re.compile(r"(?<=[a-z0-9])\s+\.\s*(?=[a-z0-9])", re.I)
+# "evil. com": only a lowercase top-level domain after ". ", so "Thanks. Me too" stays a sentence.
+DOT_SPACE_TLD = re.compile(r"(?<=[a-z0-9])\.\s+(?=(?:com|net|org|pk|me|ly|gl|io|co|info|xyz)\b)")
+HXXP = re.compile(r"\bh[x*]{2}p(s?)\b", re.I)
+
+
+def deobfuscate_dots(text: str) -> str:
+    """Undo hxxp, [.], (dot), spaced and odd dots. Letters are kept, so a Cyrillic host still looks non-Latin."""
+    text = ODD_DOTS.sub(".", text)
+    text = HXXP.sub(lambda m: "http" + m.group(1), text)
+    text = DOT_OBFUSCATIONS.sub(".", text)
+    return DOT_SPACE_TLD.sub(".", SPACED_DOT.sub(".", text))
 
 
 @dataclass(frozen=True)
@@ -121,7 +142,7 @@ BRANDS = _brands()
 
 def extract_urls(text: str) -> list[FoundUrl]:
     found = []
-    for match in URL_PATTERN.finditer(unicodedata.normalize("NFKC", text)):
+    for match in URL_PATTERN.finditer(deobfuscate_dots(unicodedata.normalize("NFKC", text))):
         raw = match.group(0).rstrip(TRAILING)
         scheme = raw.split("://", 1)[0].lower() if "://" in raw else None
         # Browsers read "\" as "/" in http(s) URLs, so "evil.com\.bisp.gov.pk" goes to evil.com.
@@ -191,6 +212,8 @@ def analyse(url: FoundUrl) -> LinkReport:
             findings.append("lookalike")
     if reg in SHORTENERS or host in SHORTENERS:
         findings.append("shortener")
+    if host in CHAT_LINKS or reg in CHAT_LINKS:
+        findings.append("chat_link")
     if _is_ip(host):
         findings.append("raw_ip")
     if host.rsplit(".", 1)[-1] in SUSPICIOUS_TLDS:
