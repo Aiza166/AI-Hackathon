@@ -8,7 +8,6 @@ from typing import Literal
 import httpx
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Request, UploadFile
 from pydantic import ValidationError
-from slowapi.util import get_remote_address
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -16,11 +15,11 @@ from app.core import audit
 from app.core.auth import Principal, require_roles, require_scope
 from app.api import speech as speech_api
 from app.core.envelope import fail, ok
-from app.core.ratelimit import limiter
+from app.core.ratelimit import client_ip, limiter
 from app.db import get_db
 from app.models.platform import utcnow
 from app.models.scam import ScamCheck
-from app.documents.imaging import BadImage, load
+from app.documents.imaging import BadImage, load, sniff_format
 from app.documents.ocr import OcrUnavailable, run_ocr
 from app.scam import audio, screenshot
 from app.schemas.contracts import Role, ScamChannel, ScamCheckIn
@@ -40,7 +39,7 @@ MAX_TEXT = 2000
 def _per_user(request: Request) -> str:
     """Upload limits per signed-in user (token), so a forged forwarding header cannot reset them."""
     auth = request.headers.get("authorization", "")
-    return "user:" + hashlib.sha256(auth.encode()).hexdigest()[:32] if auth else get_remote_address(request)
+    return "user:" + hashlib.sha256(auth.encode()).hexdigest()[:32] if auth else client_ip(request)
 # Real-world places to report a scam, shown after a scam verdict (real help, not part of the mock).
 # Source and confidence for each: docs/research/round2.md section 4. 1799 replaced FIA's 1991.
 REPORT_ROUTES = [
@@ -140,6 +139,8 @@ def check_image(request: Request, file: UploadFile = File(...), sender: str | No
     """A screenshot of a chat or SMS: read it (Azure Document Intelligence, else Tesseract), then the same check.
     The image and the read text are not stored; only the usual fingerprint and signals are."""
     data, _ = _read_upload(file, IMAGE_TYPES, MAX_IMAGE_BYTES, "a JPEG, PNG or WebP screenshot")
+    if sniff_format(data) is None:  # the bytes decide, not the declared type (load() also checks size and pixels)
+        raise HTTPException(status_code=415, detail="Please send a JPEG, PNG or WebP screenshot")
     try:
         loaded = load(data)
     except BadImage as exc:

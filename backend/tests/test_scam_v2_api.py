@@ -279,3 +279,9 @@ def test_benign_warning_settles_an_undecided_code_question(client, login, monkey
     _jev(monkeypatch, {"asks_secret": 0.4, "warns_not_to_share": 0.95, "claims_government": 0.9})
     text = "Your one-time code for the Sahara app is 482913. Do not share this code with anyone."
     assert _post(client, login("zainab"), text=text, sender="PENSION-GOV")["verdict"] == "LOOKS_GENUINE"
+
+
+def test_screenshot_with_image_type_but_other_bytes_is_refused(client, login):
+    response = client.post("/api/v1/scam/check-image", files={"file": ("c.png", b"<svg>not an image</svg>", "image/png")},
+                           headers=login("zainab"))
+    assert response.status_code == 415
