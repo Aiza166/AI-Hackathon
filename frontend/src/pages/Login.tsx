@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { errorText, post, setToken } from '../api/client'
 import type { LoginResult, SessionUser } from '../api/types'
+import { LanguagePicker } from '../components/LanguagePicker'
 import { ErrorNote, ListenButton } from '../components/ui'
 import { Icon } from '../lib/icons'
 
@@ -75,6 +76,8 @@ export function Login({ onLogin }: LoginProps) {
           </div>
           <ListenButton audioKey="prompt_welcome" text={WELCOME_UR} />
         </div>
+
+        <LanguagePicker />
 
         <form
           className="form"

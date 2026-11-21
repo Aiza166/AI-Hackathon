@@ -1,6 +1,6 @@
 import { Suspense, lazy, useEffect, useRef, useState } from 'react'
 import type { CaseView, ClaimIn, DocumentKind } from '../api/types'
-import { ErrorNote, ListenButton, Loading, Pictogram } from '../components/ui'
+import { ErrorNote, ListenButton, Loading, Local, Pictogram } from '../components/ui'
 import { DOC_ICONS, Icon } from '../lib/icons'
 import { clearDraft, loadDraft, saveDraft, submit as submitQueued, takeForFixing } from '../lib/outbox'
 
@@ -227,7 +227,7 @@ export function ClaimWizard({ ownerId, claimant, onDone, onQueued, onCancel }: C
       <header className="question">
         <Pictogram name={prompt.icon} size="lg" />
         <h2 id="step-title" className="question-text">
-          <span lang="ur" dir="rtl" className="question-ur">{prompt.ur}</span>
+          <Local k={prompt.key} ur={prompt.ur} className="question-ur" />
           <span className="question-en">{prompt.en}</span>
         </h2>
         <ListenButton audioKey={prompt.key} text={prompt.ur} />
@@ -239,7 +239,7 @@ export function ClaimWizard({ ownerId, claimant, onDone, onQueued, onCancel }: C
             {RELATIONS.map((r) => (
               <button key={r.key} type="button" className="choice" aria-pressed={relation === r.key} onClick={() => setRelation(r.key)}>
                 <Icon name={r.icon} size={44} />
-                <span lang="ur" dir="rtl" className="choice-ur">{r.ur}</span>
+                <Local k={`rel.${r.key}`} ur={r.ur} className="choice-ur" />
                 <span className="choice-en">{r.en}</span>
                 {relation === r.key && <span className="choice-tick"><Icon name="check" size={22} /></span>}
               </button>
@@ -308,7 +308,7 @@ export function ClaimWizard({ ownerId, claimant, onDone, onQueued, onCancel }: C
               return (
                 <button key={d.key} type="button" className="choice" aria-pressed={on} onClick={() => toggleDoc(d.key)}>
                   <Icon name={DOC_ICONS[d.key]} size={40} />
-                  <span lang="ur" dir="rtl" className="choice-ur">{d.ur}</span>
+                  <Local k={`doc.${d.key}`} ur={d.ur} className="choice-ur" />
                   <span className="choice-en">{d.en}</span>
                   {on && <span className="choice-tick"><Icon name="check" size={22} /></span>}
                 </button>
@@ -348,18 +348,18 @@ export function ClaimWizard({ ownerId, claimant, onDone, onQueued, onCancel }: C
       <nav className="wizard-nav" aria-label="Claim steps">
         <button type="button" className="btn btn-secondary btn-big" onClick={step === 0 ? () => void cancel() : () => setStep(step - 1)}>
           <Icon name="arrow-left" size={24} />
-          <span lang="ur" dir="rtl">واپس</span>
+          <Local k="nav.back" ur="واپس" />
           <span className="btn-en">Back</span>
         </button>
         {isLast ? (
           <button type="button" className="btn btn-primary btn-big" onClick={() => void submit()} disabled={busy}>
-            <span lang="ur" dir="rtl">بھیجیں</span>
+            <Local k="nav.send" ur="بھیجیں" />
             <span className="btn-en">{busy ? 'Sending…' : 'Send claim'}</span>
             <Icon name="check" size={24} />
           </button>
         ) : (
           <button type="button" className="btn btn-primary btn-big" onClick={() => setStep(step + 1)} disabled={!canNext}>
-            <span lang="ur" dir="rtl">آگے</span>
+            <Local k="nav.next" ur="آگے" />
             <span className="btn-en">Next</span>
             <Icon name="arrow-right" size={24} />
           </button>
