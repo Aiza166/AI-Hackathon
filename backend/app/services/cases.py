@@ -15,6 +15,7 @@ from app.core import audit
 from app.core.auth import Principal
 from app.decision.engine import Outcome, decide
 from app.decision.facts import ACTIVE_STATUSES, gather
+from app.decision.matching import name_similarity
 from app.models.platform import Case, CaseEvent, Decision, HelperAssignment, Person, RuleVersion, User
 from app.schemas.claims import ClaimIn
 from app.schemas.contracts import ReasonCode, Role, Route
@@ -23,6 +24,7 @@ RULESET = "survivor-pension"
 STATUS_FOR_ROUTE = {Route.AUTO_APPROVE: "auto_approved", Route.ASK_PROOF: "proof_requested", Route.UNSURE: "in_review"}
 OFFICER_FINAL = ("approved", "rejected", "closed")
 MAX_RECHECK = 10  # bound the work a single new claim can trigger
+SAME_NAME_SCORE = 95  # canonical deceased-name match used for duplicates when no CNIC is given
 HIGH_RISK = {ReasonCode.DUPLICATE_CLAIM, ReasonCode.ACCOUNT_REUSED, ReasonCode.ACCOUNT_NOT_OWNED, ReasonCode.NOT_IN_FAMILY_RECORD}
 
 
@@ -89,7 +91,7 @@ def _claimant_person(db: Session, principal: Principal, claim: ClaimIn) -> Perso
 
 def create_case(db: Session, principal: Principal, claim: ClaimIn) -> Case:
     person = _claimant_person(db, principal, claim)
-    _refuse_duplicate(db, person.id, claim.deceased_cnic)
+    _refuse_duplicate(db, person.id, claim.deceased_cnic, claim.deceased_name)
     number = db.execute(text("SELECT nextval('case_ref_seq')")).scalar()
     case = Case(
         reference=f"SP-{number}",
@@ -109,14 +111,24 @@ def create_case(db: Session, principal: Principal, claim: ClaimIn) -> Case:
     return case
 
 
-def _refuse_duplicate(db: Session, person_id: str, deceased_cnic: str | None) -> None:
-    if deceased_cnic is None:
-        return
-    existing = db.execute(select(Case.reference).where(
-        Case.claimant_person_id == person_id, Case.deceased_cnic == deceased_cnic, Case.status.in_(ACTIVE_STATUSES),
-    )).first()
-    if existing:
-        raise HTTPException(status_code=409, detail=f"You already have an open claim for this pension ({existing[0]})")
+def _refuse_duplicate(db: Session, person_id: str, deceased_cnic: str | None, deceased_name: str) -> None:
+    """One open claim per claimant per deceased person.
+
+    With a deceased CNIC we compare CNICs. Without one we compare the deceased
+    name canonically (spelling variants, honorifics, "Muhammad" down-weighted),
+    so leaving the CNIC blank cannot be used to file the same claim twice.
+    """
+    open_cases = select(Case.reference, Case.claim).where(Case.claimant_person_id == person_id, Case.status.in_(ACTIVE_STATUSES))
+    if deceased_cnic is not None:
+        existing = db.execute(open_cases.where(Case.deceased_cnic == deceased_cnic)).first()
+        reference = existing[0] if existing else None
+    else:
+        reference = next((
+            ref for ref, claim in db.execute(open_cases).all()
+            if name_similarity(deceased_name, (claim or {}).get("deceased_name", "")) >= SAME_NAME_SCORE
+        ), None)
+    if reference:
+        raise HTTPException(status_code=409, detail=f"You already have an open claim for this pension ({reference})")
 
 
 def _least_busy_officer(db: Session, tenant_id: str) -> str | None:

@@ -1,6 +1,7 @@
 """Import every model so Alembic sees the full metadata."""
 from app.models.audit import AuditEvent
 from app.models.consent import Consent, CorrectionRequest
+from app.models.idempotency import IdempotencyKey
 from app.models.payout import PayoutChangeRequest
 from app.models.scam import ScamCheck
 from app.models.mock import (
@@ -33,6 +34,7 @@ __all__ = [
     "CorrectionRequest",
     "Decision",
     "HelperAssignment",
+    "IdempotencyKey",
     "MockAccount",
     "MockDeath",
     "MockFamilyLink",

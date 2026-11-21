@@ -1,5 +1,6 @@
 """Case endpoints for citizens, helpers, officers, admins and auditors."""
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Header, Request
+from fastapi.responses import JSONResponse
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -13,6 +14,7 @@ from app.models.platform import Case, Decision, HelperAssignment, RuleVersion
 from app.schemas.claims import AssignIn, CaseView, CitizenExplanation, ClaimIn, DecisionSummary, OfficerAction
 from app.schemas.contracts import ReasonCode, Role
 from app.services import cases as svc
+from app.services import idempotency as idem
 
 router = APIRouter(prefix="/api/v1", tags=["cases"])
 OFFICER_LIKE = (Role.OFFICER, Role.ADMIN)
@@ -65,8 +67,29 @@ def create_and_submit(
     body: ClaimIn,
     principal: Principal = Depends(require_roles(Role.CITIZEN, Role.HELPER)),
     db: Session = Depends(get_db),
-) -> dict:
-    """File a claim and run the decision engine on it right away."""
+    idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
+):
+    """File a claim and run the decision engine on it right away.
+
+    An optional Idempotency-Key header makes retries safe: the same key with the
+    same body replays the first response instead of filing a second claim.
+    """
+    if idempotency_key is None:
+        return _file_claim(db, principal, request, body)
+    key = idem.validate_key(idempotency_key)
+    replay = idem.begin(db, principal.id, key, body.model_dump(mode="json"))
+    if replay is not None:
+        return JSONResponse(status_code=replay.status, content=replay.body)
+    try:
+        result = _file_claim(db, principal, request, body)
+    except Exception:
+        idem.abandon(db, principal.id, key)
+        raise
+    idem.finish(db, principal.id, key, 201, result)
+    return result
+
+
+def _file_claim(db: Session, principal: Principal, request: Request, body: ClaimIn) -> dict:
     if principal.role == Role.HELPER:
         # A helper may only file for a family that has shared its details with this helper.
         person = svc.person_by_cnic(db, body.claimant_cnic)
