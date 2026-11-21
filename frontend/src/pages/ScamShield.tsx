@@ -213,7 +213,7 @@ export function ScamShield({ onBack }: ScamShieldProps) {
           <button type="submit" className="btn btn-primary btn-big" disabled={busy || !ready || recorder.recording}>
             <Icon name="shield" size={24} />
             <span lang="ur" dir="rtl">جانچ کریں</span>
-            <span className="btn-en">{busy ? 'Checking…' : 'Check this'}</span>
+            <span className="btn-en">{busy ? 'Checking…' : 'Check this message'}</span>
           </button>
           <p className="fine">We keep only a fingerprint of the message, not the text, picture, recording or number. Links are never opened.</p>
         </form>
