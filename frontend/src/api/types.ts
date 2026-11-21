@@ -137,6 +137,21 @@ export type ReportRoute = {
   source: string | null
 }
 
+export type ScamChannel = 'sms' | 'whatsapp' | 'call' | 'link' | 'other'
+
+// A link found in the message, checked in code and never opened (backend/app/scam/links.py).
+export type ScamLink = {
+  host: string
+  registrable: string
+  official: boolean
+  official_label: string | null
+  imitates: string | null
+  findings: string[]
+  fetched: boolean
+}
+
+export type ScamSensor = { name: string; status: string; model?: string | null; latency_ms?: number | null; cost_usd?: number | null }
+
 export type ScamResult = {
   verdict: ScamVerdict
   confidence: number
@@ -144,7 +159,14 @@ export type ScamResult = {
   reasons_ur: string[]
   case_cross_check: string | null
   model_id: string | null
+  channel?: ScamChannel
+  links?: ScamLink[]
   report_routes: ReportRoute[]
+  // Screenshot / voice note: what the server read or heard (not stored).
+  extracted?: { text: string; sender_found?: boolean; ocr_engine?: string; confidence?: number | null; language?: string }
+  // Staff only.
+  officer_note?: string
+  sensors?: ScamSensor[]
 }
 
 export type ScamMapData = {

@@ -4,8 +4,10 @@ Wire format follows the official OpenAPI spec (docs.typesafe.ai/api/system-one.m
 POST {base}/v1/systemone, Bearer auth, body {model, state, questions}.
 Jev is used as a sensor only: callers turn probabilities into decisions in code.
 """
+import ssl
 import time
 from dataclasses import dataclass, field
+from functools import lru_cache
 from enum import StrEnum
 from typing import Any
 
@@ -17,6 +19,12 @@ from app.core.config import Settings, get_settings
 NOUL_YES = 0.7
 NOUL_NO = 0.3
 IMAGES_HEADER = "TypeSafe-Danger-Zone-Images"  # required for any request with images or Box questions
+
+
+@lru_cache(maxsize=1)
+def shared_ssl_context() -> ssl.SSLContext:
+    """Building a verified TLS context loads the CA bundle (~0.5 s on Windows); do it once per process."""
+    return httpx.create_ssl_context()
 
 
 class Band(StrEnum):
@@ -68,6 +76,7 @@ class JevClient:
             base_url=self._settings.typesafe_base_url,
             timeout=self._settings.jev_timeout_seconds,
             transport=transport,
+            verify=shared_ssl_context(),
         )
 
     def ask(self, state: Any, questions: dict[str, dict], assets: dict[str, dict] | None = None, timeout: float | None = None) -> JevResult:

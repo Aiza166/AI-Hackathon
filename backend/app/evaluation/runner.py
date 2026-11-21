@@ -10,6 +10,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from app.evaluation.claims import evaluate_claims
+from app.evaluation.doc_eval import evaluate_documents
 from app.evaluation.names import evaluate_names
 from app.evaluation.scam_eval import evaluate_scam
 
@@ -40,10 +41,18 @@ def summary(result: dict) -> dict:
         "name_false_non_match_rate": names["false_non_match_rate"],
         "scam_mode": scam["mode"], "scam_fpr": scam["fpr"], "scam_fnr": scam["fnr"],
         "scam_not_sure_rate": scam["not_sure_rate"],
+        "scam_tiers": {name: _tier_headline(t) for name, t in scam["tiers"].items()},
+        "document_tiers": {name: _tier_headline(t) for name, t in result["documents"]["tiers"].items()},
     }
 
 
+def _tier_headline(tier: dict) -> dict:
+    keys = ("accuracy", "fpr", "fnr", "not_sure_rate", "undecided_rate", "median_latency_ms", "total_cost_usd")
+    return {"status": tier["status"], **{k: tier[k] for k in keys if k in tier}}
+
+
 def run_all(ruleset: dict | None = None, *, live_scam: bool = False) -> dict:
+    """live_scam=True also runs the Jev tiers (scam set and documents) against the real APIs."""
     global _latest
     ruleset = ruleset or default_ruleset()
     result = {
@@ -54,6 +63,7 @@ def run_all(ruleset: dict | None = None, *, live_scam: bool = False) -> dict:
         "claims": evaluate_claims(ruleset),
         "names": evaluate_names(),
         "scam": evaluate_scam(live=live_scam),
+        "documents": evaluate_documents(live=live_scam),
     }
     result["summary"] = summary(result)
     with _lock:
@@ -76,5 +86,7 @@ def write_results(result: dict, path: Path = RESULTS_FILE) -> None:
 
 
 if __name__ == "__main__":
-    write_results(run_all())
+    import sys
+
+    write_results(run_all(live_scam="--live" in sys.argv))
     print(json.dumps(latest()["summary"], indent=1))  # noqa: T201 - CLI output

@@ -120,11 +120,20 @@ class ConsentOut(BaseModel):
     status: str
 
 
+class ScamChannel(StrEnum):
+    SMS = "sms"
+    WHATSAPP = "whatsapp"
+    CALL = "call"  # the text is what the caller said (typed, or a call-recording transcript)
+    LINK = "link"
+    OTHER = "other"
+
+
 class ScamCheckIn(BaseModel):
     text: str = Field(min_length=1, max_length=2000)
     sender: str | None = Field(default=None, max_length=40)
     on_call_with_unknown: bool | None = None
     area: str | None = Field(default=None, max_length=60)
+    channel: ScamChannel = ScamChannel.SMS
 
 
 class ScamCheckOut(BaseModel):

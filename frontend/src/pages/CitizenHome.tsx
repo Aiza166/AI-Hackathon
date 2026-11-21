@@ -4,6 +4,7 @@ import type { CaseView, Family, Me, SessionUser } from '../api/types'
 import { OutboxStrip } from '../components/OutboxStrip'
 import { loadMe, saveMe } from '../lib/meCache'
 import { takeForFixing, type OutboxRow } from '../lib/outbox'
+import { hasPendingShare } from '../lib/share'
 import { useOutbox } from '../lib/useOutbox'
 import { Badge, Bilingual, ErrorNote, ListenButton, Loading, Pictogram, humanize, toneFor } from '../components/ui'
 import { Icon } from '../lib/icons'
@@ -52,6 +53,13 @@ export function CitizenHome({ user, onSignInAgain }: CitizenHomeProps) {
   // Helper Mode: only the selected family's saved claims are shown and sent (null = none chosen).
   const outboxSubject = isHelper ? (actingFor?.cnic ?? null) : undefined
   const outbox = useOutbox(user.id, outboxSubject, () => setRefreshKey((k) => k + 1))
+
+  // Something was shared to Sahara from WhatsApp / SMS: open Scam Shield, which reads it.
+  useEffect(() => {
+    let active = true
+    void hasPendingShare().then((pending) => { if (active && pending) setView({ kind: 'scam' }) })
+    return () => { active = false }
+  }, [])
 
   useEffect(() => {
     let active = true
