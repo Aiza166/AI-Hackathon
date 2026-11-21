@@ -1,18 +1,22 @@
-import { useEffect, useState } from 'react'
+import { Suspense, lazy, useEffect, useState } from 'react'
 import { api, errorText } from '../api/client'
 import type { CaseView, Family, Me, SessionUser } from '../api/types'
 import { OutboxStrip } from '../components/OutboxStrip'
 import { takeForFixing, type OutboxRow } from '../lib/outbox'
 import { useOutbox } from '../lib/useOutbox'
-import { Badge, Bilingual, ErrorNote, ListenButton, Pictogram, humanize, toneFor } from '../components/ui'
+import { Badge, Bilingual, ErrorNote, ListenButton, Loading, Pictogram, humanize, toneFor } from '../components/ui'
 import { Icon } from '../lib/icons'
 import { CaseResult } from './CaseResult'
 import { ClaimWizard } from './ClaimWizard'
 import { MyData } from './MyData'
 
+// New screens load on demand so the first screen stays small on a cheap phone.
+const ScamShield = lazy(() => import('./ScamShield').then((m) => ({ default: m.ScamShield })))
+const SafeSwitch = lazy(() => import('./SafeSwitch').then((m) => ({ default: m.SafeSwitch })))
+
 // Home for citizens and helpers. Helpers first pick which family they are acting for.
 
-type View = { kind: 'list' } | { kind: 'new' } | { kind: 'case'; id: string } | { kind: 'data' }
+type View = { kind: 'list' } | { kind: 'new' } | { kind: 'case'; id: string } | { kind: 'data' } | { kind: 'scam' } | { kind: 'payout' }
 
 const STATUS_UR: Record<string, string> = {
   auto_approved: 'منظور',
@@ -73,6 +77,10 @@ export function CitizenHome({ user, onSignInAgain }: CitizenHomeProps) {
   const citizenClaimant = me?.person ? { cnic: me.person.cnic, name: me.person.name } : null
   const claimant = isHelper ? helperClaimant : citizenClaimant
   const back = () => setView({ kind: 'list' })
+  // SafeSwitch: the claimant's own claims, or (helper) only the selected family's claims, with consent.
+  const payoutCases = isHelper
+    ? (actingFor && hasConsent(actingFor) ? cases.filter((c) => c.claimant_person_id === actingFor.id) : [])
+    : cases
 
   // A refused claim is already back in the draft: drop the refused copy and open the wizard.
   async function openFix(row: OutboxRow): Promise<void> {
@@ -88,6 +96,17 @@ export function CitizenHome({ user, onSignInAgain }: CitizenHomeProps) {
 
   if (view.kind === 'case') return <CaseResult caseId={view.id} onBack={back} />
   if (view.kind === 'data') return <MyData onBack={back} />
+  if (view.kind === 'scam') {
+    return <Suspense fallback={<Loading />}><ScamShield onBack={back} /></Suspense>
+  }
+  if (view.kind === 'payout' && payoutCases.length > 0) {
+    return (
+      <Suspense fallback={<Loading />}>
+        {isHelper && actingFor && <ActingForBanner family={actingFor} />}
+        <SafeSwitch cases={payoutCases} isHelper={isHelper} claimantName={claimant?.name ?? ''} onBack={back} />
+      </Suspense>
+    )
+  }
   if (view.kind === 'new' && claimant) {
     return (
       <>
@@ -131,6 +150,17 @@ export function CitizenHome({ user, onSignInAgain }: CitizenHomeProps) {
           </span>
         </p>
       )}
+
+      <div className="tiles">
+        <button type="button" className="tile" onClick={() => setView({ kind: 'scam' })}>
+          <Pictogram name="warning" tone="risk" />
+          <Bilingual ur="کیا یہ پیغام دھوکہ ہے؟" en="Is this message a scam?" />
+        </button>
+        <button type="button" className="tile" disabled={payoutCases.length === 0} onClick={() => setView({ kind: 'payout' })}>
+          <Pictogram name="bank" tone="info" />
+          <Bilingual ur="پنشن کا اکاؤنٹ بدلیں" en={payoutCases.length === 0 ? 'Change payout account (needs a claim)' : 'Change payout account'} />
+        </button>
+      </div>
 
       {!isHelper && (
         <button type="button" className="action-row" onClick={() => setView({ kind: 'data' })}>

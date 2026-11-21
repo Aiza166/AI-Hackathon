@@ -78,4 +78,5 @@ export const DOC_ICONS: Record<string, string> = {
   claimant_cnic: 'id-card',
   frc: 'family',
   nikah_nama: 'ring',
+  claimant_dob: 'calendar',
 }
