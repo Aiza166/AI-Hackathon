@@ -176,3 +176,20 @@ def test_unavailable_second_sensor_keeps_jev_and_marks_conflict_unresolved():
     gone = SensorAnswers(status="unavailable", error="HTTPStatusError")
     fused = cascade.fuse({"asks_fee": 0.05}, {"asks_fee": True}, gone, ["asks_fee"])
     assert fused.probabilities["asks_fee"] == 0.05 and fused.unresolved == ["asks_fee"] and not fused.disagreements
+
+
+def test_malformed_response_shapes_are_unavailable_not_errors():
+    bodies = [
+        [1, 2],
+        {"choices": [{"message": {"content": "{\"asks_fee\": true, \"has_link\": false}"}}], "usage": {"prompt_tokens": "lots"}},
+        {"choices": [{"message": {"content": "{\"asks_fee\": true, \"has_link\": false}"},
+                      "logprobs": {"content": [{"token": "true", "logprob": "x"}]}}]},
+    ]
+    for body in bodies:
+        result = SecondSensor(settings(), transport=transport(lambda r, b=body: httpx.Response(200, json=b))).ask(QUESTIONS, untrusted_text="x")
+        assert result.status in ("unavailable", "ok")
+
+
+def test_clear_jev_with_undecided_second_sensor_is_unresolved_not_a_disagreement():
+    fused = cascade.fuse({"asks_fee": 0.05}, {"asks_fee": True}, ok({"asks_fee": 0.5}), ["asks_fee"])
+    assert fused.unresolved == ["asks_fee"] and not fused.disagreements and fused.probabilities["asks_fee"] == 0.05

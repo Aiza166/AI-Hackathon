@@ -15,10 +15,12 @@ How are answers fused (per decisive question)?
                                        deterministic hint contradicts it; a contradiction
                                        is a disagreement; an undecided answer stays undecided.
   - Jev clear but contradicts rules -> second sensor agrees with Jev: proceed with Jev;
-                                       it sides with the rules or is undecided: disagreement.
+                                       it sides with the rules: disagreement; it is
+                                       undecided: "unresolved" (Jev's value stands).
   - second sensor not available     -> Jev's value; a conflict stays "unresolved" (the
                                        behaviour without a second sensor).
-A disagreement always means "not sure": the caller routes to UNSURE / NOT_SURE (a person).
+A disagreement means "not sure": documents go to an officer (UNSURE); Scam Shield never says
+LOOKS_GENUINE (a clear scam warning is still shown).
 """
 from dataclasses import dataclass, field
 
@@ -87,7 +89,9 @@ def fuse(jev: dict[str, float] | None, hints: dict[str, bool | None], second: Se
             else:
                 probabilities[q] = sp
                 resolved.append(q)
-        elif s_band != jev_band:  # Jev clear and conflicting with rules: second sensor did not back Jev
+        elif s_band == Band.UNDECIDED:  # it did not side with anyone: same as having no second sensor
+            unresolved.append(q)
+        elif s_band != jev_band:  # Jev clear and conflicting with rules: second sensor sided with the rules
             disagreements.append(q)
     if second_ok:  # non-decisive questions Jev could not answer: take the second sensor's value
         for q, sp in second.probabilities.items():

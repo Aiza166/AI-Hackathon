@@ -34,6 +34,11 @@ FEE_WORDS = re.compile(r"(fee|fees|charges?|pay\s+rs|rupay|rupees|روپے|فی�
 SECRET_WORDS = re.compile(r"(otp|\bpin\b|password|code|کوڈ|verification)", re.I)
 APP_WORDS = re.compile(r"(anydesk|teamviewer|quick\s*support|\.apk\b|install|screen\s*share|ایپ|انسٹال)", re.I)
 CALL_WORDS = re.compile(r"(call|whatsapp|rabta|کال|رابطہ)", re.I)
+# Asks the reader to reply, call, SMS or WhatsApp (a number or the sender). Genuine notices point only to official numbers.
+CONTACT_WORDS = re.compile(
+    r"(\breply\b|\bjawab\s*d|\bwhats\s*app\b|\bcall\s+(?:kar|this|the|us|now|on|at|me|\+|0)|\bcall\s*karein|\bsms\s*kar|"
+    r"\bmessage\s*kar|\btext\s+(?:us|this|the|back)|کال\s*کریں|واٹس\s*ایپ|جواب\s*دیں|رابطہ\s*کریں)", re.I)
+PHONE_LIKE = re.compile(r"(?<!\d)(?:\+|00|0|92)[\d\s-]{6,15}\d(?!\d)")
 PAID_STATUSES = ("approved", "auto_approved")
 
 QUESTION_TEXT = {
@@ -71,9 +76,11 @@ REASONS = {
     "risky_link": ("یہ لنک لاگ اِن، ادائیگی یا غیر محفوظ ویب سائٹ کا ہے۔", "The link asks you to log in or pay, or is not secure."),
     "unofficial_link": ("اس میں غیر سرکاری لنک ہے۔ اسے نہ کھولیں۔", "It has a link that is not an official website. Do not open it."),
     "unofficial_sender": ("یہ سرکاری نمبر سے نہیں آیا۔", "It did not come from the official sender."),
-    "official_number_calling": ("سرکاری پیغام والا نمبر یا ہیلپ لائن آپ کو کال نہیں کرتی۔ نمبر جعلی دکھایا جا سکتا ہے۔",
-                                "Official message numbers and helplines do not call you. A caller can fake the number shown."),
+    "official_number_calling": ("سرکاری پیغام والا نمبر یا ہیلپ لائن آپ کو کال نہیں کرتی۔ کال کرنے والا دکھایا گیا نمبر بدل سکتا ہے۔",
+                                "Official message numbers and helplines do not call you. A caller can copy or disguise the number shown."),
     "urgency": ("یہ جلدی یا دھمکی سے دباؤ ڈالتا ہے۔", "It pressures you with a deadline or threat."),
+    "asks_contact": ("یہ آپ کو جواب دینے، کال یا واٹس ایپ کرنے کو کہتا ہے۔ صرف سرکاری نمبر پر رابطہ کریں۔",
+                     "It asks you to reply, call or WhatsApp. Contact the office only on its official number."),
     "no_payment_pending": ("آپ کے دعوے میں کوئی ادائیگی باقی نہیں۔", "Your claim shows no payment waiting for you."),
     "on_call": ("کوئی فون پر آپ کو یہ کرنے کو کہہ رہا ہے۔ فون بند کریں۔", "Someone on the phone is telling you to do this. Hang up."),
     "sensors_disagree": ("دو خودکار جانچیں متفق نہیں ہوئیں۔ کسی مددگار یا افسر سے پوچھیں۔",
@@ -92,6 +99,7 @@ class ScamResult:
     model_id: str | None
     signals: dict = field(default_factory=dict)
     case_cross_check: str | None = None
+    case_cross_check_ur: str | None = None
     links: list[dict] = field(default_factory=list)
     officer_note: str = ""  # second sensor's advisory note: officers only
     cost_usd: float = 0.0
@@ -137,7 +145,7 @@ def _link_keys(reports: list[links.LinkReport]) -> list[str]:
     found = {f for r in reports for f in r.findings}
     if "lookalike" in found:
         keys.append("lookalike_link")
-    if found & {"raw_ip", "punycode", "userinfo_trick", "non_latin"}:
+    if found & {"raw_ip", "punycode", "userinfo_trick", "non_latin", "odd_characters"}:
         keys.append("disguised_link")
     if "shortener" in found:
         keys.append("shortened_link")
@@ -146,6 +154,14 @@ def _link_keys(reports: list[links.LinkReport]) -> list[str]:
     if any(not r.official for r in reports):
         keys.append("unofficial_link")
     return keys
+
+
+def _asks_contact(text: str, jev_says_call: bool) -> bool:
+    """A request to reply / call / WhatsApp, unless every number it gives is an official one."""
+    if not (CONTACT_WORDS.search(text) or jev_says_call):
+        return False
+    numbers = [calls.normalise_number(n) for n in PHONE_LIKE.findall(text)]
+    return not numbers or any(n not in calls.OFFICIAL_CALLERS for n in numbers)
 
 
 def _citizen_has_payment(db: Session | None, person_id: str | None) -> bool | None:
@@ -229,6 +245,10 @@ def check(db: Session | None, text: str, sender: str | None, on_call: bool | Non
         risk *= 0.9  # sender ID is evidence, never proof (official IDs can be spoofed)
     if bands.get("urgency") == Band.YES:
         keys.append("urgency")
+    if (use_rules or bands.get("tells_to_call_number") == Band.YES) and \
+            _asks_contact(text if use_rules else "", bands.get("tells_to_call_number") == Band.YES):
+        keys.append("asks_contact")
+        risk *= 0.9
     has_payment = _citizen_has_payment(db, person_id)
     cross = None
     if bands.get("claims_payment_ready") != Band.NO and has_payment is False:
@@ -240,14 +260,20 @@ def check(db: Session | None, text: str, sender: str | None, on_call: bool | Non
         risk *= 0.85
     score = round(1 - risk, 3)
     disagree = bool(sensed.fused and sensed.fused.disagreements)
-    money_doubt = any(bands.get(s) == Band.UNDECIDED for s in MONEY_SIGNALS)
+    # Benign indicator (prior study): a message that clearly warns never to share a code is not asking for one,
+    # so an undecided "asks for a code" is not money doubt there. A clear yes still counts.
+    warns = bands.get("warns_not_to_share") == Band.YES
+    money_doubt = any(bands.get(s) == Band.UNDECIDED and not (s == "asks_secret" and warns) for s in MONEY_SIGNALS)
     jev_answered = sensed.model_id is not None
-    if disagree:
+    # A disagreement can only block "looks genuine": warning about a clear scam is never held back by it.
+    if score >= 0.7:
+        verdict = "LIKELY_SCAM"
+    elif disagree:
         verdict = "NOT_SURE"
         keys.append("sensors_disagree")
-    elif score >= 0.7:
-        verdict = "LIKELY_SCAM"
-    elif score <= 0.3 and not money_doubt and jev_answered:
+    elif score <= 0.3 and not money_doubt and jev_answered and not keys:
+        # LOOKS_GENUINE only when no warning reason fired at all (unofficial sender, link, urgency, on the phone,
+        # contact request, no payment pending...): a reason shown next to "looks genuine" would contradict it.
         verdict = "LOOKS_GENUINE"
     else:
         verdict = "NOT_SURE"
@@ -270,8 +296,9 @@ def check(db: Session | None, text: str, sender: str | None, on_call: bool | Non
     latency_ms = int((time.perf_counter() - started) * 1000)
     signals["latency_ms"] = latency_ms
     note = sensed.second.note if sensed.second and sensed.second.status == "ok" else ""
+    cross_ur = REASONS["no_payment_pending"][0] if cross else None
     return ScamResult(verdict, score, [REASONS[k][1] for k in keys], [REASONS[k][0] for k in keys], scam_type, sensed.model_id,
-                      signals, cross, [r.to_dict() for r in link_reports], note, cost, latency_ms)
+                      signals, cross, cross_ur, [r.to_dict() for r in link_reports], note, cost, latency_ms)
 
 
 def text_hash(text: str) -> str:

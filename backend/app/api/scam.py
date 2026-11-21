@@ -1,4 +1,5 @@
 """Scam Shield and Scam Map."""
+import hashlib
 import logging
 from collections import Counter
 from datetime import timedelta
@@ -7,6 +8,7 @@ from typing import Literal
 import httpx
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Request, UploadFile
 from pydantic import ValidationError
+from slowapi.util import get_remote_address
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -33,6 +35,12 @@ AUDIO_TYPES = ("audio/", "video/webm", "video/mp4", "video/3gpp")  # recorders l
 MAX_IMAGE_BYTES = 8 * 1024 * 1024
 MAX_AUDIO_BYTES = 5 * 1024 * 1024
 MAX_TEXT = 2000
+
+
+def _per_user(request: Request) -> str:
+    """Upload limits per signed-in user (token), so a forged forwarding header cannot reset them."""
+    auth = request.headers.get("authorization", "")
+    return "user:" + hashlib.sha256(auth.encode()).hexdigest()[:32] if auth else get_remote_address(request)
 # Real-world places to report a scam, shown after a scam verdict (real help, not part of the mock).
 # Source and confidence for each: docs/research/round2.md section 4. 1799 replaced FIA's 1991.
 REPORT_ROUTES = [
@@ -83,7 +91,8 @@ def _run(db: Session, principal: Principal, body: ScamCheckIn, *, source: str = 
     db.commit()
     out = {
         "verdict": result.verdict, "confidence": result.score, "reasons": result.reasons, "reasons_ur": result.reasons_ur,
-        "case_cross_check": result.case_cross_check, "model_id": result.model_id, "channel": body.channel.value,
+        "case_cross_check": result.case_cross_check, "case_cross_check_ur": result.case_cross_check_ur,
+        "model_id": result.model_id, "channel": body.channel.value,
         "links": result.links, "report_routes": report_routes(result.verdict, body.text, body.sender),
     }
     if extracted is not None:
@@ -124,7 +133,7 @@ def _form_body(text: str, sender: str | None, on_call: bool | None, area: str | 
 
 
 @router.post("/scam/check-image")
-@limiter.limit("10/minute")
+@limiter.limit("10/minute", key_func=_per_user)
 def check_image(request: Request, file: UploadFile = File(...), sender: str | None = Form(default=None, max_length=40),
                 on_call_with_unknown: bool | None = Form(default=None), area: str | None = Form(default=None, max_length=60),
                 principal: Principal = Depends(require_roles(*CHECKERS)), db: Session = Depends(get_db)):
@@ -149,7 +158,7 @@ def check_image(request: Request, file: UploadFile = File(...), sender: str | No
 
 
 @router.post("/scam/check-audio")
-@limiter.limit("10/minute")
+@limiter.limit("10/minute", key_func=_per_user)
 def check_audio(request: Request, audio_file: UploadFile = File(..., alias="audio"),
                 kind: Literal["voice_note", "call_recording"] = Form(default="voice_note"),
                 lang: Literal["ur", "en"] = Form(default="ur"), sender: str | None = Form(default=None, max_length=40),

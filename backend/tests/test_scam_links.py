@@ -65,3 +65,14 @@ def test_registrable_domain_handles_pk_second_levels():
     assert links.registrable_domain("a.b.bisp.gov.pk") == "bisp.gov.pk"
     assert links.registrable_domain("shop.example.com") == "example.com"
     assert links.registrable_domain("x.easypaisa.com.pk") == "easypaisa.com.pk"
+
+
+def test_backslash_host_trick_is_not_official():
+    # Browsers treat "\" as "/" in http(s) URLs: the real host here is evil.com.
+    report = links.analyse_text("https://evil.com\.bisp.gov.pk/login")[0]
+    assert report.host == "evil.com" and not report.official
+
+
+def test_odd_characters_in_host_are_never_official():
+    report = links.analyse(links.FoundUrl(raw="x", host="bisp.gov.pk_", scheme="https", path="/", userinfo=False))
+    assert not report.official and "odd_characters" in report.findings

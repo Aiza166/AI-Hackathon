@@ -82,8 +82,9 @@ def run(kind: str, img: Image.Image, fields: dict[str, Field], report: ForensicR
     second = sensor.ask(question_text(kind), image_jpeg=jpeg_bytes(img))
     sensors.append({"name": "second_sensor", "status": second.status, "model": second.model, "latency_ms": second.latency_ms,
                     "cost_usd": second.cost_usd})
-    if jev_p is None and second.status != "ok":
-        return DocCascade(jev, None, second, sensors)
+    if second.status != "ok":  # nothing to fuse: Jev's answers stand unchanged
+        fused = cascade.fuse(jev_p, found_hints, None, decisive(kind)) if jev_p is not None else None
+        return DocCascade(jev, fused, second, sensors)
     fused = cascade.fuse(jev_p, found_hints, second, decisive(kind))
     answers = {name: {"p": round(p, 4), "band": noul_band(p).value} for name, p in fused.probabilities.items()}
     merged = JevDocResult(**{**asdict(jev), "status": "ok", "answers": answers, "model": jev.model or second.model,

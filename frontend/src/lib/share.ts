@@ -62,3 +62,13 @@ export async function takePendingShare(): Promise<SharedItem | null> {
   const unique = parts.filter((p, i) => !parts.slice(0, i).some((q) => q.includes(p)))
   return { text: unique.join('\n'), file }
 }
+
+// Sign-out on a shared phone: drop anything shared and not yet checked.
+export async function clearPendingShare(): Promise<void> {
+  if (typeof caches === 'undefined') return
+  try {
+    await clearShare(await caches.open(SHARE_CACHE))
+  } catch {
+    // nothing stored, or storage blocked: nothing to clear
+  }
+}

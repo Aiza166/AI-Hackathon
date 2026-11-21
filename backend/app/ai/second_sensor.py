@@ -165,6 +165,13 @@ class SecondSensor:
             return response.json()
 
     def _parse(self, questions: dict[str, str], data: dict, latency_ms: int) -> SensorAnswers:
+        """Any unexpected response shape means "unavailable", never an error for the citizen."""
+        try:
+            return self._parse_unchecked(questions, data, latency_ms)
+        except (KeyError, IndexError, TypeError, ValueError, AttributeError, OverflowError):
+            return SensorAnswers(status="unavailable", error="unreadable answer", latency_ms=latency_ms)
+
+    def _parse_unchecked(self, questions: dict[str, str], data: dict, latency_ms: int) -> SensorAnswers:
         names = list(questions)
         usage = {k: int(v) for k, v in (data.get("usage") or {}).items() if k in ("prompt_tokens", "completion_tokens")}
         try:

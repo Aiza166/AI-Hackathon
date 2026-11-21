@@ -14,6 +14,8 @@ Each link gets a list of findings (codes), all computed in code:
   insecure_http         plain http:// (no padlock)
   login_or_payment_path the path or query asks to log in, verify, pay or enter a code
   userinfo_trick        "official.site@other.site": the browser goes to the part after @
+  odd_characters        characters no normal host has (e.g. "_" or "%"); never official
+A backslash is read as "/" the way browsers do, so "evil.com\\.bisp.gov.pk" is evil.com.
 An official link (allowlisted, ASCII, https or no scheme) has no lookalike finding.
 """
 import ipaddress
@@ -68,6 +70,7 @@ CONFUSABLES = str.maketrans({
     "ԁ": "d", "ɡ": "g", "α": "a", "ο": "o", "ρ": "p", "ν": "v", "ι": "i", "κ": "k", "τ": "t",
     "0": "o", "1": "l", "3": "e", "5": "s", "@": "a",
 })
+HOST_CHARS = re.compile(r"[a-z0-9.\-\[\]:]+")  # letters, digits, dots, hyphens (and IPv6 brackets)
 MIN_FUZZY_BRAND = 5  # typo distance only for brands of 5+ letters ("pension", "nadra"), never "pta"
 
 
@@ -121,7 +124,9 @@ def extract_urls(text: str) -> list[FoundUrl]:
     for match in URL_PATTERN.finditer(unicodedata.normalize("NFKC", text)):
         raw = match.group(0).rstrip(TRAILING)
         scheme = raw.split("://", 1)[0].lower() if "://" in raw else None
-        parts = urlsplit(raw if scheme else f"http://{raw}")
+        # Browsers read "\" as "/" in http(s) URLs, so "evil.com\.bisp.gov.pk" goes to evil.com.
+        browser_form = raw.replace("\\", "/")
+        parts = urlsplit(browser_form if scheme else f"http://{browser_form}")
         host = (parts.hostname or "").rstrip(".")
         if not host:
             continue
@@ -178,6 +183,8 @@ def analyse(url: FoundUrl) -> LinkReport:
         findings.append("non_latin")
     if "xn--" in host:
         findings.append("punycode")
+    if host.isascii() and not HOST_CHARS.fullmatch(host):
+        findings.append("odd_characters")  # e.g. "_", "%": never a normal official host
     if label is None and not _is_ip(host):
         imitates = _imitates(host)
         if imitates:
@@ -194,7 +201,7 @@ def analyse(url: FoundUrl) -> LinkReport:
         findings.append("login_or_payment_path")
     if url.userinfo:
         findings.append("userinfo_trick")
-    official = label is not None and not url.userinfo
+    official = label is not None and not url.userinfo and "odd_characters" not in findings
     return LinkReport(url=url.raw, host=host, registrable=reg, official=official, official_label=label,
                       imitates=imitates, findings=tuple(findings))
 

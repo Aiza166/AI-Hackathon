@@ -59,7 +59,7 @@ export function ScamVerdictView({ result, onAgain }: ScamVerdictViewProps) {
         <p className="note note-info">
           <Icon name="document" size={20} />
           <span>
-            <span lang="ur" dir="rtl" className="note-ur">آپ کے دعوے میں کوئی ادائیگی باقی نہیں۔</span>
+            {result.case_cross_check_ur && <span lang="ur" dir="rtl" className="note-ur">{result.case_cross_check_ur}</span>}
             Checked against your claim: {result.case_cross_check}
           </span>
         </p>
@@ -88,8 +88,8 @@ function LinkList({ links }: { links: ScamLink[] }) {
     <section className="stack" aria-labelledby="scam-links">
       <Bilingual as="h3" id="scam-links" ur="لنک جو ہم نے جانچے (کھولے نہیں)" en="Links we checked (never opened)" />
       <ul className="reason-list">
-        {links.map((l) => (
-          <li key={l.host} className="reason-item">
+        {links.map((l, i) => (
+          <li key={`${l.host}-${i}`} className="reason-item">
             <Icon name="link" size={22} />
             <span className="bi">
               <span className="bi-en ltr-island" dir="ltr">{l.host}</span>

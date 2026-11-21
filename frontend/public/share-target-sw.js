@@ -36,6 +36,10 @@ async function keepShare(request) {
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url)
   if (event.request.method !== 'POST' || url.origin !== self.location.origin || url.pathname !== '/share-target') return
+  // A share from the phone arrives as a user navigation (Sec-Fetch-Site none or same-origin). A form on another
+  // website posting here is cross-site: ignore it so no one can plant text in Scam Shield.
+  const site = event.request.headers.get('Sec-Fetch-Site')
+  if (site === 'cross-site' || site === 'same-site') return
   event.respondWith(
     keepShare(event.request)
       .catch(() => undefined) // the app still opens; the citizen can paste instead

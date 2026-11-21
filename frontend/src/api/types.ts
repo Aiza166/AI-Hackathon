@@ -158,6 +158,7 @@ export type ScamResult = {
   reasons: string[]
   reasons_ur: string[]
   case_cross_check: string | null
+  case_cross_check_ur?: string | null
   model_id: string | null
   channel?: ScamChannel
   links?: ScamLink[]

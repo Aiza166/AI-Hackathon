@@ -76,3 +76,16 @@ def test_sensors_disagree_indicator_is_high_and_officer_only():
     ind = indicators.make("SENSORS_DISAGREE", questions=["text_altered"])
     assert ind.severity == "high" and ind.citizen_visible is False
     assert "fake" not in ind.text_en.lower() and "forged" not in ind.text_en.lower()
+
+
+class DownSensor(FakeSensor):
+    def ask(self, questions, untrusted_text=None, image_jpeg=None):
+        self.calls += 1
+        return SensorAnswers(status="unavailable", error="ConnectTimeout", latency_ms=8000)
+
+
+def test_second_sensor_down_keeps_jevs_answers_unchanged():
+    original = jev({"right_type": 0.95, "text_altered": 0.45})
+    out = cascade_checks.run("death_certificate", IMG, {}, report(), original, DownSensor({}))
+    assert out.jev == original and out.second.status == "unavailable"
+    assert out.sensors[-1]["status"] == "unavailable"

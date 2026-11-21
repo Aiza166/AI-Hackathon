@@ -228,3 +228,54 @@ def test_ffmpeg_failure_is_unsupported(monkeypatch):
         pytest.skip("ffmpeg not installed")
     with pytest.raises(audio.AudioUnsupported):
         audio.prepare_for_stt(b"not audio at all" * 10, "audio/webm")
+
+
+def test_disagreement_on_a_weak_question_never_hides_a_clear_scam(client, login, monkeypatch):
+    _jev(monkeypatch, {"asks_secret": 0.98, "has_link": 0.05})
+    _second(monkeypatch, {"asks_secret": 0.98, "has_link": 0.95})
+    data = _post(client, login("zainab"), text="BISP: apna OTP code bhejein aur https://bisp-gov.pk.claim-now.xyz/login kholen")
+    assert data["verdict"] == "LIKELY_SCAM" and data["report_routes"]
+
+
+def test_citizen_reasons_never_say_fake_or_forged():
+    from app.services.scam import REASONS
+    for ur, en in REASONS.values():
+        assert "fake" not in en.lower() and "forged" not in en.lower() and "جعلی" not in ur
+
+
+def test_without_ffmpeg_long_passthrough_audio_is_refused(monkeypatch):
+    monkeypatch.setattr(audio, "ffmpeg_path", lambda: None)
+    with pytest.raises(audio.AudioUnsupported):
+        audio.prepare_for_stt(b"RIFF" + b"\x00" * (speech.MAX_STT_BYTES + 10), "audio/wav")
+
+
+# ---- B1 (E2E report): LOOKS_GENUINE only when no warning reason fired ----------------------------
+
+@pytest.mark.parametrize("text, sender", [
+    ("Salam, aap ke pension case ke baare mein office se call aayegi. Apna CNIC tayyar rakhein.", "0300-0000044"),
+    ("BISP: your payment is ready. WhatsApp this number 0300-0000045 to confirm.", "8171"),
+    ("BISP: Reply YES to receive your payment.", "8171"),
+    ("Aap ki qist aa gayi hai. Mazeed maloomat ke liye is number par call karein 0300-0000046", "8171"),
+])
+def test_unknown_sender_or_contact_request_is_never_looks_genuine(client, login, monkeypatch, text, sender):
+    _jev(monkeypatch, {"claims_government": 0.9})
+    data = _post(client, login("zainab"), text=text, sender=sender)
+    assert data["verdict"] == "NOT_SURE", data
+
+
+def test_official_helpline_in_text_can_still_look_genuine(client, login, monkeypatch):
+    _jev(monkeypatch, {"claims_government": 0.9})
+    text = "Your payout account is on hold for 48 hours. If you did not ask for this, call 0800-00000-00."
+    assert _post(client, login("zainab"), text=text, sender="PENSION-GOV")["verdict"] == "LOOKS_GENUINE"
+
+
+def test_case_cross_check_has_fixed_urdu_text(client, login, monkeypatch):
+    _jev(monkeypatch, {"asks_fee": 0.98, "claims_payment_ready": 0.95})
+    data = _post(client, login("rafiq"), text="Your pension is released, pay the fee.")
+    assert data["case_cross_check"] and data["case_cross_check_ur"]
+
+
+def test_benign_warning_settles_an_undecided_code_question(client, login, monkeypatch):
+    _jev(monkeypatch, {"asks_secret": 0.4, "warns_not_to_share": 0.95, "claims_government": 0.9})
+    text = "Your one-time code for the Sahara app is 482913. Do not share this code with anyone."
+    assert _post(client, login("zainab"), text=text, sender="PENSION-GOV")["verdict"] == "LOOKS_GENUINE"
