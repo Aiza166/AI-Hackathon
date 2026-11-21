@@ -11,5 +11,10 @@ RUN npm run build
 
 FROM nginx:1.27-alpine
 COPY nginx.conf.template /etc/nginx/templates/default.conf.template
+# Becomes /etc/nginx/conf.d/security-headers.inc (not *.conf, so it is only included where named).
+COPY security-headers.inc.template /etc/nginx/templates/security-headers.inc.template
+# CSP connect-src allows the API origin the bundle was built for.
+ARG VITE_API_BASE=""
+ENV API_ORIGIN=$VITE_API_BASE
 COPY --from=build /app/dist /usr/share/nginx/html
 ENV PORT=8080

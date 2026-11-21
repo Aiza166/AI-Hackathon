@@ -1,5 +1,5 @@
-import { Suspense, lazy, useState } from 'react'
-import { setToken } from './api/client'
+import { Suspense, lazy, useEffect, useState } from 'react'
+import { SESSION_ENDED_EVENT, setToken, signOutOnServer } from './api/client'
 import type { Role, SessionUser } from './api/types'
 import { PrototypeBanner } from './components/PrototypeBanner'
 import { Icon } from './lib/icons'
@@ -68,6 +68,12 @@ export default function App() {
   }
 
   // Sign-out on a shared phone deletes this user's drafts and unsent claims. Unsent claims need a confirm.
+  // A 401 on a signed-in request (expired or revoked session): back to sign-in, claims kept on the phone.
+  useEffect(() => {
+    window.addEventListener(SESSION_ENDED_EVENT, endSession)
+    return () => window.removeEventListener(SESSION_ENDED_EVENT, endSession)
+  }, [])
+
   async function handleLogout(): Promise<void> {
     if (user && !isStaff(user.role)) {
       const count = await unsentCount(user.id)
@@ -77,11 +83,13 @@ export default function App() {
       }
       await clearOwnerData(user.id)
     }
+    signOutOnServer()
     endSession()
   }
 
   async function confirmLogout(): Promise<void> {
     if (user) await clearOwnerData(user.id)
+    signOutOnServer()
     endSession()
   }
 

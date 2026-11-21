@@ -10,6 +10,8 @@ export type Envelope<T> = {
 
 const BASE: string = import.meta.env.VITE_API_BASE ?? ''
 const TOKEN_KEY = 'sahara.token'
+// Fired when a signed-in request gets 401 (expired, signed out elsewhere, or revoked session).
+export const SESSION_ENDED_EVENT = 'sahara:session-ended'
 
 export class ApiError extends Error {
   status: number
@@ -30,6 +32,15 @@ export function getToken(): string | null {
   return sessionStorage.getItem(TOKEN_KEY)
 }
 
+// Ends this sign-in session on the server too, so a copied token stops working at once.
+// Best effort: sign-out on the phone never waits for (or fails because of) the network.
+export function signOutOnServer(): void {
+  const token = getToken()
+  if (!token) return
+  fetch(`${BASE}/api/v1/auth/logout`, { method: 'POST', headers: { Authorization: `Bearer ${token}` }, keepalive: true })
+    .catch(() => undefined)
+}
+
 export async function api<T>(path: string, init: RequestInit = {}): Promise<Envelope<T>> {
   const headers = new Headers(init.headers)
   headers.set('Content-Type', 'application/json')
@@ -42,6 +53,7 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<Enve
     throw new ApiError(0, 'OFFLINE', 'No connection. Your progress is saved on this phone.')
   }
   const body = (await response.json().catch(() => null)) as Envelope<T> | null
+  if (response.status === 401 && token) window.dispatchEvent(new Event(SESSION_ENDED_EVENT))
   if (!response.ok || !body?.success) {
     throw new ApiError(response.status, body?.error?.code ?? 'ERROR', body?.error?.message ?? 'Something went wrong')
   }
