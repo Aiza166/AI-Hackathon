@@ -6,9 +6,10 @@ from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 from sqlalchemy import text
 
-from app.api import admin, audit, auth, cases, consent, documents, evaluation, judge, me, payout, public, rules, scam, speech
+from app.api import admin, audit, auth, cases, consent, documents, evaluation, judge, me, monitoring, payout, public, rules, scam, speech
 from app.core.config import get_settings
 from app.core.envelope import fail, install_error_handlers, ok
+from app.core.monitoring import init_sentry
 from app.core.middleware import BodySizeLimitMiddleware, SecurityHeadersMiddleware
 from app.core.ratelimit import limiter
 from app.core.redact import install_log_redaction
@@ -31,6 +32,7 @@ def _rate_limited(_: Request, __: RateLimitExceeded) -> JSONResponse:
 def create_app() -> FastAPI:
     settings = get_settings()
     install_log_redaction()
+    init_sentry(settings.sentry_dsn, settings.environment)  # no-op without SENTRY_DSN
     app = FastAPI(title=settings.app_name, version="0.2.0", description=PROTOTYPE_NOTE)
     app.state.limiter = limiter
     app.add_exception_handler(RateLimitExceeded, _rate_limited)
@@ -49,7 +51,7 @@ def create_app() -> FastAPI:
     )
     app.add_middleware(SecurityHeadersMiddleware)
     install_error_handlers(app)
-    for router in (auth.router, me.router, consent.router, cases.router, audit.router, admin.router, judge.router, rules.router, payout.router, scam.router, documents.router, speech.router, evaluation.router, public.router, mock_router.router):
+    for router in (auth.router, me.router, consent.router, cases.router, audit.router, admin.router, judge.router, rules.router, payout.router, scam.router, documents.router, speech.router, evaluation.router, monitoring.router, public.router, mock_router.router):
         app.include_router(router)
 
     @app.get("/healthz", tags=["health"])

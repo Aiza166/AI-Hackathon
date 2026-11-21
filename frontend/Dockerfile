@@ -7,6 +7,10 @@ COPY . .
 # Public URL of the backend API (Railway passes service variables as build args).
 ARG VITE_API_BASE
 ENV VITE_API_BASE=$VITE_API_BASE
+# Optional Sentry error monitoring (public browser DSN; blank = off) and the release tag.
+ARG VITE_SENTRY_DSN=""
+ARG RAILWAY_GIT_COMMIT_SHA=""
+ENV VITE_SENTRY_DSN=$VITE_SENTRY_DSN VITE_SENTRY_RELEASE=$RAILWAY_GIT_COMMIT_SHA
 RUN npm run build
 
 FROM nginx:1.27-alpine

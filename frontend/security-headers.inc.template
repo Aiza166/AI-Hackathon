@@ -1,7 +1,8 @@
 # Security headers for every response of the PWA (included in the server and in each location).
 # connect-src: the API lives on its own Railway domain (API_ORIGIN, from the VITE_API_BASE build arg).
+# https://*.ingest.de.sentry.io: Sentry error reports (EU ingest), only sent when VITE_SENTRY_DSN is set.
 # camera/microphone: only this origin (document photos, voice answers); everything else off.
-add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' data: blob:; font-src 'self'; connect-src 'self' ${API_ORIGIN}; worker-src 'self' blob:; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests" always;
+add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' data: blob:; font-src 'self'; connect-src 'self' ${API_ORIGIN} https://*.ingest.de.sentry.io; worker-src 'self' blob:; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests" always;
 add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
 add_header X-Content-Type-Options "nosniff" always;
 add_header X-Frame-Options "DENY" always;

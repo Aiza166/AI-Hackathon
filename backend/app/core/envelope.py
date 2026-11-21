@@ -32,5 +32,8 @@ def install_error_handlers(app: FastAPI) -> None:
         # Details go to server logs, never to the client.
         import logging
 
+        import sentry_sdk
+
         logging.getLogger("sahara").exception("Unhandled error", exc_info=exc)
+        sentry_sdk.capture_exception(exc)  # no-op unless Sentry is on; the dedupe integration drops repeats
         return fail(code="INTERNAL_ERROR", message="Something went wrong. Please try again.", status=500)

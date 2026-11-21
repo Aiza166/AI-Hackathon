@@ -1,0 +1,36 @@
+# Codecov: coverage is reported on every PR but never blocks a merge (hackathon prototype).
+coverage:
+  precision: 1
+  round: down
+  range: "50...90"
+  status:
+    project:
+      default:
+        target: auto
+        threshold: 2%
+        informational: true
+    patch:
+      default:
+        target: 70%
+        informational: true
+
+flags:
+  backend:
+    paths:
+      - backend/app/
+    carryforward: true
+  frontend:
+    paths:
+      - frontend/src/
+    carryforward: true
+
+ignore:
+  - "backend/alembic/**"
+  - "backend/tests/**"
+  - "backend/app/eval_data/**"
+  - "frontend/unit/**"
+  - "frontend/e2e/**"
+
+comment:
+  layout: "condensed_header, diff, flags"
+  require_changes: false

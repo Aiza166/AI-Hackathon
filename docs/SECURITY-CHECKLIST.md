@@ -116,6 +116,9 @@ Assets: a claimant's identity (CNIC, DOB), her family record, the payout account
 | A64 | Deploying this change signs everyone out once: access tokens issued before it carry no `sid`. The PWA now goes back to sign-in on any 401 on a signed-in request (expired, revoked or signed out elsewhere) and keeps unsent claims | known limit | `backend/app/core/security.py` (`require` list), `frontend/src/api/client.ts` (`SESSION_ENDED_EVENT`), `frontend/src/App.tsx` |
 | A65 | The CNIC mask also hits any standalone 13-digit number in audit details (for example an epoch-millisecond value), so it errs towards losing data, not leaking it. Dashed CNICs, IBANs and UUID/sha256 values are handled exactly | known limit | `backend/app/core/redact.py`; test `test_redact_masks_cnic_forms_and_leaves_hashes_alone` |
 | A66 | Unhandled 500 responses come from Starlette's ServerErrorMiddleware, outside the header middleware, so they carry no CSP or HSTS. The body is a generic message with no internals | known limit | `backend/app/core/envelope.py`, `backend/app/main.py` |
+| A67 | Error monitoring (Sentry, EU ingest) without PII. Backend: off without `SENTRY_DSN`; SDK `data_collection` collects no user info, cookies, bodies, SQL values or frame locals; `before_send`, `before_send_transaction` and `before_breadcrumb` drop request bodies, cookies and env, empty the user block, filter secret-looking keys (pin, password, token, authorization, api key, cookie, session, refresh, otp, iban, cnic, phone) and mask CNIC/IBAN (shared `redact_text`), phone numbers, PINs written in text, JWTs, bearer tokens and `sk_` API keys, also in query strings and URLs. Frontend: SDK lazy-loaded after first paint only when `VITE_SENTRY_DSN` is set, same scrubber, user reduced to role, no replays, no tracing | fixed now | `backend/app/core/monitoring.py`, `frontend/src/lib/sentryScrub.ts`, `frontend/src/lib/monitoring.ts`; tests `backend/tests/test_monitoring.py` (24), `frontend/unit/sentryScrub.test.ts` (9) |
+| A68 | Admin-only `POST /api/v1/admin/sentry-test` raises a deliberate error to show the dashboard: audited (`SENTRY_TEST_TRIGGERED`) before it raises, answered as a generic 500, 503 when Sentry is off | fixed now | `backend/app/api/monitoring.py`; tests `test_sentry_test_endpoint_*` |
+| A69 | CSP `connect-src` adds only `https://*.ingest.de.sentry.io` (Sentry EU ingest); no Sentry script CDN, the SDK is bundled | fixed now | `frontend/security-headers.inc.template` |
 
 ## GitHub Well-Architected checklist
 
@@ -157,7 +160,7 @@ Assets: a claimant's identity (CNIC, DOB), her family record, the payout account
 | Security updates: timely, automated | fixed now | Dependabot weekly |
 | Security updates: inventory | done | `backend/requirements.txt`, `frontend/package-lock.json`, two Dockerfiles |
 | Vulnerability management: scan, prioritise | fixed now | CI `security` job; severity gate high |
-| Security monitoring: real-time tools, alerts | known limit | Railway logs only; no SIEM or alerts for a prototype |
+| Security monitoring: real-time tools, alerts | done / known limit | Sentry error monitoring for API and PWA with PII scrubbed (A67) and Sentry's default alert on new issues; Railway logs; no SIEM |
 | Awareness: training, phishing simulations, champions, culture | N/A | Organisational programmes; not applicable to a two-person hackathon team. Sahara does protect citizens from phishing (Scam Shield) |
 | Communication channels for reporting | N/A | Prototype; issues go to the private repo |
 | GitHub Enterprise items (config, SSO, GHES backup, network, SCIM, custom policies, API, monitoring, residency, third-party) | N/A | Personal GitHub account, no Enterprise. 2FA on the owner account is the owner's setting |
@@ -172,7 +175,7 @@ Assets: a claimant's identity (CNIC, DOB), her family record, the payout account
 | Maintenance and updates documented | done | `README.md`, `CLAUDE.md` commands |
 | Backup solutions | N/A | A54 |
 | Simplicity: code, system design, documentation | done | `docs/` set; small files |
-| Observability / Logging: comprehensive, secure, retention, aggregation | done / known limit | Audit trail in DB (secure, append-only); app logs in Railway with PII masked (A43-A45); no retention policy or aggregation tool |
+| Observability / Logging: comprehensive, secure, retention, aggregation | done / known limit | Audit trail in DB (secure, append-only); app logs in Railway with PII masked (A43-A45); errors aggregated in Sentry with PII scrubbed (A67, Sentry's default 30/90-day retention); test coverage in Codecov; no own retention policy |
 
 ## Invicti checklist
 
@@ -194,7 +197,7 @@ Assets: a claimant's identity (CNIC, DOB), her family record, the payout account
 | 3. Penetration testing | known limit | GH row |
 | 3. Patch hygiene: inventory, automated patching | fixed now | Dependabot |
 | 3. Vulnerability management with prioritisation | fixed now | CI gate on high and critical |
-| 3. Security monitoring (SIEM, RASP, EDR) and alerts | known limit | Not for a prototype |
+| 3. Security monitoring (SIEM, RASP, EDR) and alerts | done / known limit | Sentry error alerts, scrubbed (A67); no SIEM, RASP or EDR for a prototype |
 | 3. AI/ML security: inventory AI components, authN/authZ and input validation on AI features, monitor | done | Jev pinned model; AI features behind sign-in and roles; the evaluation API measures behaviour; Jev never decides (CLAUDE.md rule 6); prompt-injection boundary in place for Jev and the second sensor (A60) |
 | 4. Security culture (training, phishing simulations, champions, reporting channels) | N/A | Organisational programmes |
 | 5. Platform configuration (source-control settings) | known limit | Branch protection not configured (GH row) |

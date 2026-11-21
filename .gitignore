@@ -11,11 +11,14 @@ venv/
 .pytest_cache/
 .coverage
 htmlcov/
+coverage.xml
 
 # Node
 node_modules/
 dist/
 .vite/
+lcov.info
+coverage/
 
 # OS / editors
 .DS_Store

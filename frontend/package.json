@@ -8,9 +8,11 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
-    "test:unit": "node --experimental-strip-types --test \"unit/*.test.ts\""
+    "test:unit": "node --experimental-strip-types --test \"unit/*.test.ts\"",
+    "test:coverage": "node --experimental-strip-types --test --experimental-test-coverage --test-coverage-include=\"src/**\" --test-reporter=spec --test-reporter-destination=stdout --test-reporter=lcov --test-reporter-destination=lcov.info \"unit/*.test.ts\""
   },
   "dependencies": {
+    "@sentry/react": "^10.78.0",
     "dexie": "^4.4.7",
     "react": "^19.3.1",
     "react-dom": "^19.3.1"

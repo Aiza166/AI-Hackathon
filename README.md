@@ -6,6 +6,8 @@
 Entry for **Coder's Cup 2026 AI Hackathon: "The Last Mile: AI on Public Rails"** (ACM, FAST-NUCES Karachi).
 Build window: Fri 20 Nov 2026, 6:00 PM to Sun 22 Nov 2026, 6:00 PM PKT. Live judging: Mon 23 Nov.
 
+[![CI](https://github.com/Aiza166/AI-Hackathon/actions/workflows/ci.yml/badge.svg)](https://github.com/Aiza166/AI-Hackathon/actions/workflows/ci.yml) Coverage: see [Codecov](https://app.codecov.io/gh/Aiza166/AI-Hackathon) (backend and frontend flags). Errors: Sentry (scrubbed, see [docs/INFRA.md](docs/INFRA.md#monitoring)).
+
 ## The one sentence
 
 **We help widows claim their late husband's pension even though they can't read the forms, have a weak phone signal, their records spell names differently, and scammers and fake heirs target them.**

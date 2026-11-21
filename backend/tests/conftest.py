@@ -7,7 +7,8 @@ os.environ.setdefault("JWT_SECRET", "test-secret-not-for-production-0123456789")
 os.environ["BCRYPT_ROUNDS"] = "4"
 os.environ["TYPESAFE_API_KEY"] = ""  # tests never call the real Jev API
 for _name in ("AZURE_SPEECH_KEY", "AZURE_SPEECH_REGION", "AZURE_DOCINTEL_ENDPOINT", "AZURE_DOCINTEL_KEY",
-              "SECOND_SENSOR_ENDPOINT", "SECOND_SENSOR_KEY", "SECOND_SENSOR_DEPLOYMENT", "SECOND_SENSOR_API_VERSION"):
+              "SECOND_SENSOR_ENDPOINT", "SECOND_SENSOR_KEY", "SECOND_SENSOR_DEPLOYMENT", "SECOND_SENSOR_API_VERSION",
+              "SENTRY_DSN"):
     os.environ[_name] = ""  # nor real Azure: tests mock it with httpx.MockTransport
 
 import pytest  # noqa: E402

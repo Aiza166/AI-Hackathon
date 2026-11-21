@@ -41,6 +41,8 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,mp3,ogg,opus}'],
+        // The Sentry SDK chunk is optional and loaded on demand: never precache it for offline use.
+        globIgnores: ['**/sentry-*.js'],
         // Runs before Workbox's own routes so the share POST is caught first.
         importScripts: ['share-target-sw.js'],
       },
