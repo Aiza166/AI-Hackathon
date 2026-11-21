@@ -275,7 +275,7 @@ def test_speech_and_unknown_ids_need_auth_and_return_404(client, login):
     assert client.get(f"/api/v1/audit/cases/{uuid.uuid4()}/replay", headers=login("auditor")).status_code == 404
 
 
-def test_withdrawn_consent_hides_cases_from_list_endpoints(client, login, file_claim):
+def test_withdrawn_consent_redacts_cases_in_list_endpoints(client, login, file_claim):
     from tests.test_consent import _consent_id
 
     case_id = file_claim("zainab", claimant_dob=None)["data"]["id"]
@@ -285,8 +285,10 @@ def test_withdrawn_consent_hides_cases_from_list_endpoints(client, login, file_c
     # The department's access can only be taken back once no claim is open (B5): withdraw the claim first.
     assert client.post(f"/api/v1/cases/{case_id}/withdraw", headers=zainab).status_code == 200
     assert client.post(f"/api/v1/me/consents/{_consent_id(client, zainab, 'department')}/withdraw", headers=zainab).status_code == 200
-    assert all(c["id"] != case_id for c in client.get("/api/v1/cases", headers=helper).json()["data"])
-    assert all(c["id"] != case_id for c in client.get("/api/v1/cases", headers=officer).json()["data"])
+    assert all(c.get("id") != case_id for c in client.get("/api/v1/cases", headers=helper).json()["data"])
+    assert all(c.get("id") != case_id for c in client.get("/api/v1/cases", headers=officer).json()["data"])
+    # Rows stay visible as stubs (reference, status) without personal details (Security review H1).
+    assert all("deceased_cnic" not in c for c in client.get("/api/v1/cases", headers=helper).json()["data"] if c.get("consent_active") is False)
     assert any(c["id"] == case_id for c in client.get("/api/v1/cases", headers=login("auditor")).json()["data"])
 
 

@@ -1,6 +1,7 @@
 import { Suspense, lazy, useCallback, useEffect, useState } from 'react'
 import { api, errorText, post } from '../api/client'
-import type { CaseView } from '../api/types'
+import type { CaseRow, CaseView } from '../api/types'
+import { isCaseStub } from '../api/types'
 import { Tabs } from '../components/Tabs'
 import type { TabDef } from '../components/Tabs'
 import { Badge, ErrorNote, Loading, humanize, toneFor } from '../components/ui'
@@ -52,7 +53,7 @@ export function OfficerHome() {
 }
 
 function QueuePanel() {
-  const [queue, setQueue] = useState<CaseView[] | null>(null)
+  const [queue, setQueue] = useState<CaseRow[] | null>(null)
   const [selected, setSelected] = useState<CaseView | null>(null)
   const [trace, setTrace] = useState<Trace | null>(null)
   const [reason, setReason] = useState('')
@@ -62,7 +63,7 @@ function QueuePanel() {
 
   const refresh = useCallback(async () => {
     try {
-      setQueue((await api<CaseView[]>('/api/v1/queue')).data)
+      setQueue((await api<CaseRow[]>('/api/v1/queue')).data)
     } catch (e) {
       setError(errorText(e))
     }
@@ -122,7 +123,14 @@ function QueuePanel() {
                 <tr><th scope="col">Case</th><th scope="col">Priority</th><th scope="col">Confidence</th><th scope="col">Why a human</th></tr>
               </thead>
               <tbody>
-                {queue.map((c) => (
+                {queue.map((c) => isCaseStub(c) ? (
+                  <tr key={c.reference}>
+                    <td>{c.reference}</td>
+                    <td colSpan={3} className="muted">
+                      <span lang="ur" dir="rtl">اجازت واپس لے لی گئی</span> Consent withdrawn: details hidden until the claimant shares them again.
+                    </td>
+                  </tr>
+                ) : (
                   <tr key={c.id} className={selected?.id === c.id ? 'is-selected' : undefined}>
                     <td>
                       <button type="button" className="row-link" onClick={() => void open(c)} aria-label={`Open case ${c.reference}`}>
