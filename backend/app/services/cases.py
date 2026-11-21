@@ -57,7 +57,7 @@ def _event(db: Session, case: Case, kind: str, actor_id: str | None, note: str |
     db.add(CaseEvent(case_id=case.id, kind=kind, actor_id=actor_id, note=note))
 
 
-def _helper_assigned(db: Session, helper_id: str, person_id: str) -> bool:
+def helper_assigned(db: Session, helper_id: str, person_id: str) -> bool:
     row = db.execute(select(HelperAssignment).where(HelperAssignment.helper_user_id == helper_id, HelperAssignment.person_id == person_id))
     return row.first() is not None
 
@@ -68,7 +68,7 @@ def can_view(db: Session, principal: Principal, case: Case) -> bool:
     if principal.role == Role.CITIZEN:
         return case.claimant_person_id == principal.person_id
     if principal.role == Role.HELPER:
-        return _helper_assigned(db, principal.id, case.claimant_person_id)
+        return helper_assigned(db, principal.id, case.claimant_person_id)
     return False
 
 
@@ -80,7 +80,7 @@ def _claimant_person(db: Session, principal: Principal, claim: ClaimIn) -> Perso
     person = person_by_cnic(db, claim.claimant_cnic)
     allowed = person is not None and (
         (principal.role == Role.CITIZEN and person.id == principal.person_id)
-        or (principal.role == Role.HELPER and _helper_assigned(db, principal.id, person.id))
+        or (principal.role == Role.HELPER and helper_assigned(db, principal.id, person.id))
     )
     if not allowed:
         audit.record(db, principal.actor, "ACCESS_DENIED", resource="POST /api/v1/cases", details={"reason": "claim for a person not linked to this user"})
@@ -228,6 +228,13 @@ def escalate(db: Session, principal: Principal, case: Case, reason: str) -> Case
 
 
 def close(db: Session, principal: Principal, case: Case, reason: str) -> Case:
+    """Close a case. A finished case stays as the officer left it, and a case still waiting for a
+    decision may only be closed by an officer: an admin closing it would be a rejection by
+    someone who is not an officer (hard rule 5)."""
+    if case.status in (*OFFICER_FINAL, "auto_approved"):
+        raise HTTPException(status_code=409, detail=f"This case is already {case.status}")
+    if principal.role != Role.OFFICER and case.status in ("in_review", "proof_requested"):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only an officer can close a case that is waiting for a decision")
     case.status = "closed"
     _event(db, case, "closed", principal.id, reason)
     audit.record(db, principal.actor, "CASE_CLOSED", resource=f"case:{case.reference}", case_id=case.id, details={"reason": reason})

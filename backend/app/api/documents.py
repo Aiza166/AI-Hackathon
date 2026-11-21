@@ -14,13 +14,16 @@ from sqlalchemy.orm import Session
 
 from app.api.cases import _load
 from app.core import audit
-from app.core.auth import Principal, require_roles
+from app.core.auth import Principal, deny, require_roles
 from app.core.envelope import ok
 from app.core.ratelimit import limiter
 from app.db import get_db
 from app.documents import service
+from app.documents.imaging import sniff_format
 from app.models.document import CaseDocument
+from app.models.platform import Case
 from app.schemas.contracts import Role
+from app.services import cases as case_svc
 
 router = APIRouter(prefix="/api/v1", tags=["documents"])
 
@@ -48,7 +51,19 @@ def _read_limited(upload: UploadFile) -> bytes:
         raise HTTPException(status_code=413, detail="The photo is too large (8 MB at most)")
     if not data:
         raise HTTPException(status_code=422, detail="The photo is empty")
+    if sniff_format(data) is None:  # the bytes decide, not the declared type or file name
+        raise HTTPException(status_code=415, detail="Please send a JPEG, PNG or WebP photo")
     return data
+
+
+def _visible(db: Session, principal: Principal, request: Request, case_id: str) -> None:
+    """Role/tenant visibility of the case (no consent log yet): checked before the document id,
+    so a caller who cannot see the case cannot learn which document ids exist in it."""
+    case = db.get(Case, case_id)
+    if case is None:
+        raise case_svc.not_found()
+    if not case_svc.can_view(db, principal, case):
+        raise deny(db, principal, request, "not allowed to view this case")
 
 
 def _doc(db: Session, case_id: str, doc_id: str) -> CaseDocument:
@@ -91,6 +106,7 @@ def list_documents(case_id: str, request: Request, principal: Principal = Depend
 
 @router.get("/cases/{case_id}/documents/{doc_id}")
 def get_document(case_id: str, doc_id: str, request: Request, principal: Principal = Depends(require_roles(*READERS)), db: Session = Depends(get_db)) -> dict:
+    _visible(db, principal, request, case_id)  # case access first: no document-existence oracle
     doc = _doc(db, case_id, doc_id)
     _load(db, principal, request, case_id, field=CONSENT_FIELD[doc.kind])
     return ok(_view(principal, doc))
@@ -102,6 +118,7 @@ def confirm_document_fields(
     request: Request, case_id: str, doc_id: str, body: ConfirmIn,
     principal: Principal = Depends(require_roles(Role.CITIZEN, Role.HELPER)), db: Session = Depends(get_db),
 ) -> dict:
+    _visible(db, principal, request, case_id)
     doc = _doc(db, case_id, doc_id)
     case = _load(db, principal, request, case_id, field=CONSENT_FIELD[doc.kind])
     doc = service.confirm_fields(db, principal, case, doc, body.values)
@@ -110,6 +127,7 @@ def confirm_document_fields(
 
 
 def _image(db: Session, principal: Principal, request: Request, case_id: str, doc_id: str, which: str) -> Response:
+    _visible(db, principal, request, case_id)
     doc = _doc(db, case_id, doc_id)
     case = _load(db, principal, request, case_id, field=CONSENT_FIELD[doc.kind])
     audit.record(db, principal.actor, "DOCUMENT_IMAGE_VIEWED", resource=f"document:{doc.id}", case_id=case.id, details={"view": which})

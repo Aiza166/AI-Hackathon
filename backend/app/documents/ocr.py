@@ -21,6 +21,7 @@ AZURE_API_VERSION = "2024-11-30"
 AZURE_MODEL = "prebuilt-read"
 POLL_INTERVAL_SECONDS = 0.8
 SUBMIT_RETRIES = 2  # extra attempts on 429/5xx or network error
+TESSERACT_TIMEOUT_SECONDS = 20  # a pathological image must not tie up a worker
 TESSERACT_LANG = "eng"  # the fields we read (CNIC, dates, numbers, Latin names) are printed in English
 
 
@@ -135,7 +136,8 @@ class TesseractEngine:
         except ImportError as exc:
             raise OcrUnavailable("pytesseract is not installed") from exc
         try:
-            data = pytesseract.image_to_data(img.convert("L"), lang=TESSERACT_LANG, output_type=pytesseract.Output.DICT)
+            data = pytesseract.image_to_data(img.convert("L"), lang=TESSERACT_LANG, output_type=pytesseract.Output.DICT,
+                                            timeout=TESSERACT_TIMEOUT_SECONDS)
         except pytesseract.TesseractNotFoundError as exc:
             raise OcrUnavailable("Tesseract binary not found") from exc
         except (pytesseract.TesseractError, RuntimeError) as exc:
@@ -169,7 +171,7 @@ def run_ocr(img: Image.Image, settings: Settings | None = None, transport: httpx
         try:
             return engine.read(img)
         except OcrUnavailable as exc:
-            log.warning("Azure OCR unavailable, trying Tesseract: %s", exc)
+            log.warning("Azure OCR unavailable, trying Tesseract: %s", type(exc).__name__)  # never the endpoint or key
         finally:
             engine.close()
     return TesseractEngine().read(img)

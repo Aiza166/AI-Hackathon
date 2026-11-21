@@ -35,6 +35,7 @@ AUDIO_FORMAT = "audio-24khz-48kbitrate-mono-mp3"  # ~6 KB per second: fine on a 
 MAX_TTS_CHARS = 400
 MAX_STT_BYTES = 1_000_000  # ~30 s of 16 kHz mono WAV; the short-audio API takes at most 60 s
 MEMORY_CACHE_ITEMS = 256
+STT_MAGIC = {"audio/wav": lambda d: d[:4] == b"RIFF" and d[8:12] == b"WAVE", "audio/ogg": lambda d: d[:4] == b"OggS"}
 STT_TYPES = {"audio/wav": "audio/wav; codecs=audio/pcm; samplerate=16000", "audio/ogg": "audio/ogg; codecs=opus"}
 ALL_ROLES = tuple(Role)
 
@@ -166,6 +167,8 @@ def speech_to_text(
     data = audio.file.read(MAX_STT_BYTES + 1)
     if not data or len(data) > MAX_STT_BYTES:
         return fail(code="AUDIO_TOO_LONG", message="Please record a shorter answer (about 30 seconds at most).", status=413)
+    if not STT_MAGIC[kind](data):  # the bytes must match the declared type
+        return fail(code="UNSUPPORTED_AUDIO", message="Send 16 kHz mono WAV or Ogg/Opus audio.", status=415)
     try:
         result = recognise(settings, data, STT_TYPES[kind], STT_LANGUAGES[lang])
     except httpx.HTTPError as exc:

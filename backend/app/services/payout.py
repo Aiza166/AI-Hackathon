@@ -124,7 +124,9 @@ def cancel(db: Session, principal: Principal, change_id: str) -> PayoutChangeReq
 
 def officer_review(db: Session, principal: Principal, change_id: str, approve: bool, note: str) -> PayoutChangeRequest:
     change = _get(db, change_id)
-    if change.tenant_id != principal.tenant_id or change.status != "flagged":
+    if change.tenant_id != principal.tenant_id:
+        raise HTTPException(status_code=404, detail="Payout change not found")  # other departments: not even existence
+    if change.status != "flagged":
         raise HTTPException(status_code=409, detail="Only flagged changes in your department need officer review")
     if not approve:
         change.status = "rejected"

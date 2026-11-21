@@ -16,6 +16,7 @@ from app.core import audit
 from app.core.security import decode_token, hash_api_key
 from app.db import get_db
 from app.models.platform import ApiKey, User
+from app.models.session import AuthSession
 from app.schemas.contracts import Role
 
 _bearer = HTTPBearer(auto_error=False)
@@ -30,6 +31,7 @@ class Principal:
     tenant_id: str
     person_id: str | None = None
     scopes: tuple[str, ...] = field(default_factory=tuple)
+    session_id: str | None = None  # sign-in session (users only)
 
     @property
     def actor(self) -> audit.Actor:
@@ -45,10 +47,13 @@ def _from_jwt(db: Session, token: str) -> Principal:
         claims = decode_token(token, expected_type="access")
     except jwt.InvalidTokenError as exc:
         raise _unauthorized() from exc
+    session = db.get(AuthSession, claims["sid"])
+    if session is None or session.user_id != claims["sub"] or session.revoked_at is not None:
+        raise _unauthorized()  # signed out, or the session was ended after a refresh-token reuse
     user = db.get(User, claims["sub"])
     if user is None or not user.active:
         raise _unauthorized()
-    return Principal("user", user.id, user.role, user.tenant_id, user.person_id)
+    return Principal("user", user.id, user.role, user.tenant_id, user.person_id, session_id=session.id)
 
 
 def _from_api_key(db: Session, plain: str) -> Principal:

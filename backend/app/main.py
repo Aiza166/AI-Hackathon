@@ -9,7 +9,9 @@ from sqlalchemy import text
 from app.api import admin, audit, auth, cases, consent, documents, evaluation, me, payout, public, rules, scam, speech
 from app.core.config import get_settings
 from app.core.envelope import fail, install_error_handlers, ok
+from app.core.middleware import BodySizeLimitMiddleware, SecurityHeadersMiddleware
 from app.core.ratelimit import limiter
+from app.core.redact import install_log_redaction
 from app.db import SessionLocal
 from app.decision.jev_client import JevClient
 from app.mock import router as mock_router
@@ -28,17 +30,24 @@ def _rate_limited(_: Request, __: RateLimitExceeded) -> JSONResponse:
 
 def create_app() -> FastAPI:
     settings = get_settings()
+    install_log_redaction()
     app = FastAPI(title=settings.app_name, version="0.2.0", description=PROTOTYPE_NOTE)
     app.state.limiter = limiter
     app.add_exception_handler(RateLimitExceeded, _rate_limited)
     app.add_middleware(SlowAPIMiddleware)
+    # Starlette: the middleware added LAST is the OUTERMOST. Order from outside in:
+    # SecurityHeaders -> CORS -> BodySizeLimit -> SlowAPI -> routes. So a 413 still carries the
+    # security and CORS headers, and an oversized body is refused before any route parses it.
+    # (Unhandled 500s are answered by Starlette's ServerErrorMiddleware, outside all of these.)
+    app.add_middleware(BodySizeLimitMiddleware)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_origins,
-        allow_credentials=True,
+        allow_credentials=False,  # bearer tokens in a header, never cookies
         allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
         allow_headers=["Authorization", "Content-Type", "X-API-Key", "Idempotency-Key"],
     )
+    app.add_middleware(SecurityHeadersMiddleware)
     install_error_handlers(app)
     for router in (auth.router, me.router, consent.router, cases.router, audit.router, admin.router, rules.router, payout.router, scam.router, documents.router, speech.router, evaluation.router, public.router, mock_router.router):
         app.include_router(router)

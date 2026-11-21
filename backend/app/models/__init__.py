@@ -5,6 +5,7 @@ from app.models.document import CaseDocument
 from app.models.idempotency import IdempotencyKey
 from app.models.payout import PayoutChangeRequest
 from app.models.scam import ScamCheck
+from app.models.session import AuthSession
 from app.models.mock import (
     MockAccount,
     MockDeath,
@@ -29,6 +30,7 @@ from app.models.platform import (
 __all__ = [
     "ApiKey",
     "AuditEvent",
+    "AuthSession",
     "Case",
     "CaseDocument",
     "CaseEvent",

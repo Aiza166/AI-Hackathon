@@ -25,7 +25,7 @@ def _row(e: AuditEvent) -> dict:
 
 @router.get("")
 def list_events(
-    action: str | None = None,
+    action: str | None = Query(default=None, max_length=64, pattern=r"^[A-Z0-9_]+$"),
     limit: int = Query(default=100, ge=1, le=500),
     principal: Principal = Depends(require_roles(*READERS)),
     db: Session = Depends(get_db),
@@ -51,5 +51,7 @@ def replay(case_id: str, principal: Principal = Depends(require_roles(*READERS))
     case = db.get(Case, case_id)
     if case is None or case.tenant_id != principal.tenant_id:
         raise not_found()
-    rows = db.execute(select(AuditEvent).where(AuditEvent.case_id == case_id).order_by(AuditEvent.seq)).scalars()
-    return ok({"case_reference": case.reference, "events": [_row(e) for e in rows]})
+    rows = [_row(e) for e in db.execute(select(AuditEvent).where(AuditEvent.case_id == case_id).order_by(AuditEvent.seq)).scalars()]
+    audit.record(db, principal.actor, "AUDIT_READ", resource=f"case:{case.reference}", case_id=case.id, details={"replay": True, "count": len(rows)})
+    db.commit()
+    return ok({"case_reference": case.reference, "events": rows})

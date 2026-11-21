@@ -68,7 +68,7 @@ def test_tts_upstream_error_is_a_503_without_details(client, login, monkeypatch,
 
 def test_stt_prefills_text_and_checks_audio_type(client, login, azure):
     headers = login("zainab")
-    ok = client.post("/api/v1/speech/stt?lang=ur", files={"audio": ("a.wav", b"RIFF" + b"\x00" * 100, "audio/wav")}, headers=headers)
+    ok = client.post("/api/v1/speech/stt?lang=ur", files={"audio": ("a.wav", b"RIFF" + b"\x00" * 4 + b"WAVE" + b"\x00" * 92, "audio/wav")}, headers=headers)
     assert ok.status_code == 200, ok.text
     data = ok.json()["data"]
     assert data["text"] == "محمد اسلم" and data["prefill_only"] and data["language"] == "ur-IN"

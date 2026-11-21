@@ -27,6 +27,28 @@ def person_resource(person_id: str) -> str:
     return f"person:{person_id}"
 
 
+def _grantee(principal: Principal) -> tuple | None:
+    if principal.role == Role.HELPER:
+        return (Consent.grantee_type == "helper", Consent.grantee_id == principal.id)
+    if principal.role in (Role.OFFICER, Role.ADMIN):
+        return (Consent.grantee_type == "department", Consent.grantee_id == principal.tenant_id)
+    return None
+
+
+def consented_person_ids(db: Session, principal: Principal, field: str) -> set[str]:
+    """People who currently share `field` with this helper or department (for list endpoints)."""
+    grantee = _grantee(principal)
+    if grantee is None:
+        return set()
+    rows = db.execute(
+        select(Consent.subject_person_id, Consent.fields).where(
+            Consent.status == "active", *grantee,
+            or_(Consent.valid_until.is_(None), Consent.valid_until > utcnow()),
+        )
+    ).all()
+    return {person_id for person_id, fields in rows if field in (fields or [])}
+
+
 def active_consent(db: Session, principal: Principal, person_id: str, field: str) -> Consent | None:
     if principal.role == Role.HELPER:
         grantee = (Consent.grantee_type == "helper", Consent.grantee_id == principal.id)

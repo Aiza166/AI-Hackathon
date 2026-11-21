@@ -28,13 +28,20 @@ def _encode(claims: dict, lifetime: timedelta) -> str:
     return jwt.encode(payload, get_settings().jwt_secret, algorithm=JWT_ALGORITHM)
 
 
-def create_access_token(user_id: str, role: str, tenant_id: str) -> str:
+def new_jti() -> str:
+    return secrets.token_hex(16)
+
+
+def create_access_token(user_id: str, role: str, tenant_id: str, sid: str) -> str:
+    """sid ties the token to a sign-in session, so sign-out revokes it immediately."""
     minutes = get_settings().jwt_access_minutes
-    return _encode({"sub": user_id, "role": role, "tid": tenant_id, "typ": "access"}, timedelta(minutes=minutes))
+    claims = {"sub": user_id, "role": role, "tid": tenant_id, "sid": sid, "jti": new_jti(), "typ": "access"}
+    return _encode(claims, timedelta(minutes=minutes))
 
 
-def create_refresh_token(user_id: str) -> str:
-    return _encode({"sub": user_id, "typ": "refresh"}, timedelta(days=REFRESH_TOKEN_DAYS))
+def create_refresh_token(user_id: str, sid: str, jti: str) -> str:
+    """Single use: the server stores the current jti per session and rotates it on every refresh."""
+    return _encode({"sub": user_id, "sid": sid, "jti": jti, "typ": "refresh"}, timedelta(days=REFRESH_TOKEN_DAYS))
 
 
 def decode_token(token: str, expected_type: str) -> dict:
@@ -45,7 +52,7 @@ def decode_token(token: str, expected_type: str) -> dict:
         algorithms=[JWT_ALGORITHM],
         issuer=JWT_ISSUER,
         audience=JWT_AUDIENCE,
-        options={"require": ["exp", "iat", "sub", "iss", "aud"]},
+        options={"require": ["exp", "iat", "sub", "iss", "aud", "typ", "sid", "jti"]},
     )
     if claims.get("typ") != expected_type:
         raise jwt.InvalidTokenError("wrong token type")

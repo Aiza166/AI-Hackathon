@@ -15,6 +15,22 @@ MAX_SIDE = 1568  # Jev limit and plenty for OCR of an A4 page or an ID card
 MIN_SIDE = 280  # Jev minimum; smaller photos are too small to read anyway
 MAX_PIXELS = 40_000_000  # decompression-bomb guard (a 12 MP phone photo is ~12 M)
 ALLOWED_FORMATS = {"JPEG", "PNG", "WEBP"}
+# Pillow raises DecompressionBombError above 2x this and only warns between 1x and 2x,
+# so load() also checks the pixel count itself before decoding anything.
+Image.MAX_IMAGE_PIXELS = MAX_PIXELS
+_MAGIC_JPEG = bytes([0xFF, 0xD8, 0xFF])
+_MAGIC_PNG = bytes([0x89]) + b"PNG" + bytes([0x0D, 0x0A, 0x1A, 0x0A])
+
+
+def sniff_format(data: bytes) -> str | None:
+    """Image type from the file's magic bytes (never from the name or the declared type)."""
+    if data.startswith(_MAGIC_JPEG):
+        return "JPEG"
+    if data.startswith(_MAGIC_PNG):
+        return "PNG"
+    if len(data) >= 12 and data[:4] == b"RIFF" and data[8:12] == b"WEBP":
+        return "WEBP"
+    return None
 
 # Quality thresholds, tuned on backend/sample_docs (all pass) and on blurred/darkened copies (all fail).
 BLUR_MIN_VARIANCE = 60.0  # variance of the Laplacian on a 1000 px wide grey copy
@@ -73,12 +89,16 @@ def _exif_summary(img: Image.Image) -> dict:
 
 
 def load(data: bytes) -> LoadedImage:
-    Image.MAX_IMAGE_PIXELS = MAX_PIXELS
+    sniffed = sniff_format(data)
+    if sniffed is None:
+        raise BadImage("Only JPEG, PNG or WebP photos are accepted")
     try:
-        img = Image.open(io.BytesIO(data))
+        img = Image.open(io.BytesIO(data))  # lazy: reads the header only
         fmt = (img.format or "").upper()
-        if fmt not in ALLOWED_FORMATS:
+        if fmt not in ALLOWED_FORMATS or fmt != sniffed:
             raise BadImage("Only JPEG, PNG or WebP photos are accepted")
+        if img.width * img.height > MAX_PIXELS:
+            raise BadImage("The photo has too many pixels")
         exif = _exif_summary(img)
         img = ImageOps.exif_transpose(img)
         original_size = img.size
@@ -124,6 +144,8 @@ def check_quality(loaded: LoadedImage) -> Quality:
 
 
 def jpeg_bytes(img: Image.Image, quality: int = 85) -> bytes:
+    """Re-encode as a fresh baseline JPEG. No exif/icc/xmp is passed, so the stored copy
+    carries no EXIF (GPS, camera serial, timestamps) from the citizen's phone."""
     buf = io.BytesIO()
     img.save(buf, "JPEG", quality=quality, optimize=True)  # baseline JPEG (Jev rejects progressive)
     return buf.getvalue()
