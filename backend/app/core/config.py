@@ -29,6 +29,16 @@ class Settings(BaseSettings):
     # Only admins of this department may reset the demo or inject mock-service faults.
     platform_admin_tenant: str = "pension"
 
+    # Azure AI services. All optional: without them the app falls back (Tesseract OCR,
+    # browser speech) and keeps working. Never log these values.
+    azure_speech_key: str | None = None
+    azure_speech_region: str | None = None
+    azure_docintel_endpoint: str | None = None
+    azure_docintel_key: str | None = None
+    azure_timeout_seconds: float = 20.0
+    jev_image_timeout_seconds: float = 8.0
+    tts_cache_dir: str | None = None  # disk cache for synthesised audio; memory-only when unset
+
     @field_validator("database_url")
     @classmethod
     def _use_psycopg_driver(cls, url: str) -> str:
@@ -37,6 +47,22 @@ class Settings(BaseSettings):
             if url.startswith(prefix):
                 return "postgresql+psycopg://" + url[len(prefix):]
         return url
+
+    @field_validator("azure_speech_key", "azure_speech_region", "azure_docintel_endpoint", "azure_docintel_key", "typesafe_api_key")
+    @classmethod
+    def _blank_is_unset(cls, value: str | None) -> str | None:
+        """An empty placeholder in .env means "not configured"."""
+        if value is None:
+            return None
+        return value.strip() or None
+
+    @property
+    def speech_configured(self) -> bool:
+        return bool(self.azure_speech_key and self.azure_speech_region)
+
+    @property
+    def docintel_configured(self) -> bool:
+        return bool(self.azure_docintel_endpoint and self.azure_docintel_key)
 
     @model_validator(mode="after")
     def _refuse_weak_jwt_secret(self) -> "Settings":

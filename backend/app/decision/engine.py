@@ -41,6 +41,8 @@ def _hard_flags(signals: Signals, rules: RuleResult) -> list[ReasonCode]:
     identity_unsure = [m for m in [signals.claimant_match, *signals.deceased_matches.values()] if m and m.route == "UNSURE"]
     if identity_unsure:
         flags.append(ReasonCode.NAME_MISMATCH)
+    if signals.documents.get("high"):
+        flags.append(ReasonCode.DOC_EDIT_RISK)  # an uploaded paper needs a second look by an officer
     if rules.outcome == "not_eligible":
         flags.extend(ReasonCode(h.reason) for h in rules.hits if h.outcome == "not_eligible")
     return flags
@@ -58,6 +60,9 @@ def _needs_proof(signals: Signals, rules: RuleResult) -> tuple[list[ReasonCode],
     missing.extend(claimant_missing)
     if any(m and m.route == "ASK" for m in signals.deceased_matches.values()):
         reasons.append(ReasonCode.NAME_MISMATCH)
+    for kind in signals.documents.get("mismatch", []):
+        reasons.append(ReasonCode.DOC_MISMATCH)
+        missing.append(kind)  # ask for a clearer or correct copy of exactly this paper
     return reasons, missing
 
 

@@ -16,6 +16,7 @@ from app.core.config import Settings, get_settings
 # TypeSafe guidance: above 0.7 is yes, below 0.3 is no, between is undecided.
 NOUL_YES = 0.7
 NOUL_NO = 0.3
+IMAGES_HEADER = "TypeSafe-Danger-Zone-Images"  # required for any request with images or Box questions
 
 
 class Band(StrEnum):
@@ -51,6 +52,11 @@ def noul(instructions: str) -> dict:
     return {"type": "noul", "instructions": instructions}
 
 
+def box(instructions: str) -> dict:
+    """Always returns a box, even if the target is absent: pair it with a presence Noul."""
+    return {"type": "box", "instructions": instructions}
+
+
 def choice(instructions: str, criteria: dict[str, str]) -> dict:
     return {"type": "choice", "instructions": instructions, "criteria": criteria}
 
@@ -64,14 +70,18 @@ class JevClient:
             transport=transport,
         )
 
-    def ask(self, state: Any, questions: dict[str, dict]) -> JevResult:
+    def ask(self, state: Any, questions: dict[str, dict], assets: dict[str, dict] | None = None, timeout: float | None = None) -> JevResult:
+        """assets: images referenced by key from state/instructions (needs the Danger-Zone header)."""
         if not self._settings.typesafe_api_key:
             raise JevUnavailable("TYPESAFE_API_KEY is not set")
         body = {"model": self._settings.jev_model, "state": state, "questions": questions}
         headers = {"Authorization": f"Bearer {self._settings.typesafe_api_key}"}
+        if assets:
+            body["assets"] = assets
+            headers[IMAGES_HEADER] = "true"
         started = time.perf_counter()
         try:
-            response = self._client.post("/v1/systemone", json=body, headers=headers)
+            response = self._client.post("/v1/systemone", json=body, headers=headers, timeout=timeout or self._settings.jev_timeout_seconds)
             response.raise_for_status()
         except httpx.HTTPError as exc:
             # Never include the response body or key in the message.

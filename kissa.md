@@ -94,6 +94,8 @@ You own **Stream C (Frontend PWA)** and **Stream D (Demo & quality)**. Aiza owns
   - Demo: simulate v2 shows 2 of 4 past cases change (end date 2034-11-01); publish; Zainab's new claim says "rule v2".
 - [ ] Auditor: decision trace view.
 - [ ] Urdu audio clips for every prompt and reason code (Stream D), cached by the PWA.
+  - Update Sun: `speak()` now falls back to the server's Azure Urdu voice (`POST /api/v1/speech/tts`, cached in the Cache API) before the phone voice, so missing clips still sound natural online. Pre-recorded clips are still worth it for offline.
+- [ ] Click through the new photo step (wizard after "Send claim", and "Send photos of papers" on the claim page) at phone width; officer case panel now shows document indicators + ELA heatmap. Sample images: `backend/sample_docs/`.
 
 ### Phase 3 (Sat 23:00 to Sun 03:30)
 - [x] Scam Shield screen (paste/forward message, verdict, reasons, "is someone on the phone with you?" question). First version built; polish it.

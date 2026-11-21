@@ -131,6 +131,12 @@ _EXPLANATIONS: dict[ReasonCode, tuple[str, str, str]] = {
         "Check it on your CNIC and give it again, or show your CNIC to the helper.",
         "calendar",
     ),
+    ReasonCode.DOC_MISMATCH: (
+        "آپ کے کاغذ کی کچھ معلومات سرکاری ریکارڈ سے نہیں ملتیں۔ براہ کرم اس کاغذ کی صاف تصویر یا دوسری کاپی بھیجیں۔",
+        "Some details on your paper do not match the government record. "
+        "Please send a clear photo or another copy of this paper.",
+        "document-alert",
+    ),
 }
 
 

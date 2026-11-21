@@ -6,7 +6,7 @@ from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 from sqlalchemy import text
 
-from app.api import admin, audit, auth, cases, consent, evaluation, me, payout, public, rules, scam
+from app.api import admin, audit, auth, cases, consent, documents, evaluation, me, payout, public, rules, scam, speech
 from app.core.config import get_settings
 from app.core.envelope import fail, install_error_handlers, ok
 from app.core.ratelimit import limiter
@@ -40,7 +40,7 @@ def create_app() -> FastAPI:
         allow_headers=["Authorization", "Content-Type", "X-API-Key", "Idempotency-Key"],
     )
     install_error_handlers(app)
-    for router in (auth.router, me.router, consent.router, cases.router, audit.router, admin.router, rules.router, payout.router, scam.router, evaluation.router, public.router, mock_router.router):
+    for router in (auth.router, me.router, consent.router, cases.router, audit.router, admin.router, rules.router, payout.router, scam.router, documents.router, speech.router, evaluation.router, public.router, mock_router.router):
         app.include_router(router)
 
     @app.get("/healthz", tags=["health"])

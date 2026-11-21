@@ -1,8 +1,11 @@
-import { useEffect, useRef, useState } from 'react'
+import { Suspense, lazy, useEffect, useRef, useState } from 'react'
 import type { CaseView, ClaimIn, DocumentKind } from '../api/types'
 import { ErrorNote, ListenButton, Loading, Pictogram } from '../components/ui'
 import { DOC_ICONS, Icon } from '../lib/icons'
 import { clearDraft, loadDraft, saveDraft, submit as submitQueued, takeForFixing } from '../lib/outbox'
+
+// Photos of the papers, right after the claim is sent (loaded on demand to keep the shell small).
+const DocumentCapture = lazy(() => import('../components/DocumentCapture').then((m) => ({ default: m.DocumentCapture })))
 
 // One question per screen, big icons, audio on every step (low-literacy first).
 // Every step is saved on the phone (lib/outbox.ts), so a reload or a dropped signal loses nothing.
@@ -97,6 +100,7 @@ export function ClaimWizard({ ownerId, claimant, onDone, onQueued, onCancel }: C
   const [iban, setIban] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const [created, setCreated] = useState<CaseView | null>(null) // sent: now photograph the papers
   // Draft handling: restore once (inputs stay hidden until then), then save after every real change.
   const [restored, setRestored] = useState(false)
   const [savedOnPhone, setSavedOnPhone] = useState(false)
@@ -172,7 +176,7 @@ export function ClaimWizard({ ownerId, claimant, onDone, onQueued, onCancel }: C
         owner: ownerId, subject: claimant.cnic, subjectName: claimant.name, path: '/api/v1/cases', body: claim, draft: { step, data },
       })
       if (result.kind === 'sent') {
-        onDone(result.data) // the outbox removed the draft once the server confirmed the claim
+        setCreated(result.data) // the outbox removed the draft once the server confirmed the claim
       } else if (result.kind === 'queued') {
         // Saved in the outbox; the draft stays until the claim is confirmed sent.
         onQueued()
@@ -198,6 +202,13 @@ export function ClaimWizard({ ownerId, claimant, onDone, onQueued, onCancel }: C
 
   const relationLabel = RELATIONS.find((r) => r.key === relation)
 
+  if (created) {
+    return (
+      <Suspense fallback={<Loading label="Opening the camera step" />}>
+        <DocumentCapture caseId={created.id} kinds={documents.length ? documents : DOCS.map((d) => d.key)} onDone={() => onDone(created)} />
+      </Suspense>
+    )
+  }
   if (!restored) return <Loading label="Opening your saved claim" />
 
   return (
