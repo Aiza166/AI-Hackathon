@@ -278,11 +278,13 @@ def test_speech_and_unknown_ids_need_auth_and_return_404(client, login):
 def test_withdrawn_consent_hides_cases_from_list_endpoints(client, login, file_claim):
     from tests.test_consent import _consent_id
 
-    case_id = file_claim("zainab")["data"]["id"]
+    case_id = file_claim("zainab", claimant_dob=None)["data"]["id"]
     zainab, helper, officer = login("zainab"), login("helper"), login("officer")
     assert any(c["id"] == case_id for c in client.get("/api/v1/cases", headers=helper).json()["data"])
     client.post(f"/api/v1/me/consents/{_consent_id(client, zainab, 'helper')}/withdraw", headers=zainab)
-    client.post(f"/api/v1/me/consents/{_consent_id(client, zainab, 'department')}/withdraw", headers=zainab)
+    # The department's access can only be taken back once no claim is open (B5): withdraw the claim first.
+    assert client.post(f"/api/v1/cases/{case_id}/withdraw", headers=zainab).status_code == 200
+    assert client.post(f"/api/v1/me/consents/{_consent_id(client, zainab, 'department')}/withdraw", headers=zainab).status_code == 200
     assert all(c["id"] != case_id for c in client.get("/api/v1/cases", headers=helper).json()["data"])
     assert all(c["id"] != case_id for c in client.get("/api/v1/cases", headers=officer).json()["data"])
     assert any(c["id"] == case_id for c in client.get("/api/v1/cases", headers=login("auditor")).json()["data"])
@@ -313,7 +315,9 @@ def test_only_an_officer_can_close_a_case_waiting_for_a_decision(client, login, 
 # ---------------------------------------------------------------- rate limits and PIN lockout
 
 def test_login_rate_limit_returns_429(client):
-    statuses = [client.post("/api/v1/auth/login", json={"phone": "99999999999", "pin": "0000"}).status_code for _ in range(11)]
+    from app.api.auth import LOGIN_LIMIT_PER_MINUTE
+
+    statuses = [client.post("/api/v1/auth/login", json={"phone": "99999999999", "pin": "0000"}).status_code for _ in range(LOGIN_LIMIT_PER_MINUTE + 1)]
     assert statuses[-1] == 429
     assert statuses[0] == 401
 
@@ -325,9 +329,12 @@ def test_default_limit_covers_routes_without_their_own(client):
 
 
 def test_spoofed_forwarded_for_does_not_reset_the_limit(client, proxy_hops):
+    from app.api.auth import LOGIN_LIMIT_PER_MINUTE
+
     # The caller controls the left part of X-Forwarded-For; Railway appends the real address on the right.
     statuses = [client.post("/api/v1/auth/login", json={"phone": "99999999999", "pin": "0000"},
-                            headers={"X-Forwarded-For": f"10.0.0.{i}, 203.0.113.7"}).status_code for i in range(11)]
+                            headers={"X-Forwarded-For": f"10.0.{i // 250}.{i % 250}, 203.0.113.7"}).status_code
+                for i in range(LOGIN_LIMIT_PER_MINUTE + 1)]
     assert statuses[-1] == 429
 
 

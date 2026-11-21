@@ -18,6 +18,9 @@ from app.models.platform import User, utcnow
 from app.models.session import AuthSession
 
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
+# Per IP: judges share one venue IP, so this is generous; PIN guessing is stopped by the
+# per-account lockout (5 wrong PINs = 15 minutes), which does not depend on the IP.
+LOGIN_LIMIT_PER_MINUTE = 60
 _DUMMY_HASH = hash_pin("not-a-real-pin")  # unknown phones still cost one bcrypt check
 
 
@@ -55,7 +58,7 @@ def _tokens(user: User, session: AuthSession) -> dict:
 
 
 @router.post("/login")
-@limiter.limit("60/minute")  # per IP: judges share one venue IP; guessing is stopped by the per-account lockout
+@limiter.limit(f"{LOGIN_LIMIT_PER_MINUTE}/minute")
 def login(request: Request, body: LoginIn, db: Session = Depends(get_db)) -> dict:
     user = db.execute(select(User).where(User.phone == body.phone)).scalar_one_or_none()
     if user is not None and recent_failures(db, user.id, "LOGIN_FAILED") >= MAX_FAILURES:
