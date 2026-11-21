@@ -58,3 +58,4 @@ go to `frontend/e2e/results/` (git-ignored).
 | `j10-perf` | Slow 3G first render on the production build, service worker offline reload |
 | `j11-eval-judge` | Evaluation page and Judge console (admin), officer cannot open the console, 390 px fit |
 | `j12-narrow-360` | Every citizen and helper screen at 360 px: no sideways scroll, Urdu RTL, tap targets >= 48 px, no CSP blocks (soft failures, all listed in `results/narrow-360.json`) |
+| `j13-languages` | Sindhi and Punjabi at 360 px: picker on login, choice remembered, home/wizard/decision/Scam Shield in the chosen script and lang tag, RTL, 48 px, machine-assisted note, Listen still sends Urdu, switch back to Urdu |

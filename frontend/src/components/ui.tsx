@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { Icon } from '../lib/icons'
 import { speak } from '../lib/speak'
+import { useLang } from '../lib/useLang'
 
 // Small shared building blocks. Every citizen-facing line pairs an icon, Urdu (RTL) and small English.
 
@@ -48,16 +49,33 @@ interface BilingualProps {
   en: string
   as?: 'h1' | 'h2' | 'h3' | 'p' | 'span'
   id?: string
+  /** Text key in the Sindhi/Punjabi packs; without it the line always stays Urdu. */
+  k?: string
 }
 
-/** Urdu first (large, RTL), English underneath (small). */
-export function Bilingual({ ur, en, as: Tag = 'span', id }: BilingualProps) {
+/** Urdu (or the chosen Sindhi/Punjabi line) first, large and RTL; English underneath, small. */
+export function Bilingual({ ur, en, as: Tag = 'span', id, k }: BilingualProps) {
+  const { text } = useLang()
+  const local = k ? text(k, ur) : { text: ur, tag: 'ur' }
   return (
     <Tag className="bi" id={id}>
-      <span className="bi-ur" lang="ur" dir="rtl">{ur}</span>
+      <span className="bi-ur" lang={local.tag} dir="rtl">{local.text}</span>
       <span className="bi-en" lang="en">{en}</span>
     </Tag>
   )
+}
+
+interface LocalProps {
+  k: string
+  ur: string
+  className?: string
+}
+
+/** One fixed citizen line in the chosen language (Urdu fallback), right-to-left. */
+export function Local({ k, ur, className }: LocalProps) {
+  const { text } = useLang()
+  const local = text(k, ur)
+  return <span lang={local.tag} dir="rtl" className={className}>{local.text}</span>
 }
 
 interface BadgeProps {

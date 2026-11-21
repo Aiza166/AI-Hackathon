@@ -34,13 +34,13 @@ export function ScamVerdictView({ result, onAgain }: ScamVerdictViewProps) {
     <div className="stack-lg">
       <div className={`verdict tone-${v.tone}`} role="status" aria-live="polite">
         <Pictogram name={v.icon} tone={v.tone} size="lg" />
-        <Bilingual as="h2" ur={v.ur} en={v.en} />
+        <Bilingual as="h2" k={`scam.${result.verdict}`} ur={v.ur} en={v.en} />
         <ListenButton audioKey={`scam_${result.verdict.toLowerCase()}`} text={spoken} />
       </div>
 
       {result.reasons.length > 0 && (
         <section className="stack" aria-labelledby="scam-reasons">
-          <Bilingual as="h3" id="scam-reasons" ur="کیوں؟" en="Why" />
+          <Bilingual as="h3" id="scam-reasons" k="why" ur="کیوں؟" en="Why" />
           <ul className="reason-list">
             {result.reasons.map((en, i) => (
               <li key={en} className="reason-item">

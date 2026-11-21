@@ -56,6 +56,8 @@
 
   --font: system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans', 'Helvetica Neue', Arial, sans-serif;
   --font-ur: 'Noto Nastaliq Urdu', 'Jameel Noori Nastaleeq', 'Urdu Typesetting', 'Noto Naskh Arabic', 'Segoe UI', Tahoma, sans-serif;
+  /* Sindhi is written in Naskh, and Nastaliq Urdu fonts lack Sindhi letters such as ڪ ٿ ڄ ڏ. */
+  --font-sd: 'Noto Naskh Arabic', 'MB Lateefi', 'Segoe UI', Tahoma, sans-serif;
   --touch: 48px;
   --touch-big: 60px;
 }
@@ -81,6 +83,18 @@ body {
   line-height: 2;
   unicode-bidi: isolate;
 }
+/* Sindhi (Naskh) and Punjabi in Shahmukhi (Nastaliq, like Urdu): also always right-to-left. */
+:lang(sd) { font-family: var(--font-sd); line-height: 1.9; unicode-bidi: isolate; }
+:lang(pa) { font-family: var(--font-ur); line-height: 2; unicode-bidi: isolate; }
+
+/* Language picker: Urdu (default), Sindhi, Punjabi. */
+.lang-picker { display: grid; gap: var(--s2); }
+.lang-title { display: flex; align-items: baseline; gap: var(--s2); font-size: var(--t-sm); }
+.lang-title-en { color: var(--ink-soft); font-weight: 600; }
+.lang-options .segment { min-height: 56px; justify-content: center; }
+.segment[aria-pressed='true'] { background: var(--indigo); border-color: var(--indigo); color: #fff; }
+.segment[aria-pressed='true'] .segment-ur, .segment[aria-pressed='true'] .segment-en { color: #fff; }
+.lang-note { color: var(--ink-soft); }
 [lang='en'] { font-family: var(--font); line-height: 1.4; }
 
 h1, h2, h3, p { margin: 0; }
