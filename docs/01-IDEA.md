@@ -39,9 +39,9 @@ Zainab opens the app on a cheap phone, or Ayesha opens it for her in Helper Mode
 The mock records are deliberately messy: "Muhammad Aslam", "Mohd. Aslam" and "Muhammed Aslam" on different documents, a missing date of birth, a duplicate entry. There is also a **different** man called "Muhammad Aslam" with another CNIC, so a careless name match would pay the wrong family.
 
 ### 4. Safety checks
-1. **Identity match:** fuzzy name matching **plus** CNIC and date of birth. A name alone never counts as a match.
+1. **Identity match:** fuzzy name matching **plus** CNIC and date of birth. A name alone never counts as a match, and nothing is auto-matched without an exact CNIC.
 2. **Duplicate claim check:** has someone else claimed this pension?
-3. **Document check:** do the OCR fields agree with the registry? Are there signs the image was edited? (Shown to officers as risk indicators, never as a verdict.)
+3. **Document check:** do the OCR fields agree with the registry? Are there signs the image was edited? (Shown to officers as risk indicators, never as a verdict. Missing EXIF data never counts against the claimant. We do not claim QR verification.)
 4. **Odd patterns:** is the payout account already used by other claims?
 
 ### 5. The decision: three outcomes
@@ -58,7 +58,7 @@ The engine combines **versioned eligibility rules** (stored in the database, edi
 Why 0.95: we judge that a wrong approval costs about 20 times a short delay, so auto-approve only when `p > 20 / (20 + 1) = 0.952`. The evaluation page shows the full cost curve that backs this choice.
 
 ### 6. The explanation: two views
-- **Zainab hears (Urdu audio + icon):** "Your claim is paused because another person has also claimed this pension. An officer will check within 3 days." (3 days is our mock service level; no official processing time exists.)
+- **Zainab hears (Urdu audio + icon):** "Your claim is paused because another person has also claimed this pension. An officer will check within 3 days." ("3 days" is a mock target we chose; no official processing time exists.)
 - **The auditor sees:** input, rule version, model version, confidence, every check result, the route and the final result.
 
 ### 7. Officer review
@@ -66,12 +66,13 @@ Kamran's queue is sorted by priority and confidence. He sees both claimants side
 
 ### 8. Safe payout (SafeSwitch)
 - Money goes to Zainab's mock Raast account, after the payment service confirms the account is in her name.
-- Any request to **change the payout account** (the most common way benefits are stolen) is held for 48 hours and needs Zainab's own confirmation by PIN or voice.
+- Any request to **change the payout account** (the most common way benefits are stolen) is held for 48 hours (our design choice) and needs Zainab's own confirmation by PIN or voice. If a red flag fires, the hold is extended up to 4 business days (the maximum delay UK FCA guidance allows for a suspicious payment).
 - If the new account already receives money for other claims, it is flagged at once and goes to an officer.
 
 ### 9. Scam Shield
 - Rafiq (or anyone) forwards a message such as: "Your pension is released. Pay Rs 5000 processing fee at this link."
 - The system checks small, observable facts (does it ask for a fee? an OTP? contain a link? claim to be from the government? come from an unofficial sender?) and gives a verdict: likely scam / looks genuine / not sure.
+- Content signals (fee, OTP, link) weigh more than the sender ID, because the official BISP short code 8171 has itself been spoofed ([PID PR No. 59, 5 July 2024](https://pid.gov.pk/site/press_detail/25791)). A message "from 8171" is evidence, never proof. The real BISP sender 8171 and helpline 0800-26477 are confirmed facts we show as real-world patterns; the app itself uses mock senders.
 - It asks: **"Is someone on the phone telling you to do this right now?"** A yes raises the risk.
 - **It cross-checks the person's real case:** "Your case shows no payment pending, and the government never charges a fee. This is a scam." A standalone scam detector cannot do this.
 - False alarms are counted and shown honestly on the evaluation page.
@@ -82,9 +83,12 @@ Kamran's queue is sorted by priority and confidence. He sees both claimants side
 - When she withdraws Ayesha's access, Ayesha's **very next request is blocked (403)** on the server, and the audit log shows the withdrawal and the blocked attempt.
 
 ### 11. Rules change live
-- The admin publishes a real, dated rule change: **v2 = the federal 10-year cap** (effective 10 Sep 2024). After the spouse dies or becomes ineligible, other family members get the family pension for at most 10 years (children: 10 years or until age 21, whichever is later; disabled children: for life). People already drawing the pension before that date are exempt. No code change, no redeploy.
-- **Digital Twin:** before publishing, the admin replays past cases under the new rule and sees "this would change 3 past decisions".
-- Old decisions still show "decided under rule v1".
+- The admin publishes a real, dated federal rule change. No code change, no redeploy.
+  - **v1** = Finance Division O.M. No. 1(13)-Reg.6/83 dated 23-10-1983, as updated 24-06-2024 ([PDF](https://www.finance.gov.pk/circulars/circular_24062024.pdf)): the widow gets the family pension for life, until remarriage; after her, sons and unmarried, widowed or divorced daughters share it (daughters until (re)marriage). No overall time cap.
+  - **v2** = O.M. F.No. 9(3)R-6/2024-264 dated 10-09-2024 ([PDF](https://www.finance.gov.pk/circulars/circular_10092024_1.pdf)), clarified by O.M.s of 10-10-2024 ([PDF](https://www.finance.gov.pk/circulars/circular_10102024_1.pdf)) and 22-01-2025 ([PDF](https://www.finance.gov.pk/circulars/circular_22012025.pdf)): the widow is unchanged. After the spouse dies or becomes ineligible, the remaining heirs get it for at most 10 years; children for 10 years or until age 21, whichever is later; disabled children for life. It applies only where the entitlement starts on or after 10-09-2024; family pensioners already drawing before that date are exempt.
+- **Digital Twin:** before publishing, the admin replays past cases under the new rule and sees which past decisions would change and why.
+- The demo shows both sides: an old heir case (entitled in 2019) still shows "decided under rule v1" with no cap, and a new heir case (mother died November 2024) is decided under v2 and capped at 10 years.
+- We never demo "a remarried widow keeps her pension": no federal or provincial civil-service rule or ruling supports it.
 
 ## Users and roles
 

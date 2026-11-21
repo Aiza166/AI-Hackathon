@@ -48,7 +48,7 @@ The frontend works against a mock server (MSW) built from the OpenAPI spec until
 | Mock NADRA, death registry, pension, Raast APIs | B | Endpoints return seeded messy data |
 | Decision engine v0: signals, rules v1 in ZEN, router, reason codes | B | Zainab's clean claim auto-approves; duplicate claim routes UNSURE |
 | Citizen claim flow (icons + audio), officer queue, approve/reject | C | Claim filed in UI appears in officer queue |
-| Deploy: Railway (API + Postgres + Redis), Vercel (PWA), uptime ping | D | Public URLs work from a phone on mobile data |
+| Deploy: Railway (API + Postgres + PWA, deployed; Redis not needed yet; Cloudflare Pages as static fallback), uptime ping | D | Public URLs work from a phone on mobile data |
 
 **Milestone M1 (Sat 15:00):** a judge could watch a claim go from the citizen's phone to an officer decision on the deployed URL in under 90 seconds.
 
@@ -58,9 +58,9 @@ The frontend works against a mock server (MSW) built from the OpenAPI spec until
 | Consent model, `assert_consent()`, withdraw, corrections, access log | A | Withdraw then read = 403, logged |
 | Cases: assign, escalate, close; notifications; idempotency keys | A | Retry of same request does not duplicate |
 | Name matcher + pair test set; dedupe | B | False-match rate measured; other "Muhammad Aslam" not matched |
-| OCR + document consistency + edit-risk indicators; Jev document Nouls | B | Edited certificate flagged as risk |
-| Rule versions, publish, Digital Twin simulate | B | v2 published live, old case shows v1 |
-| SafeSwitch payout change with 48h hold job + confirmation | A + B | Helper cannot confirm; flagged account goes to officer |
+| OCR + document consistency + edit-risk indicators; Jev document Nouls (images header, PNG/JPEG 280-1568 px, Box paired with a presence Noul) | B | Edited certificate flagged as risk; missing EXIF not flagged |
+| Rule versions, publish, Digital Twin simulate | B | v2 (federal O.M. 10-09-2024, 10-year heir cap) published live; old heir case (2019) stays on v1; new heir case (after 10-09-2024) capped under v2 |
+| SafeSwitch payout change with 48h hold job (up to 4 business days on a red flag) + confirmation | A + B | Helper cannot confirm; flagged account goes to officer |
 | Offline outbox (Dexie), saved progress, sync | C | Offline claim syncs once on reconnect |
 | Helper Mode: family list, fast switch, per-family consent | C | Switching never shows another family's data |
 | Admin rule editor + Digital Twin screen; auditor trace view | C | Usable end to end |
@@ -71,7 +71,7 @@ The frontend works against a mock server (MSW) built from the OpenAPI spec until
 ### Phase 3: Protection, evidence and polish. Sat 23:00 to Sun 03:30
 | Task | Stream | Done when |
 |---|---|---|
-| Scam Shield: Jev Nouls + code checks + phone-pressure question + case cross-check | B | Fee scam flagged with reasons |
+| Scam Shield: Jev Nouls + code checks + phone-pressure question + case cross-check; content signals outweigh sender ID | B | Fee scam flagged with reasons, even when it claims to come from 8171 |
 | Scam Map + analytics per tenant | C | Map shows counts by type / area / hour |
 | Labelled eval sets: mock cases (~200), name pairs, scam messages from public examples | B | Sets committed with source notes |
 | Eval runner + eval page: cost curve sweep, wrong approvals, FPR / FNR, UNSURE rate, latency, cost | B + C | Page renders live numbers |

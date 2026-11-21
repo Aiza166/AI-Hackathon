@@ -81,8 +81,8 @@
     },
     {
       "id": "R3_son_age",
-      "title": "Son must be 25 or under, unless disabled",
-      "basis": "Rule 4.10 (Sindh text)",
+      "title": "Son must be 21 or under, unless disabled",
+      "basis": "Federal O.M. 1(13)-Reg.6/83 para 8(2)(a)(ii) (Sindh text says 25)",
       "applies_if": [
         {
           "fact": "relation",
@@ -96,7 +96,7 @@
             {
               "fact": "claimant_age",
               "op": "lte",
-              "value": 25
+              "value": 21
             },
             {
               "fact": "claimant_disabled",
