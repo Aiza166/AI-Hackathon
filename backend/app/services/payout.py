@@ -63,6 +63,8 @@ def _flags(db: Session, case: Case, new_iban: str, check: raast.TitleFetch) -> l
 
 
 def request_change(db: Session, principal: Principal, case: Case, new_iban: str) -> PayoutChangeRequest:
+    if case.status in ("rejected", "closed", "withdrawn"):
+        raise HTTPException(status_code=409, detail=f"This claim is {case.status}: its payout account cannot be changed")
     if db.execute(select(PayoutChangeRequest).where(PayoutChangeRequest.case_id == case.id,
                                                      PayoutChangeRequest.status.in_(OPEN_STATUSES))).first():
         raise HTTPException(status_code=409, detail="A payout change is already in progress for this claim")

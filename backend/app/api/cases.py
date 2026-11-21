@@ -1,6 +1,7 @@
 """Case endpoints for citizens, helpers, officers, admins and auditors."""
 from fastapi import APIRouter, Depends, Header, Request
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -144,6 +145,8 @@ def citizen_explanation(case_id: str, request: Request, principal: Principal = D
     codes = decision.reason_codes if decision else []
     if case.status == "approved":
         codes = [ReasonCode.APPROVED.value]
+    elif case.status == "withdrawn":
+        codes = []  # the headline says she withdrew it; old decision reasons no longer apply
     result = CitizenExplanation(
         case_reference=case.reference, status=case.status, route=decision.route if decision else None,
         explanations=[explain(ReasonCode(c)) for c in codes],
@@ -228,5 +231,20 @@ def escalate(case_id: str, body: OfficerAction, request: Request, principal: Pri
 @router.post("/cases/{case_id}/close")
 def close(case_id: str, body: OfficerAction, request: Request, principal: Principal = Depends(require_roles(*OFFICER_LIKE)), db: Session = Depends(get_db)) -> dict:
     case = svc.close(db, principal, _load(db, principal, request, case_id, lock=True), body.reason)
+    db.commit()
+    return ok(_view(db, case, principal))
+
+
+class WithdrawIn(BaseModel):
+    reason: str | None = Field(default=None, max_length=500)
+
+
+@router.post("/cases/{case_id}/withdraw")
+def withdraw_claim(
+    case_id: str, request: Request, body: WithdrawIn | None = None,
+    principal: Principal = Depends(require_roles(Role.CITIZEN)), db: Session = Depends(get_db),
+) -> dict:
+    """The claimant withdraws her own claim (e.g. so she can take back the department's access)."""
+    case = svc.withdraw_by_claimant(db, principal, _load(db, principal, request, case_id, lock=True), body.reason if body else None)
     db.commit()
     return ok(_view(db, case, principal))

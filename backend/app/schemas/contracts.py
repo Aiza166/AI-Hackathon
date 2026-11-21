@@ -60,6 +60,7 @@ class CaseStatus(StrEnum):
     APPROVED = "approved"
     REJECTED = "rejected"
     CLOSED = "closed"
+    WITHDRAWN = "withdrawn"  # stopped by the claimant herself
 
 
 class ScamVerdict(StrEnum):

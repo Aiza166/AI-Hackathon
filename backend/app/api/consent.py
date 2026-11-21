@@ -11,16 +11,21 @@ from app.core.auth import Principal, deny, require_roles
 from app.core.consent import PURPOSE, person_resource
 from app.core.envelope import ok
 from app.db import get_db
+from app.decision.facts import ACTIVE_STATUSES
+from app.services.cases import WITHDRAWABLE
 from app.models.audit import AuditEvent
 from app.models.consent import CONSENT_FIELDS, Consent, CorrectionRequest
-from app.models.platform import Person, Tenant, User, utcnow
+from app.models.platform import Case, Person, Tenant, User, utcnow
 from app.schemas.contracts import Role
 
 router = APIRouter(prefix="/api/v1", tags=["consent"])
 CITIZEN = require_roles(Role.CITIZEN)
 FieldName = Literal["cnic", "family_record", "death_certificate", "payout_account", "case_details"]
 VISIBLE_ACTIONS = ("DATA_ACCESS", "CONSENT_DENIED", "CONSENT_GRANTED", "CONSENT_CHANGED", "CONSENT_WITHDRAWN",
-                   "CORRECTION_REQUESTED", "CORRECTION_APPROVED", "CORRECTION_REJECTED")
+                   "CONSENT_CHANGE_REFUSED", "CORRECTION_REQUESTED", "CORRECTION_APPROVED", "CORRECTION_REJECTED")
+CLAIM_OPEN_DETAIL = ("آپ کا دعویٰ {refs} کھلا ہے، اس لیے پنشن محکمے کی اجازت ابھی واپس نہیں ہو سکتی۔ "
+                     "Your claim {refs} is open. The pension department needs this to process it, so it cannot be "
+                     "taken back now. A claim still being decided can be withdrawn first; a pension being paid keeps this access while it is paid.")
 
 
 class ConsentIn(BaseModel):
@@ -58,13 +63,39 @@ def _valid_grantee(db: Session, grantee_type: str, grantee_id: str) -> bool:
     return db.get(Tenant, grantee_id) is not None
 
 
+def open_claims_needing(db: Session, c: Consent) -> list[dict]:
+    """Open claims (being processed or paid) that need this department's access. A helper's
+    access never blocks anything: it stays freely revocable."""
+    if c.grantee_type != "department":
+        return []
+    rows = db.execute(
+        select(Case.id, Case.reference, Case.status).where(
+            Case.claimant_person_id == c.subject_person_id, Case.tenant_id == c.grantee_id, Case.status.in_(ACTIVE_STATUSES),
+        ).order_by(Case.created_at)
+    ).all()
+    return [{"id": case_id, "reference": ref, "status": st, "can_withdraw": st in WITHDRAWABLE} for case_id, ref, st in rows]
+
+
 def _consent_row(db: Session, c: Consent) -> dict:
     return {
         "id": c.id, "grantee_type": c.grantee_type, "grantee_id": c.grantee_id,
         "grantee_name": _grantee_name(db, c.grantee_type, c.grantee_id), "purpose": c.purpose,
         "fields": c.fields, "status": c.status, "created_at": c.created_at.isoformat(),
         "withdrawn_at": c.withdrawn_at.isoformat() if c.withdrawn_at else None,
+        "needed_for_claims": open_claims_needing(db, c) if c.status == "active" else [],
     }
+
+
+def _refuse_if_claim_open(db: Session, principal: Principal, c: Consent, change: str) -> None:
+    """Server rule: the department's access needed for an open claim cannot be cut (audited)."""
+    claims = open_claims_needing(db, c)
+    if not claims:
+        return
+    refs = ", ".join(row["reference"] for row in claims)
+    audit.record(db, principal.actor, "CONSENT_CHANGE_REFUSED", resource=person_resource(principal.person_id),
+                 details={"consent_id": c.id, "change": change, "reason": "claim_open", "claims": [row["reference"] for row in claims]})
+    db.commit()
+    raise HTTPException(status_code=409, detail=CLAIM_OPEN_DETAIL.format(refs=refs))
 
 
 def _own_consent(db: Session, principal: Principal, request: Request, consent_id: str) -> Consent:
@@ -100,6 +131,8 @@ def change_fields(consent_id: str, body: ConsentFieldsIn, request: Request, prin
     if consent.status != "active":
         raise HTTPException(status_code=409, detail="This consent was withdrawn. Grant a new one instead.")
     before = list(consent.fields)
+    if set(before) - set(body.fields):  # adding fields is always fine; removing one is a partial take-back
+        _refuse_if_claim_open(db, principal, consent, "hide_fields")
     consent.fields = list(body.fields)
     audit.record(db, principal.actor, "CONSENT_CHANGED", resource=person_resource(principal.person_id),
                  details={"consent_id": consent.id, "before": before, "after": list(body.fields)})
@@ -112,6 +145,7 @@ def withdraw(consent_id: str, request: Request, principal: Principal = Depends(C
     consent = _own_consent(db, principal, request, consent_id)
     if consent.status == "withdrawn":
         return ok(_consent_row(db, consent))
+    _refuse_if_claim_open(db, principal, consent, "withdraw")
     consent.status = "withdrawn"
     consent.withdrawn_at = utcnow()
     audit.record(db, principal.actor, "CONSENT_WITHDRAWN", resource=person_resource(principal.person_id),

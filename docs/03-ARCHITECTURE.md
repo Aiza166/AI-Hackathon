@@ -9,7 +9,7 @@
 3. **Every decision is reproducible.** Each decision stores input hash, rule version, model ID, raw probabilities, thresholds used, route and reason codes.
 4. **Consent is enforced in the API**, in one function every data read passes through. The UI only reflects it.
 5. **Offline first.** The phone keeps working without signal; the server deduplicates on sync.
-6. **Fail safe, not silent.** If Jev or a mock service is down or slow, money never moves automatically: the case routes to `UNSURE` with reason `SERVICE_UNAVAILABLE`.
+6. **Fail safe, not silent.** If a registry or the bank check (mock NADRA, death registry, pension office, Raast) is down or slow, money never moves automatically: the claim routes to `UNSURE` with reason `SERVICE_UNAVAILABLE`. Jev is used in two places only, Scam Shield and document image checks; claim decisions use registries + rules + code thresholds and never call Jev. If Jev is down, Scam Shield falls back to keywords and never says "looks genuine" (NOT_SURE at best), and a document's Jev check is recorded as `unavailable` while the code checks (registry cross-check, stamp copy-move, ELA) still route an edited paper to an officer. A clean claim with clean papers can therefore still be auto-approved while Jev is down, because nothing Jev answers is needed for it.
 
 ## Stack
 
@@ -51,12 +51,12 @@
                        |     +-----v--------v------+       |
                        +---> |   Decision engine   | <-----+
                              | signals -> rules -> |
-                             | Jev -> conf -> route|
+                             | conf -> route (code)|
                              +----+------------+---+
                                   |            |
                         +---------v----+  +----v--------------------+
                         | Jev (TypeSafe)|  | Mock services           |
-                        | pinned model  |  | NADRA-like, death reg., |
+                        | scam + docs   |  | NADRA-like, death reg., |
                         +---------------+  | pension, Raast-like     |
                                            | (+ failure injection)   |
                                            +-------------------------+
@@ -81,7 +81,7 @@
 | `account_owner_ok` | Mock Raast title fetch: does the masked title match the claimant's name? | yes / no |
 | `account_reuse` | Same payout account on other claims | count |
 | `jev_doc_checks` | **Jev** Nouls on the document image (see Step 3) | probabilities |
-| `service_health` | Did every mock service and Jev answer in time? | ok / degraded |
+| `service_health` | Did every mock registry and the bank check answer in time? (Jev outages only affect `jev_doc_checks`, recorded as `unavailable`) | ok / degraded |
 
 ### Step 2: eligibility rules (GoRules ZEN, versioned)
 

@@ -15,6 +15,7 @@ const HEADLINE: Record<string, { icon: string; ur: string; en: string }> = {
   proof_requested: { icon: 'document', ur: 'ایک اور کاغذ چاہیے', en: 'One more paper is needed' },
   in_review: { icon: 'person', ur: 'افسر آپ کا دعویٰ دیکھے گا', en: 'An officer will look at your claim' },
   rejected: { icon: 'warning', ur: 'افسر نے دعویٰ نامنظور کیا', en: 'The officer did not approve this claim' },
+  withdrawn: { icon: 'close', ur: 'آپ نے یہ دعویٰ واپس لے لیا', en: 'You withdrew this claim' },
 }
 const FALLBACK = { icon: 'clock', ur: 'آپ کا دعویٰ محفوظ ہے', en: 'Your claim is saved' }
 

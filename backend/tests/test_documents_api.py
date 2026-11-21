@@ -126,7 +126,7 @@ def test_upload_limits_type_size_and_kind(client, login, file_claim, monkeypatch
 
 def test_other_citizens_auditors_and_withdrawn_consent_are_refused(client, login, file_claim, ocr_returns):
     ocr_returns(death_certificate())
-    case = file_claim("zainab")["data"]
+    case = file_claim("zainab", claimant_dob=None)["data"]  # still being decided (asks for her DOB)
     doc = _upload(client, login("zainab"), case["id"], "death_certificate_aslam.png").json()["data"]
     assert _upload(client, login("rukhsana"), case["id"], "death_certificate_aslam.png").status_code == 403
     assert client.get(f"/api/v1/cases/{case['id']}/documents", headers=login("rukhsana")).status_code == 403
@@ -138,5 +138,8 @@ def test_other_citizens_auditors_and_withdrawn_consent_are_refused(client, login
     zainab = login("zainab")
     consents = client.get("/api/v1/me/consents", headers=zainab).json()["data"]["consents"]
     department = next(c for c in consents if c["grantee_type"] == "department" and c["status"] == "active")
+    # The department's access cannot be taken back while her claim is open: she withdraws the claim first (B5).
+    assert client.post(f"/api/v1/me/consents/{department['id']}/withdraw", headers=zainab).status_code == 409
+    assert client.post(f"/api/v1/cases/{case['id']}/withdraw", headers=zainab).status_code == 200
     assert client.post(f"/api/v1/me/consents/{department['id']}/withdraw", headers=zainab).status_code == 200
     assert client.get(f"/api/v1/cases/{case['id']}/documents", headers=login("officer")).status_code == 403
