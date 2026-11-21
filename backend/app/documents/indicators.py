@@ -3,6 +3,8 @@
 Never a "fake" verdict and never one combined score. Severities, decided in code:
   high      -> the case goes to an officer (UNSURE, DOC_EDIT_RISK)
   mismatch  -> ask for proof (ASK_PROOF, DOC_MISMATCH): a record disagrees or the paper looks wrong
+  unverified-> we could not read the paper: it never counts as a clean document
+               and an officer reads it ("We could not read this paper")
   confirm   -> the citizen is asked to confirm a field we read with low confidence
   info      -> shown to the officer as context only; never changes the route
 
@@ -18,7 +20,7 @@ from app.documents.forensics import ForensicReport
 from app.documents.imaging import Quality
 from app.documents.jev_checks import JevDocResult
 
-SEVERITY_ORDER = ("high", "mismatch", "confirm", "info")
+SEVERITY_ORDER = ("high", "mismatch", "unverified", "confirm", "info")
 
 # code: (severity, citizen_visible, english, urdu, what this cannot tell)
 TEXTS: dict[str, tuple[str, bool, str, str, str]] = {
@@ -70,6 +72,18 @@ TEXTS: dict[str, tuple[str, bool, str, str, str]] = {
         "This looks like a photo or screenshot of a screen. The officer may ask for the paper.",
         "یہ اسکرین کی تصویر لگتی ہے۔ افسر اصل کاغذ مانگ سکتا ہے۔",
         "Forwarded copies are normal; this is context, not a problem."),
+    "DOC_UNREADABLE": ("unverified", True,
+        "We could not read this paper. An officer will read it.",
+        "ہم یہ کاغذ نہیں پڑھ سکے۔ ایک افسر اسے پڑھے گا۔",
+        "A blank, cut-off or unusual photo can hide the details; nothing is wrong with the person."),
+    "REPEATED_UPLOAD": ("info", False,
+        "This kind of paper was uploaded several times on this case. Look at the earlier copies too.",
+        "اس کیس میں یہ کاغذ کئی بار بھیجا گیا۔ پہلی کاپیاں بھی دیکھیں۔",
+        "A blurry first photo is the usual reason; an earlier flag stays until an officer clears it."),
+    "RESOLVED_BY_TYPING": ("info", False,
+        "A detail that disagreed or was unclear now matches because the claimant typed it, not because it was read from the paper.",
+        "ایک معلومات اب اس لیے ملتی ہے کہ درخواست گزار نے اسے خود لکھا، کاغذ سے نہیں پڑھی گئی۔",
+        "Typing a correction is normal for a blurry photo; compare the typed value with the image."),
     "EDIT_SOFTWARE_TAG": ("info", False,
         "The photo file names editing software. Context only.",
         "تصویر کی فائل میں ایڈیٹنگ سافٹ ویئر کا نام ہے۔ صرف معلومات کے لیے۔",
@@ -169,4 +183,21 @@ def risk_level(indicators: list[Indicator]) -> str:
         return "high"
     if "mismatch" in severities:
         return "mismatch"
+    if "unverified" in severities:
+        return "unverified"
     return "confirm" if "confirm" in severities else "low"
+
+
+# The fields without which a paper of this kind says nothing we can check (red team M4).
+REQUIRED_FIELDS = {
+    "claimant_cnic": ("cnic",),
+    "deceased_cnic": ("cnic",),
+    "death_certificate": ("name_of_deceased", "date_of_death"),
+    "frc": ("member_cnics",),
+    "nikah_nama": ("groom_name", "bride_name"),
+}
+
+
+def from_required(kind: str, fields: dict[str, Field]) -> list[Indicator]:
+    missing = [k for k in REQUIRED_FIELDS.get(kind, ()) if k not in fields]
+    return [make("DOC_UNREADABLE", missing_fields=missing)] if missing else []
