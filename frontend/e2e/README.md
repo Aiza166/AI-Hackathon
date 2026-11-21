@@ -56,3 +56,5 @@ go to `frontend/e2e/results/` (git-ignored).
 | `j08-faults` | raast timeout, identity error, Jev unreachable (opt-in) |
 | `j09-a11y` | banner, RTL, 390 px overflow, tap targets, axe serious/critical, keyboard focus |
 | `j10-perf` | Slow 3G first render on the production build, service worker offline reload |
+| `j11-eval-judge` | Evaluation page and Judge console (admin), officer cannot open the console, 390 px fit |
+| `j12-narrow-360` | Every citizen and helper screen at 360 px: no sideways scroll, Urdu RTL, tap targets >= 48 px, no CSP blocks (soft failures, all listed in `results/narrow-360.json`) |
