@@ -13,3 +13,6 @@ rapidfuzz==3.*
 python-multipart==0.0.*
 pytest==8.*
 pillow==13.*
+opencv-python-headless==5.*
+numpy==2.*
+pytesseract==0.3.*

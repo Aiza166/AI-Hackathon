@@ -9,6 +9,7 @@ from datetime import date
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
+from app.documents.signals import document_signals
 from app.decision.matching import MatchResult, match_identity, name_similarity, parse_name
 from app.mock import raast, registry
 from app.models.platform import Case, Person
@@ -31,6 +32,7 @@ class Signals:
     candidates: list = field(default_factory=list)  # when the deceased CNIC is missing
     service_down: list = field(default_factory=list)
     payee_check: dict | None = None  # mock Raast title fetch (masked title, holding, verdict)
+    documents: dict = field(default_factory=dict)  # uploaded-document evidence (app.documents.signals)
 
     def to_dict(self) -> dict:
         def m(r: MatchResult | None) -> dict | None:
@@ -48,6 +50,7 @@ class Signals:
             "candidates": self.candidates,
             "service_down": self.service_down,
             "payee_check": self.payee_check,
+            "documents": self.documents,
         }
 
 
@@ -161,6 +164,7 @@ def _other_claims(db: Session, case: Case, claim: ClaimIn, signals: Signals) -> 
 def gather(db: Session, case: Case, claim: ClaimIn, today: date) -> Signals:
     signals = Signals()
     signals.facts.update({"documents": list(claim.documents), "today": today})
+    signals.documents = document_signals(db, case.id)
     try:
         _claimant_facts(db, claim, signals, today)
         if claim.deceased_cnic is None:

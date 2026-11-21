@@ -1,6 +1,7 @@
 """Import every model so Alembic sees the full metadata."""
 from app.models.audit import AuditEvent
 from app.models.consent import Consent, CorrectionRequest
+from app.models.document import CaseDocument
 from app.models.idempotency import IdempotencyKey
 from app.models.payout import PayoutChangeRequest
 from app.models.scam import ScamCheck
@@ -29,6 +30,7 @@ __all__ = [
     "ApiKey",
     "AuditEvent",
     "Case",
+    "CaseDocument",
     "CaseEvent",
     "Consent",
     "CorrectionRequest",
