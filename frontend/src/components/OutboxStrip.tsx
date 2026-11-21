@@ -10,6 +10,7 @@ const LOGIN_UR = 'دعویٰ بھیجنے کے لیے دوبارہ سائن ان
 const PAUSED_UR = 'کئی بار کوشش ہو چکی ہے۔ "ابھی بھیجیں" دبائیں۔'
 const FAILED_UR = 'یہ دعویٰ قبول نہیں ہوا۔ کھول کر ٹھیک کریں اور دوبارہ بھیجیں۔'
 const CONSENT_UR = 'اس خاندان نے آپ کو اجازت نہیں دی یا واپس لے لی۔ پہلے ان سے اجازت لیں۔'
+const DISCARDED_UR = 'اس فون پر محفوظ کچھ معلومات اب نہیں کھل سکتیں، اس لیے ہٹا دی گئیں۔ دعویٰ دوبارہ بھریں۔'
 const DUPLICATE_UR = 'یہ دعویٰ پہلے سے ہمارے پاس ہے۔ دوبارہ نہیں بھیجا گیا۔'
 
 interface OutboxStripProps {
@@ -24,9 +25,22 @@ function names(rows: OutboxRow[]): string {
 }
 
 export function OutboxStrip({ state, showWho, onSignInAgain, onOpenFix }: OutboxStripProps) {
-  const { queued, failed, needsLogin, paused, online, syncing, notices, sendNow, dismissNotice, remove } = state
+  const { queued, failed, needsLogin, paused, online, syncing, notices, discarded, dismissDiscarded, sendNow, dismissNotice, remove } = state
   return (
     <>
+      {discarded > 0 && (
+        <div className="note note-attn outbox" role="alert">
+          <Icon name="warning" size={22} />
+          <span className="outbox-text">
+            <span lang="ur" dir="rtl" className="note-ur">{DISCARDED_UR}</span>
+            {discarded === 1 ? '1 saved item' : `${discarded} saved items`} on this phone could no longer be opened (the tab was closed or you signed out), so {discarded === 1 ? 'it was' : 'they were'} removed. Please fill in the claim again.
+          </span>
+          <button type="button" className="btn btn-ghost btn-sm" onClick={dismissDiscarded}>
+            <span lang="ur" dir="rtl">ٹھیک ہے</span>
+            <span className="btn-en">OK</span>
+          </button>
+        </div>
+      )}
       {queued.length > 0 && (
         <div className="note note-attn outbox" role="status">
           <Icon name="cloud-off" size={24} />

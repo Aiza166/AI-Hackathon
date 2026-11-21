@@ -169,7 +169,7 @@ def run_ocr(img: Image.Image, settings: Settings | None = None, transport: httpx
         try:
             return engine.read(img)
         except OcrUnavailable as exc:
-            log.warning("Azure OCR unavailable, trying Tesseract: %s", exc)
+            log.warning("Azure OCR unavailable, trying Tesseract: %s", type(exc).__name__)
         finally:
             engine.close()
     return TesseractEngine().read(img)

@@ -7,6 +7,7 @@ the other indicators still stand; nothing here can approve anything.
 Logged: model, latency, every probability, question-set version, image SHA-256 (never the image).
 """
 import base64
+import math
 import uuid
 from dataclasses import asdict, dataclass, field
 
@@ -67,12 +68,39 @@ def _sendable(img: Image.Image) -> Image.Image | None:
 def _box(answer: dict) -> list[float] | None:
     b = answer.get("box") or {}
     conf = answer.get("confidence")
-    if conf is not None and conf < BOX_MIN_CONFIDENCE:
+    if conf is not None and (_probability(conf) or 0.0) < BOX_MIN_CONFIDENCE:
         return None
     try:
         return [round(float(b[k]), 3) for k in ("left", "top", "right", "bottom")]
     except (KeyError, TypeError, ValueError):
         return None
+
+
+def _probability(raw) -> float | None:
+    """A Noul must be a finite number in [0, 1]; anything else is junk."""
+    if isinstance(raw, bool):
+        return None
+    try:
+        p = float(raw)
+    except (TypeError, ValueError):
+        return None
+    return p if math.isfinite(p) and 0.0 <= p <= 1.0 else None
+
+
+def _parse_answers(raw) -> dict | None:
+    """{name: {"p", "band"}} or None when any Noul is junk (the whole reply is then distrusted)."""
+    if not isinstance(raw, dict):
+        return None
+    answers = {}
+    for name, answer in raw.items():
+        if not isinstance(answer, dict):
+            return None
+        if "noul" in answer:
+            p = _probability(answer["noul"])
+            if p is None:
+                return None
+            answers[name] = {"p": round(p, 4), "band": noul_band(p).value}
+    return answers
 
 
 def ask_document_questions(kind: str, img: Image.Image, settings: Settings | None = None, client: JevClient | None = None) -> JevDocResult:
@@ -89,14 +117,15 @@ def ask_document_questions(kind: str, img: Image.Image, settings: Settings | Non
         result = jev.ask(f"Document photo: {ref}", _questions(kind, ref), assets=assets, timeout=settings.jev_image_timeout_seconds)
     except JevUnavailable as exc:
         return JevDocResult(status="unavailable", note=str(exc))
+    except (ValueError, KeyError, TypeError, AttributeError) as exc:  # a junk reply is an outage, never a 500
+        return JevDocResult(status="unavailable", note=f"unreadable Jev reply: {type(exc).__name__}")
     finally:
         if client is None:
             jev.close()
-    answers, boxes = {}, {}
-    for name, answer in result.answers.items():
-        if "noul" in answer:
-            p = float(answer["noul"])
-            answers[name] = {"p": round(p, 4), "band": noul_band(p).value}
+    answers = _parse_answers(getattr(result, "answers", None))
+    if answers is None:
+        return JevDocResult(status="unavailable", model=getattr(result, "model", None), note="unreadable Jev reply")
+    boxes = {}
     for name, presence in (("text_altered_box", "text_altered"), ("stamp_box", "stamp_present")):
         if name in result.answers and answers.get(presence, {}).get("band") == Band.YES.value:
             found = _box(result.answers[name])

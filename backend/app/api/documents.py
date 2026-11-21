@@ -26,6 +26,7 @@ router = APIRouter(prefix="/api/v1", tags=["documents"])
 
 DocKind = Literal["claimant_cnic", "deceased_cnic", "death_certificate", "frc", "nikah_nama"]
 MAX_UPLOAD_BYTES = 8 * 1024 * 1024
+READ_CHUNK = 64 * 1024
 ALLOWED_TYPES = {"image/jpeg", "image/png", "image/webp"}
 CONSENT_FIELD = {  # which consented field a document of this kind belongs to
     "claimant_cnic": "cnic", "deceased_cnic": "cnic", "death_certificate": "death_certificate",
@@ -40,12 +41,20 @@ class ConfirmIn(BaseModel):
     values: dict[str, str] = PydanticField(min_length=1, max_length=10)
 
 
+class ClearIn(BaseModel):
+    reason: str = PydanticField(min_length=10, max_length=500)
+
+
 def _read_limited(upload: UploadFile) -> bytes:
     if (upload.content_type or "").split(";")[0].strip().lower() not in ALLOWED_TYPES:
         raise HTTPException(status_code=415, detail="Please send a JPEG, PNG or WebP photo")
-    data = upload.file.read(MAX_UPLOAD_BYTES + 1)
-    if len(data) > MAX_UPLOAD_BYTES:
-        raise HTTPException(status_code=413, detail="The photo is too large (8 MB at most)")
+    chunks, total = [], 0
+    while chunk := upload.file.read(READ_CHUNK):  # stop as soon as the cap is passed
+        total += len(chunk)
+        if total > MAX_UPLOAD_BYTES:
+            raise HTTPException(status_code=413, detail="The photo is too large (8 MB at most)")
+        chunks.append(chunk)
+    data = b"".join(chunks)
     if not data:
         raise HTTPException(status_code=422, detail="The photo is empty")
     return data
@@ -128,3 +137,18 @@ def document_image(case_id: str, doc_id: str, request: Request, principal: Princ
 def document_ela(case_id: str, doc_id: str, request: Request, principal: Principal = Depends(require_roles(*STAFF)), db: Session = Depends(get_db)) -> Response:
     """Error level analysis heatmap: context next to the image, never a verdict."""
     return _image(db, principal, request, case_id, doc_id, "ela")
+
+
+@router.post("/cases/{case_id}/documents/{doc_id}/clear")
+@limiter.limit("30/minute")
+def clear_document_flag(
+    request: Request, case_id: str, doc_id: str, body: ClearIn,
+    principal: Principal = Depends(require_roles(Role.OFFICER)), db: Session = Depends(get_db),
+) -> dict:
+    """An officer looked at a flagged paper and records why it is fine. Until then the flag
+    stays on the case, whatever is uploaded after it. Audited (DOCUMENT_RISK_CLEARED)."""
+    doc = _doc(db, case_id, doc_id)
+    case = _load(db, principal, request, case_id, field=CONSENT_FIELD[doc.kind])
+    doc = service.clear_high_risk(db, principal, case, doc, body.reason.strip())
+    db.commit()
+    return ok({**_view(principal, doc), "case_status": case.status})

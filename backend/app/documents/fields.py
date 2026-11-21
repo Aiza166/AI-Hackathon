@@ -17,15 +17,29 @@ PATTERN_FACTOR = 0.6  # value found by pattern only (no label seen)
 ROW_FACTOR = 0.8  # value found next to another known value on the same row (label hidden)
 LOOKAHEAD_LINES = 2
 TALL_LINE_FACTOR = 2.5
+AMBIGUOUS_CONFIDENCE = 0.6  # below CONFIRM_BELOW: the citizen confirms the value
 
-CNIC_RE = re.compile(r"(?<!\d)(\d{5})[-\s.]?(\d{7})[-\s.]?(\d)(?!\d)")
+# Arabic-Indic (U+0660-0669) and Urdu/Persian (U+06F0-06F9) digits are mapped to ASCII
+# before any parsing, and every pattern uses re.ASCII so \d never matches them unmapped.
+_DIGITS = {**{0x0660 + i: str(i) for i in range(10)}, **{0x06F0 + i: str(i) for i in range(10)}}
+CNIC_RE = re.compile(r"(?<!\d)(\d{5})[-\s.]?(\d{7})[-\s.]?(\d)(?!\d)", re.ASCII)
 _MONTHS = {m: i for i, m in enumerate(("jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"), 1)}
-DATE_NUM_RE = re.compile(r"(?<!\d)(\d{1,2})[./-](\d{1,2})[./-](\d{4}|\d{2})(?!\d)")
-DATE_MON_RE = re.compile(r"(?<!\d)(\d{1,2})[\s./-]*([A-Za-z]{3})[a-z]*[\s.,/-]*(\d{4})(?!\d)")
+DATE_ISO_RE = re.compile(r"(?<!\d)(\d{4})-(\d{2})-(\d{2})(?!\d)", re.ASCII)
+DATE_NUM_RE = re.compile(r"(?<!\d)(\d{1,2})[./-](\d{1,2})[./-](\d{4}|\d{2})(?!\d)", re.ASCII)
+DATE_MON_RE = re.compile(r"(?<!\d)(\d{1,2})[\s./-]*([A-Za-z]{3})[a-z]*[\s.,/-]*(\d{4})(?!\d)", re.ASCII)
 DOC_NUMBER_RE = re.compile(r"\b([A-Z]{2,5}(?:-[A-Z0-9]{1,8}){1,5})\b")
 RELATION_MARKERS = re.compile(r"\b(s/o|d/o|w/o|son of|daughter of|wife of)\b.*$", re.IGNORECASE)
 
 DOC_KINDS = ("claimant_cnic", "deceased_cnic", "death_certificate", "frc", "nikah_nama")
+
+
+def ascii_digits(text: str) -> str:
+    """Map Arabic-Indic and Urdu digits to ASCII so a CNIC printed in Urdu digits compares equal."""
+    return text.translate(_DIGITS)
+
+
+class Ambiguous(str):
+    """A value that parsed but could mean something else (a 2-digit year): always confirmed."""
 
 
 @dataclass(frozen=True)
@@ -43,12 +57,12 @@ class Field:
 
 
 def normalise_cnic(text: str) -> str | None:
-    match = CNIC_RE.search(text)
+    match = CNIC_RE.search(ascii_digits(text))
     return "".join(match.groups()) if match else None
 
 
 def all_cnics(text: str) -> list[str]:
-    return list(dict.fromkeys("".join(m.groups()) for m in CNIC_RE.finditer(text)))
+    return list(dict.fromkeys("".join(m.groups()) for m in CNIC_RE.finditer(ascii_digits(text))))
 
 
 def _year(raw: str) -> int:
@@ -58,22 +72,34 @@ def _year(raw: str) -> int:
     return year
 
 
-def parse_date(text: str) -> date | None:
-    """dd.mm.yyyy, dd/mm/yyyy, dd-mm-yyyy (2- or 4-digit year) and dd-Mon-yyyy. Day first, always."""
+def parse_date_detail(text: str) -> tuple[date | None, bool]:
+    """(date, ambiguous). ISO yyyy-mm-dd first; then dd.mm.yyyy, dd/mm/yyyy, dd-mm-yyyy and
+    dd-Mon-yyyy, day first. A 2-digit year ("03/12/24") is read day first but flagged
+    ambiguous (century and day/month order are guesses), so it is always confirmed."""
+    text = ascii_digits(text)
+    for match in DATE_ISO_RE.finditer(text):
+        try:
+            return date(int(match.group(1)), int(match.group(2)), int(match.group(3))), False
+        except ValueError:
+            continue
     for match in DATE_NUM_RE.finditer(text):
         day, month, year = int(match.group(1)), int(match.group(2)), _year(match.group(3))
         try:
-            return date(year, month, day)
+            return date(year, month, day), len(match.group(3)) == 2
         except ValueError:
             continue
     for match in DATE_MON_RE.finditer(text):
         month = _MONTHS.get(match.group(2).lower())
         if month:
             try:
-                return date(int(match.group(3)), month, int(match.group(1)))
+                return date(int(match.group(3)), month, int(match.group(1))), False
             except ValueError:
                 continue
-    return None
+    return None, False
+
+
+def parse_date(text: str) -> date | None:
+    return parse_date_detail(text)[0]
 
 
 def clean_name(text: str) -> str:
@@ -131,7 +157,7 @@ def _near(lines: list[OcrLine], label: str, extract, same_line: bool = True) -> 
     for text, conf in candidates:
         value = extract(text)
         if value:
-            return Field(value=value, confidence=round(conf * LABEL_FACTOR, 3), method="label")
+            return _field(value, conf * LABEL_FACTOR, "label")
     return None
 
 
@@ -141,11 +167,11 @@ def _beside(lines: list[OcrLine], anchor_extract, extract, factor: float) -> Fie
         if anchor_extract(line.text):
             rest = extract(CNIC_RE.sub(" ", line.text))
             if rest:
-                return Field(value=rest, confidence=round(line.confidence * factor, 3), method="row")
+                return _field(rest, line.confidence * factor, "row")
             for other in _right_of(lines, line):
                 value = extract(other.text)
                 if value:
-                    return Field(value=value, confidence=round(other.confidence * factor, 3), method="row")
+                    return _field(value, other.confidence * factor, "row")
     return None
 
 
@@ -153,13 +179,22 @@ def _by_pattern(lines: list[OcrLine], extract) -> Field | None:
     for line in lines:
         value = extract(line.text)
         if value:
-            return Field(value=value, confidence=round(line.confidence * PATTERN_FACTOR, 3), method="pattern")
+            return _field(value, line.confidence * PATTERN_FACTOR, "pattern")
     return None
 
 
 def _date_text(text: str) -> str | None:
-    found = parse_date(text)
-    return found.isoformat() if found else None
+    found, ambiguous = parse_date_detail(text)
+    if found is None:
+        return None
+    return Ambiguous(found.isoformat()) if ambiguous else found.isoformat()
+
+
+def _field(value: str, confidence: float, method: str) -> Field:
+    """An ambiguous value is capped below CONFIRM_BELOW so it is confirmed, never silently trusted."""
+    if isinstance(value, Ambiguous):
+        confidence = min(confidence, AMBIGUOUS_CONFIDENCE)
+    return Field(value=str(value), confidence=round(confidence, 3), method=method)
 
 
 def _name_text(text: str) -> str | None:
@@ -255,4 +290,5 @@ def drop_overlay_lines(lines: list[OcrLine]) -> list[OcrLine]:
 def extract_fields(kind: str, ocr: OcrResult) -> dict[str, Field]:
     if kind not in _PARSERS:
         raise ValueError(f"unknown document kind {kind}")
-    return _PARSERS[kind](drop_overlay_lines(list(ocr.lines)))
+    lines = [OcrLine(text=ascii_digits(line.text), confidence=line.confidence, box=line.box) for line in ocr.lines]
+    return _PARSERS[kind](drop_overlay_lines(lines))

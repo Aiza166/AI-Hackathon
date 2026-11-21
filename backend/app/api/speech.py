@@ -24,6 +24,7 @@ from app.core.config import Settings, get_settings
 from app.core.envelope import fail, ok
 from app.core.ratelimit import limiter
 from app.schemas.contracts import Role
+from app.services.scam import PerUserQuota
 
 log = logging.getLogger("sahara.speech")
 router = APIRouter(prefix="/api/v1/speech", tags=["speech"])
@@ -32,7 +33,9 @@ VOICES = {"ur": ("ur-PK", "ur-PK-UzmaNeural"), "en": ("en-IN", "en-IN-NeerjaNeur
 # ur-PK returns HTTP 400 on the short-audio REST API (tested live 2026-11-21, uaenorth); ur-IN works.
 STT_LANGUAGES = {"ur": "ur-IN", "en": "en-IN"}
 AUDIO_FORMAT = "audio-24khz-48kbitrate-mono-mp3"  # ~6 KB per second: fine on a weak connection
-MAX_TTS_CHARS = 400
+MAX_TTS_CHARS = 200  # free text is short: prompts and reasons are one or two sentences
+TTS_SYNTH_PER_MINUTE = 6  # uncached Azure calls per user (cache hits are free and unlimited)
+TTS_SYNTH_PER_DAY = 100
 MAX_STT_BYTES = 1_000_000  # ~30 s of 16 kHz mono WAV; the short-audio API takes at most 60 s
 MEMORY_CACHE_ITEMS = 256
 STT_TYPES = {"audio/wav": "audio/wav; codecs=audio/pcm; samplerate=16000", "audio/ogg": "audio/ogg; codecs=opus"}
@@ -86,6 +89,8 @@ class AudioCache:
 
 
 cache = AudioCache()
+synth_minute = PerUserQuota(TTS_SYNTH_PER_MINUTE, 60)
+synth_day = PerUserQuota(TTS_SYNTH_PER_DAY, 24 * 3600)
 _transport: httpx.BaseTransport | None = None  # tests swap in an httpx.MockTransport
 
 
@@ -130,6 +135,9 @@ def text_to_speech(request: Request, body: TtsIn, principal: Principal = Depends
     audio = cache.get(key, settings.tts_cache_dir)
     hit = audio is not None
     if audio is None:
+        user = f"{principal.kind}:{principal.id}"  # keyed on the signed-in user, not the IP
+        if not synth_minute.allow(user) or not synth_day.allow(user):
+            return fail(code="TTS_QUOTA", message="Too many new voice clips; the app uses the phone's voice for now.", status=429)
         try:
             audio = synthesise(settings, text, body.lang)
         except httpx.HTTPError as exc:

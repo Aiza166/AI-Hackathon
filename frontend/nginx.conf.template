@@ -1,19 +1,53 @@
-# nginx substitutes ${PORT} at container start (official image template feature).
+# nginx substitutes ${PORT} and ${API_ORIGIN} at container start (official image template feature).
+# API_ORIGIN: the backend's public origin, e.g. https://api.example.up.railway.app (empty = same origin only).
+#
+# add_header is NOT inherited by a location that sets its own add_header, so every location
+# repeats the full security header set (Security review M3).
 server {
     listen ${PORT};
     root /usr/share/nginx/html;
+    server_tokens off;
     gzip on;
     gzip_types text/css application/javascript application/json image/svg+xml;
 
     # Service worker and HTML must never be cached, or users get stuck on old versions.
-    location = /sw.js { add_header Cache-Control "no-cache"; try_files $uri =404; }
-    location = /index.html { add_header Cache-Control "no-cache"; }
-    location /assets/ { add_header Cache-Control "public, max-age=31536000, immutable"; }
+    location = /sw.js {
+        add_header Cache-Control "no-cache" always;
+        add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self' ${API_ORIGIN}; img-src 'self' blob: data:; media-src 'self' blob: ${API_ORIGIN}; font-src 'self'; worker-src 'self'; manifest-src 'self'; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'" always;
+        add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+        add_header X-Content-Type-Options nosniff always;
+        add_header X-Frame-Options DENY always;
+        add_header Referrer-Policy strict-origin-when-cross-origin always;
+        add_header Permissions-Policy "geolocation=(), payment=(), usb=()" always;
+        try_files $uri =404;
+    }
+    location = /index.html {
+        add_header Cache-Control "no-cache" always;
+        add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self' ${API_ORIGIN}; img-src 'self' blob: data:; media-src 'self' blob: ${API_ORIGIN}; font-src 'self'; worker-src 'self'; manifest-src 'self'; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'" always;
+        add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+        add_header X-Content-Type-Options nosniff always;
+        add_header X-Frame-Options DENY always;
+        add_header Referrer-Policy strict-origin-when-cross-origin always;
+        add_header Permissions-Policy "geolocation=(), payment=(), usb=()" always;
+    }
+    location /assets/ {
+        add_header Cache-Control "public, max-age=31536000, immutable" always;
+        add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self' ${API_ORIGIN}; img-src 'self' blob: data:; media-src 'self' blob: ${API_ORIGIN}; font-src 'self'; worker-src 'self'; manifest-src 'self'; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'" always;
+        add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+        add_header X-Content-Type-Options nosniff always;
+        add_header X-Frame-Options DENY always;
+        add_header Referrer-Policy strict-origin-when-cross-origin always;
+        add_header Permissions-Policy "geolocation=(), payment=(), usb=()" always;
+    }
 
     # Single-page app: unknown paths serve index.html.
-    location / { try_files $uri $uri/ /index.html; }
-
-    add_header X-Content-Type-Options nosniff;
-    add_header X-Frame-Options DENY;
-    add_header Referrer-Policy strict-origin-when-cross-origin;
+    location / {
+        add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self' ${API_ORIGIN}; img-src 'self' blob: data:; media-src 'self' blob: ${API_ORIGIN}; font-src 'self'; worker-src 'self'; manifest-src 'self'; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'" always;
+        add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+        add_header X-Content-Type-Options nosniff always;
+        add_header X-Frame-Options DENY always;
+        add_header Referrer-Policy strict-origin-when-cross-origin always;
+        add_header Permissions-Policy "geolocation=(), payment=(), usb=()" always;
+        try_files $uri $uri/ /index.html;
+    }
 }

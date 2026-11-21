@@ -110,6 +110,17 @@ You own **Stream C (Frontend PWA)** and **Stream D (Demo & quality)**. Aiza owns
 - [ ] Record the demo video, upload to Google Drive (public link).
 - [ ] Slides (optional).
 
+### Contract changes from the security-fixes branch (frontend already updated; please click through)
+- Proof = uploads. Ticking a paper is a promise; a new claim stays `proof_requested` until the papers are uploaded and analysed clean. Then the same claim can auto-approve.
+- `GET /api/v1/cases` and `GET /api/v1/queue`: a row whose claimant withdrew consent is a stub `{reference, status, consent_active: false}` (no id). Citizen home and officer queue show it as "consent withdrawn".
+- Rules: statuses now `live | draft | scheduled | retired`. `POST /api/v1/rules/{id}/simulate` (Digital Twin) then `POST /api/v1/rules/{id}/approve` by a **second** admin (seed: 00000000031), then `POST /api/v1/rules/{id}/publish` by a different admin. Publish returns 409 with a message when a step is missing. A future `effective_from` makes it `scheduled`. Re-decisions stay on the case's original rule version.
+- Officer approve on a HIGH_RISK case: the first approval returns the case still `in_review` (needs a second officer). The queue panel says so.
+- Documents: new risk level `unverified` (unreadable or check unavailable; never counts as proof). Officer `POST /api/v1/cases/{case_id}/documents/{doc_id}/clear` body `{reason}` (10-500 chars) clears a "needs a second look" flag; `cleared` is in the officer view. New indicator codes DOC_UNREADABLE, CHECK_UNAVAILABLE, DOC_REUSED, DOC_SEEN_BEFORE, REPEATED_UPLOAD, RESOLVED_BY_TYPING (server sends `text_en` + `text_ur`). A field the citizen already typed cannot be typed again (422). Too many uploads = 429 (bilingual message in the photo step).
+- Scam Shield districts come from `GET /api/v1/scam/areas` (the server rejects other values).
+- Auth: `POST /api/v1/auth/logout` revokes the session token (used on sign-out). There is no `/auth/refresh`. Repeated wrong PINs lock the account for a while; admin `POST /api/v1/admin/users/{id}/unlock`.
+- Judge console (Admin, "Judge console" tab): faults, skip payout hold, reset demo. In production these need header `X-Demo-Console-Token`; the operator pastes the token into the tab (sessionStorage only, never a build variable).
+- Demo personas on the sign-in screen only when built with `VITE_SHOW_DEMO_ACCOUNTS=true`; the shown PIN is `VITE_DEMO_PIN` (citizen PIN only; admin/officer PINs are typed).
+
 ### SafeSwitch endpoints (backend ready)
 - `POST /api/v1/cases/{case_id}/payout-change` body `{new_iban}` (citizen or helper with payout consent) → `{id, status (held|flagged), payee_result (match|close_match|no_match), flags, hold_until}`
 - `POST /api/v1/payout-changes/{id}/confirm` body `{pin}`: claimant only, re-enters her PIN (helpers get 403)

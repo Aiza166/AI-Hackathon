@@ -54,6 +54,9 @@ type Slot =
   | { state: 'done'; photo: PreparedPhoto; result: DocResult }
   | { state: 'error'; photo: PreparedPhoto; message: string }
 
+// Upload limit reached (HTTP 429): per-minute rate limit, or too many copies of one paper.
+const UPLOAD_LIMIT_UR = 'آپ نے بہت زیادہ تصویریں بھیجی ہیں۔ تھوڑی دیر بعد کوشش کریں یا افسر سے ملیں۔'
+
 interface DocumentCaptureProps {
   caseId: string
   kinds: DocKind[]
@@ -83,7 +86,7 @@ export function DocumentCapture({ caseId, kinds, onDone }: DocumentCaptureProps)
     const result = await uploadWithProgress<DocResult>(`${BASE}/api/v1/cases/${caseId}/documents`, form, getToken(),
       (progress) => setSlot(kind, { state: 'uploading', photo, progress }))
     if (result.ok && result.data) setSlot(kind, { state: 'done', photo, result: result.data })
-    else setSlot(kind, { state: 'error', photo, message: result.message })
+    else setSlot(kind, { state: 'error', photo, message: result.status === 429 ? `${UPLOAD_LIMIT_UR} ${result.message}` : result.message })
   }
 
   return (

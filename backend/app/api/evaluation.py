@@ -1,6 +1,5 @@
 """Evaluation page API (Challenge 1: show the numbers behind the choices)."""
-from fastapi import APIRouter, Depends, Query, Request
-from sqlalchemy import select
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.orm import Session
 
 from app.core import audit
@@ -10,20 +9,22 @@ from app.core.envelope import fail, ok
 from app.core.ratelimit import limiter
 from app.db import get_db
 from app.evaluation import runner
-from app.models.platform import RuleVersion
 from app.schemas.contracts import Role
+from app.services import cases as case_svc
 
 router = APIRouter(prefix="/api/v1/eval", tags=["evaluation"])
 READERS = (Role.ADMIN, Role.AUDITOR, Role.OFFICER)
-RULESET = "survivor-pension"
 
 
 def _live_ruleset(db: Session) -> dict:
-    """Evaluate the rules that are live now; fall back to the v1 file if none is published."""
-    row = db.execute(select(RuleVersion).where(RuleVersion.ruleset == RULESET, RuleVersion.status == "live")).scalar_one_or_none()
+    """Evaluate the rules in force today (live, or scheduled and now effective); v1 file if none."""
+    try:
+        row = case_svc.live_ruleset(db)
+    except HTTPException:  # no published version yet
+        row = None
     if row is None:
         return runner.default_ruleset()
-    return {"rules": row.rules, "thresholds": row.thresholds, "version": row.version}
+    return case_svc.ruleset_dict(row)
 
 
 @router.get("/latest")

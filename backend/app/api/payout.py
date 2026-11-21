@@ -8,8 +8,10 @@ from sqlalchemy.orm import Session
 
 from app.api.admin import platform_admin
 from app.api.cases import _load
-from app.core import audit
+from app.core import audit, lockout
 from app.core.auth import Principal, get_principal, require_roles
+from app.core.consent import active_consent, person_resource
+from app.core.demo_console import require_console
 from app.core.envelope import ok
 from app.core.ratelimit import limiter
 from app.core.security import verify_pin
@@ -57,8 +59,15 @@ def confirm(change_id: str, body: ConfirmIn, request: Request,
             principal: Principal = Depends(require_roles(Role.CITIZEN)), db: Session = Depends(get_db)) -> dict:
     """The claimant re-enters her own PIN. Helpers cannot reach this route at all."""
     user = db.get(User, principal.id)
-    if user is None or not verify_pin(body.pin, user.pin_hash):
-        audit.record(db, principal.actor, "PAYOUT_CONFIRM_FAILED", resource=f"payout_change:{change_id}")
+    if user is None:
+        raise HTTPException(status_code=401, detail="Wrong PIN")
+    if lockout.is_locked(db, user, request):
+        audit.record(db, principal.actor, "PAYOUT_CONFIRM_LOCKED", resource=f"payout_change:{change_id}")
+        db.commit()
+        raise HTTPException(status_code=429, detail="Too many wrong PINs. Please wait 15 minutes or ask your helper.")
+    if not verify_pin(body.pin, user.pin_hash):
+        # Shares the login failure counter; 5 wrong PINs here also end every session.
+        lockout.record_failure(db, user, request, "PAYOUT_CONFIRM_FAILED", resource=f"payout_change:{change_id}")
         db.commit()
         raise HTTPException(status_code=401, detail="Wrong PIN")
     change = svc.confirm(db, principal, change_id)
@@ -77,17 +86,31 @@ def cancel(change_id: str, request: Request,
 
 
 @router.get("/payout-changes")
-def officer_list(status: str = "flagged", principal: Principal = Depends(require_roles(Role.OFFICER)),
+def officer_list(request: Request, status: str = "flagged", principal: Principal = Depends(require_roles(Role.OFFICER)),
                  db: Session = Depends(get_db)) -> dict:
     """Officer view: payout changes in this department, flagged ones by default (newest first)."""
     if status not in ("flagged", "held", "confirmed", "approved", "applied", "rejected", "cancelled", "all"):
         raise HTTPException(status_code=422, detail="Unknown status")
-    query = (select(PayoutChangeRequest, Case.reference).join(Case, Case.id == PayoutChangeRequest.case_id)
+    query = (select(PayoutChangeRequest, Case).join(Case, Case.id == PayoutChangeRequest.case_id)
              .where(PayoutChangeRequest.tenant_id == principal.tenant_id)
              .order_by(PayoutChangeRequest.created_at.desc()).limit(100))
     if status != "all":
         query = query.where(PayoutChangeRequest.status == status)
-    return ok([{**svc.view(change), "case_reference": ref} for change, ref in db.execute(query).all()])
+    return ok([_officer_row(db, principal, request, change, case) for change, case in db.execute(query).all()])
+
+
+def _officer_row(db: Session, principal: Principal, request: Request, change: PayoutChangeRequest, case: Case) -> dict:
+    """Per-row consent: without payout_account consent the officer sees a redacted stub (logged)."""
+    if active_consent(db, principal, case.claimant_person_id, "payout_account") is None:
+        audit.record(db, principal.actor, "CONSENT_DENIED", resource=person_resource(case.claimant_person_id),
+                     details={"field": "payout_account", "path": f"{request.method} {request.url.path}", "redacted": True})
+        db.commit()
+        return {"id": change.id, "case_id": change.case_id, "case_reference": case.reference, "status": change.status,
+                "flags": change.flags, "hold_until": change.hold_until.isoformat(), "consent_active": False}
+    audit.record(db, principal.actor, "DATA_ACCESS", resource=person_resource(case.claimant_person_id),
+                 details={"field": "payout_account", "basis": "consent", "path": f"{request.method} {request.url.path}"})
+    db.commit()
+    return {**svc.view(change), "case_reference": case.reference, "consent_active": True}
 
 
 @router.post("/payout-changes/{change_id}/{decision}")
@@ -101,9 +124,11 @@ def review(change_id: str, decision: str, body: NoteIn,
 
 
 @router.post("/admin/payout/apply-due")
-def apply_due(skip_wait: bool = False, principal: Principal = Depends(platform_admin), db: Session = Depends(get_db)) -> dict:
+def apply_due(request: Request, skip_wait: bool = False, principal: Principal = Depends(platform_admin), db: Session = Depends(get_db)) -> dict:
     """Normally a scheduler runs this. skip_wait=true is the judge-console shortcut to show the
     end of a 48-hour hold without waiting; it is audited as such."""
+    if skip_wait:
+        require_console(request)  # production: needs the demo console token
     now = utcnow() + (timedelta(days=30) if skip_wait else timedelta(0))
     if skip_wait:
         audit.record(db, principal.actor, "DEMO_SKIP_PAYOUT_HOLD")

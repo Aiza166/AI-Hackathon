@@ -21,9 +21,13 @@ def test_digital_twin_shows_only_post_2024_heirs_change_and_writes_nothing(clien
     assert db.execute(select(func.count(Decision.id))).scalar() == before
 
 
-def test_publishing_v2_applies_to_new_claims_and_old_decisions_keep_v1(client, login, file_claim):
+def test_publishing_v2_applies_to_new_claims_and_old_decisions_keep_v1(client, login, file_claim, db):
     admin = login("admin")
     versions = _versions(client, admin)
+    # Red-team H6: a publish needs a Digital Twin run and a second admin's approval.
+    from tests.adversarial.test_cases_rules import second_admin
+    client.post(f"/api/v1/rules/{versions[2]['id']}/simulate", headers=admin)
+    client.post(f"/api/v1/rules/{versions[2]['id']}/approve", headers=second_admin(db))
     assert client.post(f"/api/v1/rules/{versions[2]['id']}/publish", headers=admin).status_code == 200
 
     after = _versions(client, admin)

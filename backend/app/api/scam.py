@@ -8,7 +8,8 @@ from sqlalchemy.orm import Session
 
 from app.core import audit
 from app.core.auth import Principal, require_roles, require_scope
-from app.core.envelope import ok
+from app.core.config import get_settings
+from app.core.envelope import fail, ok
 from app.core.ratelimit import limiter
 from app.db import get_db
 from app.models.platform import utcnow
@@ -48,13 +49,32 @@ def report_routes(verdict: str, text: str, sender: str | None) -> list[dict]:
     return [*REPORT_ROUTES, *([BISP_ROUTE] if any(w in haystack for w in BISP_WORDS) else [])]
 
 
+# Scam Map areas are a fixed list, so free text (names, numbers, abuse) never reaches the map.
+AREAS = ("Karachi South", "Karachi East", "Karachi West", "Karachi Central", "Korangi", "Malir", "Keamari",
+         "Hyderabad", "Sukkur", "Larkana", "Mirpurkhas", "Lahore", "Islamabad", "Rawalpindi", "Peshawar", "Quetta",
+         "Multan", "Faisalabad", "Gujranwala", "Sialkot", "other")
+_AREA_LOOKUP = {a.casefold(): a for a in AREAS}
+JEV_DAILY_CHECKS_PER_USER = 200  # each check can call Jev (paid); caps runaway cost from one account or key
+jev_quota = svc.PerUserQuota(JEV_DAILY_CHECKS_PER_USER, 24 * 3600)
+
+
+def area_of(value: str | None) -> str | None:
+    """Known area, or 'other' for anything not on the list; None stays None."""
+    if value is None or not value.strip():
+        return None
+    return _AREA_LOOKUP.get(" ".join(value.split()).casefold(), "other")
+
+
 def _run(db: Session, principal: Principal, body: ScamCheckIn) -> dict:
-    result = svc.check(db, body.text, body.sender, body.on_call_with_unknown, principal.person_id)
+    result = svc.check(db, body.text, body.sender, body.on_call_with_unknown, principal.person_id,
+                       user_key=f"{principal.kind}:{principal.id}", secret=get_settings().jwt_secret)
     db.add(ScamCheck(tenant_id=principal.tenant_id, text_hash=svc.text_hash(body.text), scam_type=result.scam_type,
-                     area=body.area, signals=result.signals, model_id=result.model_id, verdict=result.verdict, score=result.score))
+                     area=area_of(body.area), signals=result.signals, model_id=result.model_id, verdict=result.verdict, score=result.score))
     audit.record(db, audit.AI, "SCAM_CHECKED", tenant_id=principal.tenant_id,
                  details={"verdict": result.verdict, "score": result.score, "model_id": result.model_id,
-                          "fallback": result.signals["fallback"], "requested_by_role": principal.role})
+                          "fallback": result.signals["fallback"], "disagreement": result.signals["disagreement"],
+                          "steering": result.signals["steering"], "breaker_active": result.signals["breaker_active"],
+                          "requested_by_role": principal.role})
     db.commit()
     return {
         "verdict": result.verdict, "confidence": result.score, "reasons": result.reasons, "reasons_ur": result.reasons_ur,
@@ -63,19 +83,41 @@ def _run(db: Session, principal: Principal, body: ScamCheckIn) -> dict:
     }
 
 
-@router.post("/scam/check")
+def _over_quota(principal: Principal):
+    if jev_quota.allow(f"{principal.kind}:{principal.id}"):
+        return None
+    return fail(code="SCAM_CHECK_QUOTA", message="Daily scam check limit reached. Please try again tomorrow or ask a helper.", status=429)
+
+
+@router.get("/scam/areas")
+def areas(principal: Principal = Depends(require_roles(*tuple(Role)))) -> dict:
+    return ok({"areas": list(AREAS)})
+
+
+@router.post("/scam/check", response_model=None)
 @limiter.limit("20/minute")
 def check(request: Request, body: ScamCheckIn,
-          principal: Principal = Depends(require_roles(Role.CITIZEN, Role.HELPER, Role.OFFICER)), db: Session = Depends(get_db)) -> dict:
-    return ok(_run(db, principal, body))
+          principal: Principal = Depends(require_roles(Role.CITIZEN, Role.HELPER, Role.OFFICER)), db: Session = Depends(get_db)):
+    return _over_quota(principal) or ok(_run(db, principal, body))
 
 
-@router.post("/public/scam/check", tags=["public API (API key)"])
+@router.post("/scam/canary")
+@limiter.limit("6/minute")
+def canary(request: Request, principal: Principal = Depends(require_roles(Role.ADMIN)), db: Session = Depends(get_db)) -> dict:
+    """Admin only: run a known scam through Jev. If Jev clears it, no check can say LOOKS_GENUINE for 30 minutes."""
+    outcome = svc.run_canary()
+    audit.record(db, principal.actor, "SCAM_CANARY_RUN", tenant_id=principal.tenant_id,
+                 details={"status": outcome["status"], "tripped": outcome["tripped"], "model_id": outcome.get("model_id")})
+    db.commit()
+    return ok(outcome)
+
+
+@router.post("/public/scam/check", tags=["public API (API key)"], response_model=None)
 @limiter.limit("60/minute")
 def public_check(request: Request, body: ScamCheckIn, principal: Principal = Depends(require_scope("scam:check")),
-                 db: Session = Depends(get_db)) -> dict:
+                 db: Session = Depends(get_db)):
     """For outside systems (e.g. an SMS gateway) with an API key scoped to scam:check."""
-    return ok(_run(db, principal, body))
+    return _over_quota(principal) or ok(_run(db, principal, body))
 
 
 @router.get("/scam/map")

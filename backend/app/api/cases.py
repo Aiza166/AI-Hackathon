@@ -4,8 +4,9 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.core import audit
 from app.core.auth import Principal, deny, get_principal, require_roles
-from app.core.consent import assert_consent
+from app.core.consent import active_consent, assert_consent, person_resource
 from app.core.ratelimit import limiter
 from app.core.envelope import ok
 from app.db import get_db
@@ -20,6 +21,7 @@ router = APIRouter(prefix="/api/v1", tags=["cases"])
 OFFICER_LIKE = (Role.OFFICER, Role.ADMIN)
 STAFF = (Role.OFFICER, Role.ADMIN, Role.AUDITOR)
 CAN_ESCALATE = (Role.CITIZEN, Role.HELPER, Role.OFFICER, Role.ADMIN)
+LIST_FIELD = "case_details"
 
 
 def _load(db: Session, principal: Principal, request: Request, case_id: str, lock: bool = False, field: str = "case_details") -> Case:
@@ -37,7 +39,42 @@ def _load(db: Session, principal: Principal, request: Request, case_id: str, loc
 
 
 def _latest_decision(db: Session, case_id: str) -> Decision | None:
-    return db.execute(select(Decision).where(Decision.case_id == case_id).order_by(Decision.created_at.desc()).limit(1)).scalar_one_or_none()
+    return svc.latest_decision(db, case_id)
+
+
+def _list_basis(db: Session, principal: Principal, person_id: str) -> str | None:
+    """Why this principal may see this person's case in a list, or None (no active consent)."""
+    if principal.role == Role.CITIZEN and principal.person_id == person_id:
+        return "self"
+    if principal.role == Role.AUDITOR:
+        return "oversight"
+    consent = active_consent(db, principal, person_id, LIST_FIELD)
+    return f"consent:{consent.id}" if consent else None
+
+
+def _log_list_access(db: Session, principal: Principal, request: Request, person_id: str, basis: str | None) -> None:
+    path = f"{request.method} {request.url.path}"
+    if basis is None:
+        audit.record(db, principal.actor, "CONSENT_DENIED", resource=person_resource(person_id), details={"field": LIST_FIELD, "path": path})
+    elif basis != "self":
+        audit.record(db, principal.actor, "DATA_ACCESS", resource=person_resource(person_id),
+                     details={"field": LIST_FIELD, "basis": basis, "path": path})
+
+
+def _consented_views(db: Session, principal: Principal, request: Request, cases: list[Case]) -> list[dict]:
+    """Lists check consent per row (Security review H1): without an active consent the row is a
+    stub {reference, status, consent_active: false}. One audit row per person per request."""
+    bases: dict[str, str | None] = {}
+    for case in cases:
+        if case.claimant_person_id not in bases:
+            bases[case.claimant_person_id] = _list_basis(db, principal, case.claimant_person_id)
+    for person_id, basis in bases.items():
+        _log_list_access(db, principal, request, person_id, basis)
+    db.commit()
+    return [
+        _view(db, c, principal) if bases[c.claimant_person_id] else {"reference": c.reference, "status": c.status, "consent_active": False}
+        for c in cases
+    ]
 
 
 def _summary(db: Session, decision: Decision | None) -> DecisionSummary | None:
@@ -116,7 +153,7 @@ def list_cases(request: Request, principal: Principal = Depends(get_principal), 
         query = query.where(Case.tenant_id == principal.tenant_id)
     else:  # e.g. API keys: never list cases
         raise deny(db, principal, request, "role cannot list cases")
-    return ok([_view(db, c, principal) for c in db.execute(query.limit(200)).scalars()])
+    return ok(_consented_views(db, principal, request, list(db.execute(query.limit(200)).scalars())))
 
 
 @router.get("/cases/{case_id}")
@@ -174,14 +211,14 @@ def decision_trace(
 
 
 @router.get("/queue")
-def officer_queue(principal: Principal = Depends(require_roles(*OFFICER_LIKE)), db: Session = Depends(get_db)) -> dict:
+def officer_queue(request: Request, principal: Principal = Depends(require_roles(*OFFICER_LIKE)), db: Session = Depends(get_db)) -> dict:
     """Cases waiting for a human: highest priority first, then lowest confidence."""
     query = (
         select(Case)
         .where(Case.tenant_id == principal.tenant_id, Case.status.in_(("in_review", "proof_requested")))
         .order_by(Case.priority.desc(), Case.confidence.asc().nulls_first(), Case.created_at)
     )
-    return ok([_view(db, c, principal) for c in db.execute(query).scalars()])
+    return ok(_consented_views(db, principal, request, list(db.execute(query.limit(200)).scalars())))
 
 
 @router.post("/cases/{case_id}/approve")

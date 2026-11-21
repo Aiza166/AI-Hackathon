@@ -247,7 +247,8 @@ def test_jev_is_skipped_without_a_key_and_unavailable_on_error():
     failing = JevClient(get_settings().model_copy(update={"typesafe_api_key": "test"}),
                         transport=httpx.MockTransport(lambda r: httpx.Response(500)))
     result = jev_checks.ask_document_questions("claimant_cnic", img, client=failing)
-    assert result.status == "unavailable" and indicators.from_jev(result) == []
+    # Red team M4/M5: a configured Jev that fails makes the paper "unverified", never silently clean.
+    assert result.status == "unavailable" and [i.code for i in indicators.from_jev(result)] == ["CHECK_UNAVAILABLE"]
 
 
 # ---------- indicators ----------

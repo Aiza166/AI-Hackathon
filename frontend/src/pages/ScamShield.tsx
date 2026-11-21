@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { errorText, post } from '../api/client'
+import { useEffect, useState } from 'react'
+import { api, errorText, post } from '../api/client'
 import type { ReportRoute, ScamResult, ScamVerdict } from '../api/types'
 import { Badge, Bilingual, ErrorNote, ListenButton, Pictogram } from '../components/ui'
 import { Icon } from '../lib/icons'
@@ -24,8 +24,9 @@ const VERDICT: Record<ScamVerdict, { icon: string; tone: 'risk' | 'attn' | 'ok';
     en: 'This message looks genuine. Still, never pay a fee or share a code.',
   },
 }
-// Mock districts (match the seeded demo world) so the staff Scam Map can group reports.
-const AREAS = ['Karachi East', 'Karachi South', 'Hyderabad', 'Sukkur', 'Multan', 'Lahore', 'Faisalabad', 'Quetta']
+// Districts come from GET /api/v1/scam/areas (the server accepts only these); this list is the
+// offline fallback and matches the seeded demo world.
+const FALLBACK_AREAS = ['Karachi East', 'Karachi South', 'Hyderabad', 'Sukkur', 'Multan', 'Lahore', 'Faisalabad', 'Quetta']
 const DEMO_SCAM = 'Mubarak ho! Aap ki pension release ho gayi hai. Rs 5000 processing fee aaj hi jama karwain warna cancel. Link: pension-release.example.com'
 const INTRO_UR = 'جو پیغام آیا ہے وہ یہاں لکھیں یا چسپاں کریں۔ ہم بتائیں گے کہ یہ دھوکہ تو نہیں۔'
 const ON_CALL_UR = 'کیا اس وقت کوئی فون پر آپ کو یہ کرنے کو کہہ رہا ہے؟'
@@ -39,6 +40,14 @@ export function ScamShield({ onBack }: ScamShieldProps) {
   const [sender, setSender] = useState('')
   const [onCall, setOnCall] = useState<boolean | null>(null)
   const [area, setArea] = useState('')
+  const [areas, setAreas] = useState<string[]>(FALLBACK_AREAS)
+  useEffect(() => {
+    let active = true
+    api<{ areas: string[] }>('/api/v1/scam/areas')
+      .then((r) => { if (active && r.data.areas.length > 0) setAreas(r.data.areas) })
+      .catch(() => undefined) // offline: keep the fallback list
+    return () => { active = false }
+  }, [])
   const [result, setResult] = useState<ScamResult | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -125,7 +134,7 @@ export function ScamShield({ onBack }: ScamShieldProps) {
             </span>
             <select className="input input-big" value={area} onChange={(e) => setArea(e.target.value)}>
               <option value="">Not saying</option>
-              {AREAS.map((a) => <option key={a} value={a}>{a}</option>)}
+              {areas.map((a) => <option key={a} value={a}>{a}</option>)}
             </select>
           </label>
 

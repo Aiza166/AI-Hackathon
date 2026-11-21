@@ -97,7 +97,8 @@ def test_safeswitch_to_own_wallet_is_a_clean_48h_hold(client, login, file_claim)
 def test_claim_to_joint_account_asks_for_proof(file_claim):
     data = file_claim("zainab", payout_iban="PK00MOCK0000000000000012")["data"]
     assert data["status"] == "proof_requested"
-    assert data["latest_decision"]["reason_codes"] == ["PAYEE_CLOSE_MATCH"]
+    # Papers are not uploaded yet (C2), so missing-document codes appear too; the payee check must.
+    assert "PAYEE_CLOSE_MATCH" in data["latest_decision"]["reason_codes"]
 
 
 def test_claim_while_title_fetch_times_out_goes_to_an_officer(client, login, file_claim):
@@ -105,3 +106,14 @@ def test_claim_while_title_fetch_times_out_goes_to_an_officer(client, login, fil
     data = file_claim("zainab")["data"]
     assert data["status"] == "in_review"
     assert data["latest_decision"]["reason_codes"] == ["SERVICE_UNAVAILABLE"]
+
+
+def test_joint_account_alone_still_asks_for_proof_once_papers_are_in(file_claim, db):
+    from app.models.platform import Decision
+    from tests.helpers import attach_documents, redecide_case
+    data = file_claim("zainab", payout_iban="PK00MOCK0000000000000012")["data"]
+    attach_documents(db, data["id"])
+    case = redecide_case(db, data["id"])
+    assert case.status == "proof_requested"
+    latest = db.query(Decision).filter(Decision.case_id == case.id).order_by(Decision.created_at.desc()).first()
+    assert latest.reason_codes == ["PAYEE_CLOSE_MATCH"]

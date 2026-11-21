@@ -1,6 +1,7 @@
 import { Suspense, lazy, useCallback, useEffect, useState } from 'react'
 import { api, errorText, post } from '../api/client'
-import type { CaseView } from '../api/types'
+import type { CaseRow, CaseView } from '../api/types'
+import { isCaseStub } from '../api/types'
 import { Badge, ErrorNote, Loading, humanize, toneFor } from '../components/ui'
 import { Icon } from '../lib/icons'
 import { OfficerPayouts } from './OfficerPayouts'
@@ -56,7 +57,7 @@ export function OfficerHome() {
 }
 
 function QueuePanel() {
-  const [queue, setQueue] = useState<CaseView[] | null>(null)
+  const [queue, setQueue] = useState<CaseRow[] | null>(null)
   const [selected, setSelected] = useState<CaseView | null>(null)
   const [trace, setTrace] = useState<Trace | null>(null)
   const [reason, setReason] = useState('')
@@ -66,7 +67,7 @@ function QueuePanel() {
 
   const refresh = useCallback(async () => {
     try {
-      setQueue((await api<CaseView[]>('/api/v1/queue')).data)
+      setQueue((await api<CaseRow[]>('/api/v1/queue')).data)
     } catch (e) {
       setError(errorText(e))
     }
@@ -94,8 +95,13 @@ function QueuePanel() {
     if (!selected) return
     setBusy(true)
     try {
-      await post(`/api/v1/cases/${selected.id}/${action}`, { reason })
-      setDone(`${selected.reference} ${action === 'approve' ? 'approved' : 'rejected'}. The citizen has been told.`)
+      const after = (await post<CaseView>(`/api/v1/cases/${selected.id}/${action}`, { reason })).data
+      if (action === 'approve' && after.status === 'in_review') {
+        // High-risk case (four eyes): the first approval is recorded; a different officer must give the second.
+        setDone(`${selected.reference}: your approval is recorded. This case needs a second officer to approve it too.`)
+      } else {
+        setDone(`${selected.reference} ${action === 'approve' ? 'approved' : 'rejected'}. The citizen has been told.`)
+      }
       setSelected(null)
       await refresh()
     } catch (e) {
@@ -126,7 +132,12 @@ function QueuePanel() {
                 <tr><th scope="col">Case</th><th scope="col">Priority</th><th scope="col">Confidence</th><th scope="col">Why a human</th></tr>
               </thead>
               <tbody>
-                {queue.map((c) => (
+                {queue.map((c) => isCaseStub(c) ? (
+                  <tr key={c.reference} className="is-quiet">
+                    <td>{c.reference}</td>
+                    <td colSpan={3} className="muted">Consent withdrawn: details hidden until the claimant shares them again.</td>
+                  </tr>
+                ) : (
                   <tr key={c.id} className={selected?.id === c.id ? 'is-selected' : undefined}>
                     <td>
                       <button type="button" className="row-link" onClick={() => void open(c)} aria-label={`Open case ${c.reference}`}>

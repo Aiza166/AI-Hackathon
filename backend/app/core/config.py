@@ -39,6 +39,22 @@ class Settings(BaseSettings):
     jev_image_timeout_seconds: float = 8.0
     tts_cache_dir: str | None = None  # disk cache for synthesised audio; memory-only when unset
 
+    # Production hardening. ENVIRONMENT=production turns these on.
+    # Judge-console shortcuts (demo reset, mock faults, skipping the payout hold) need this
+    # token in the X-Demo-Console-Token header in production; unset means they are disabled.
+    demo_console_token: str | None = None
+    allow_docs: bool = False  # production only: expose /docs and /openapi.json
+    # Proxies whose X-Forwarded-For we believe (comma-separated IPs or CIDRs). Same value as
+    # uvicorn's --forwarded-allow-ips in start.sh.
+    forwarded_allow_ips: str = "127.0.0.1"
+    # Rate-limit storage. Unset: Redis (REDIS_URL) in production, process memory elsewhere.
+    ratelimit_storage_uri: str | None = None
+    max_body_bytes: int = 10 * 1024 * 1024
+
+    @property
+    def is_production(self) -> bool:
+        return self.environment.strip().lower() in ("production", "prod")
+
     @field_validator("database_url")
     @classmethod
     def _use_psycopg_driver(cls, url: str) -> str:
@@ -48,7 +64,8 @@ class Settings(BaseSettings):
                 return "postgresql+psycopg://" + url[len(prefix):]
         return url
 
-    @field_validator("azure_speech_key", "azure_speech_region", "azure_docintel_endpoint", "azure_docintel_key", "typesafe_api_key")
+    @field_validator("azure_speech_key", "azure_speech_region", "azure_docintel_endpoint", "azure_docintel_key", "typesafe_api_key",
+                     "demo_console_token", "ratelimit_storage_uri")
     @classmethod
     def _blank_is_unset(cls, value: str | None) -> str | None:
         """An empty placeholder in .env means "not configured"."""

@@ -72,12 +72,13 @@ def test_officer_approves_and_cannot_decide_twice(client, login, file_claim):
 
 
 def test_api_key_scope_is_enforced(client, login, file_claim):
-    reference = file_claim("zainab")["data"]["reference"]
+    filed = file_claim("zainab")["data"]
+    reference = filed["reference"]
     created = client.post("/api/v1/admin/api-keys", json={"name": "Mock SMS gateway", "scopes": ["cases:status"]}, headers=login("admin")).json()["data"]
     key = {"X-API-Key": created["api_key"]}
     response = client.get(f"/api/v1/public/cases/{reference}/status", headers=key)
     assert response.status_code == 200
-    assert response.json()["data"]["status"] == "auto_approved"
+    assert response.json()["data"]["status"] == filed["status"]
     assert client.get("/api/v1/public/cases/SP-0000/status", headers={"X-API-Key": "sk_wrong"}).status_code == 401
     assert client.get(f"/api/v1/public/cases/{reference}/status", headers=login("zainab")).status_code == 403
 

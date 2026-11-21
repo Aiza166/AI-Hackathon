@@ -1,6 +1,7 @@
 """PIN hashing, JWT issue/verify and API key hashing."""
 import hashlib
 import secrets
+import time
 from datetime import datetime, timedelta, timezone
 
 import bcrypt
@@ -11,7 +12,6 @@ from app.core.config import get_settings
 JWT_ALGORITHM = "HS256"
 JWT_ISSUER = "sahara-api"
 JWT_AUDIENCE = "sahara-app"
-REFRESH_TOKEN_DAYS = 2
 
 
 def hash_pin(pin: str) -> str:
@@ -30,11 +30,10 @@ def _encode(claims: dict, lifetime: timedelta) -> str:
 
 def create_access_token(user_id: str, role: str, tenant_id: str) -> str:
     minutes = get_settings().jwt_access_minutes
-    return _encode({"sub": user_id, "role": role, "tid": tenant_id, "typ": "access"}, timedelta(minutes=minutes))
-
-
-def create_refresh_token(user_id: str) -> str:
-    return _encode({"sub": user_id, "typ": "refresh"}, timedelta(days=REFRESH_TOKEN_DAYS))
+    # "sid": issue time in milliseconds. Logout and the PIN lockout revoke every token issued
+    # before the revoking audit event. No refresh tokens: sign in again after expiry.
+    claims = {"sub": user_id, "role": role, "tid": tenant_id, "typ": "access", "sid": int(time.time() * 1000)}
+    return _encode(claims, timedelta(minutes=minutes))
 
 
 def decode_token(token: str, expected_type: str) -> dict:

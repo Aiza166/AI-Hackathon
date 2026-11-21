@@ -6,6 +6,7 @@ chain, and verify_chain() reports the first broken row.
 """
 import hashlib
 import json
+import logging
 from dataclasses import dataclass
 from datetime import datetime, timezone
 
@@ -16,6 +17,19 @@ from app.models.audit import AuditEvent
 from app.models.platform import utcnow
 
 GENESIS_HASH = "0" * 64
+ANCHOR_EVERY = 50  # log the chain head every N events (and on every verify)
+# Anchor lines go to stdout (Railway logs), outside the database: if someone with database
+# owner rights removes the newest rows, the last logged head no longer matches.
+log = logging.getLogger("sahara.audit")
+if not log.handlers:
+    _handler = logging.StreamHandler()
+    _handler.setFormatter(logging.Formatter("%(asctime)s %(name)s %(message)s"))
+    log.addHandler(_handler)
+    log.setLevel(logging.INFO)
+
+
+def log_anchor(seq: int | None, head_hash: str, source: str) -> None:
+    log.info("AUDIT_ANCHOR seq=%s head=%s source=%s", seq, head_hash, source)
 _CHAIN_LOCK_KEY = 74_220_011  # arbitrary constant for pg_advisory_xact_lock
 
 
@@ -85,19 +99,23 @@ def record(
     )
     db.add(event)
     db.flush()
+    if event.seq % ANCHOR_EVERY == 0:
+        log_anchor(event.seq, event.hash, "record")
     return event
 
 
 def verify_chain(db: Session) -> dict:
     prev_hash = GENESIS_HASH
     count = 0
+    last_seq = None
     for event in db.execute(select(AuditEvent).order_by(AuditEvent.seq)).scalars():
         actor = Actor(event.actor_type, event.actor_id, event.role)
         canonical = _canonical(event.ts, actor, event.action, event.resource, event.case_id, event.details, event.tenant_id)
         if event.prev_hash != prev_hash or event.hash != _hash(prev_hash, canonical):
+            log.warning("AUDIT_CHAIN_BROKEN first_broken_seq=%s", event.seq)
             return {"intact": False, "checked": count, "first_broken_seq": event.seq, "head_hash": prev_hash}
         prev_hash = event.hash
+        last_seq = event.seq
         count += 1
-    # head_hash should also be anchored outside the database (e.g. printed in logs) to detect
-    # removal of the newest rows by someone with database owner rights.
+    log_anchor(last_seq, prev_hash, "verify")
     return {"intact": True, "checked": count, "first_broken_seq": None, "head_hash": prev_hash}

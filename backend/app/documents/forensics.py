@@ -32,12 +32,19 @@ HUE_BINS = 6  # stamps are compared within one ink colour, so a blue seal never 
 CLOSE_KERNEL = 15
 STAMP_MIN_SIDE, STAMP_MAX_SIDE = 50, 600
 STAMP_MAX_ASPECT = 2.0
-SIZE_TOLERANCE = 0.2  # two impressions of one stamp have nearly the same box
+SIZE_TOLERANCE = 0.3  # a paste may be scaled 0.8-1.25x and rotated, which grows its box
 SEARCH_PAD = 30
 # Normalised cross-correlation of the two ink masks. Sample docs: pasted copy 0.81-0.86,
 # every other pair <= 0.0. Real double hand-stamping lands far below 0.6.
 COPY_MOVE_NCC = 0.6
 MIN_STAMP_DISTANCE = 40
+# A paste can be rotated or rescaled to dodge a plain template match (red team M1: 3 degrees
+# dropped NCC to 0.59). The template is also tried at these angles and scales; a genuine
+# second impression is still inked and pressed differently, so its best score stays low.
+SEARCH_ANGLES = tuple(range(-12, 13, 2))
+SEARCH_SCALES = (0.8, 0.85, 0.9, 0.95, 1.0, 1.05, 1.1, 1.17, 1.25)
+_SEARCH_ORDER = sorted(((a, sc) for a in SEARCH_ANGLES for sc in SEARCH_SCALES), key=lambda t: abs(t[0]) + 20 * abs(t[1] - 1))
+CLEAR_COPY_NCC = 0.75
 
 ELA_QUALITY = 90
 ELA_GAIN = 12
@@ -103,7 +110,28 @@ def _ncc_one_way(mask: np.ndarray, a: tuple, b: tuple) -> float:
         return 0.0
     if template.std() == 0 or region.std() == 0:
         return 0.0
-    return float(cv2.matchTemplate(region, template, cv2.TM_CCOEFF_NORMED).max())
+    best = 0.0
+    for angle, scale in _SEARCH_ORDER:
+        warped = _warp(template, angle, scale)
+        if warped.shape[0] > region.shape[0] or warped.shape[1] > region.shape[1] or warped.std() == 0:
+            continue
+        best = max(best, float(cv2.matchTemplate(region, warped, cv2.TM_CCOEFF_NORMED).max()))
+        if best >= CLEAR_COPY_NCC:
+            break  # clearly a copy: no need to search further
+    return best
+
+
+def _warp(template: np.ndarray, angle: float, scale: float) -> np.ndarray:
+    """Rotate and scale the ink mask about its centre into a canvas that holds all of it."""
+    if angle == 0 and scale == 1.0:
+        return template
+    h, w = template.shape
+    matrix = cv2.getRotationMatrix2D((w / 2, h / 2), angle, scale)
+    cos, sin = abs(matrix[0, 0]), abs(matrix[0, 1])
+    new_w, new_h = int(h * sin + w * cos), int(h * cos + w * sin)
+    matrix[0, 2] += new_w / 2 - w / 2
+    matrix[1, 2] += new_h / 2 - h / 2
+    return cv2.warpAffine(template, matrix, (new_w, new_h), flags=cv2.INTER_LINEAR, borderValue=0)
 
 
 def _ncc(mask: np.ndarray, a: tuple, b: tuple) -> float:

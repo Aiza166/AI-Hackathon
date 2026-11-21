@@ -95,6 +95,7 @@ export function toneFor(value: string | null | undefined): Tone {
     case 'ASK_PROOF':
     case 'proof_requested':
     case 'draft':
+    case 'scheduled':
       return 'attn'
     case 'rejected':
     case 'UNSURE':

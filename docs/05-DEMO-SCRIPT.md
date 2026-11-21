@@ -42,12 +42,20 @@
 | **Scam Shield screen (citizen or helper)** | Tile "Is this message a scam?": paste the message (or "Fill demo scam SMS"), sender, "is someone on the phone with you?" yes/no, district. LIKELY_SCAM shows reasons in Urdu + English with Listen, the case cross-check line, and a "Report this scam" card: NCCIA 1799 (tel:), NCCIA portal, PTA complaint portal + 0800-55055, forward to 9000 (per PTA, 2023), call your bank, SBP Sunwai; BISP 0800-26477 only when the message mentions BISP. Officer and admin see it on the **Scam map** tab |
 | **Send borderline message** | Ambiguous message: NOT_SURE, never silently labelled safe |
 | **Change payout account** | Zainab's tile "Change payout account" (demo buttons fill mock IBANs). Own wallet (...0013): mock Raast title fetch shows "ZA**** BI**", match, held 48 hours with a countdown, confirmed with her own PIN. Joint account (...0012): close match + "joint account, proof needed", flagged, 4 business days. Someone else's account (...0008): no match, flagged. A helper can start a change but sees no PIN box. Cancel any time. Officer tab **Payout changes** approves or rejects flagged ones with a note (approval still needs her PIN and the hold) |
-| **Break the bank check (Raast timeout)** | `POST /api/v1/admin/faults {"service": "raast", "mode": "timeout"}`: a new claim goes UNSURE with SERVICE_UNAVAILABLE; a payout change is flagged PAYEE_CHECK_TIMEOUT, held 4 business days, her PIN alone does not release it. Set mode `ok` to restore |
+| **Break the bank check (Raast timeout)** | Judge console tab, Set fault raast / timeout (`POST /api/v1/admin/faults`, token header in production): a new claim goes UNSURE with SERVICE_UNAVAILABLE; a payout change is flagged PAYEE_CHECK_TIMEOUT, held 4 business days, her PIN alone does not release it. Set mode `ok` to restore |
 | **Leave the DOB blank** | File Zainab's claim with the DOB step empty: ASK_PROOF, "Please confirm your date of birth. It is printed on your CNIC." Never a rejection. A wrong DOB gives DOB_MISMATCH |
 | **Break the identity service** | Mock NADRA returns errors: case routes UNSURE with SERVICE_UNAVAILABLE, no crash, no guess |
 | **Go offline** | File a claim offline, reconnect: syncs exactly once |
 | **Citizen calls officer API** | In Swagger with a citizen token: 403 on approve endpoint, attempt logged |
 | **Reset demo** | Seed data restored in one click |
+
+## Changes from the security fixes (read before rehearsing)
+
+- **Auto-approve needs uploads.** The golden path auto-approves only after the papers are uploaded and read clean (photo step after "Send claim"). Until then the claim shows "proof requested". Use the clean sample images in `backend/sample_docs/`.
+- **Rule v2 publish needs two admins.** Admin runs the Digital Twin, a second admin (00000000031) presses "Approve (second admin)", then the first admin publishes. Without both steps publish says why (409). Re-decisions of old cases stay on their original version.
+- **Judge console needs the token in production.** Admin, "Judge console" tab: paste `DEMO_CONSOLE_TOKEN` (kept in that tab only). Without it the console endpoints answer 404.
+- **PINs on the live site** come from `DEMO_PIN` / `DEMO_ADMIN_PIN` / `DEMO_OFFICER_PIN`; only the citizen PIN is shown on the sign-in screen. Wrong PINs lock an account for a while.
+- **Officer clear.** A "needs a second look" paper stays flagged even after a clean re-upload until an officer clears it with a reason; a HIGH_RISK case needs two officers to approve.
 
 ## Backup plan
 

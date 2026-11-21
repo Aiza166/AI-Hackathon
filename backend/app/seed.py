@@ -4,7 +4,9 @@ Everything here is fake. CNICs start with 90000 and IBANs with PK00MOCK so they
 cannot be confused with real ones. Names in the registry are spelled
 differently on purpose (Muhammad / Mohd. / Muhammed) to test matching.
 """
+import hashlib
 import json
+import os
 from datetime import date
 from pathlib import Path
 
@@ -12,6 +14,7 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.core import audit
+from app.core.config import get_settings
 from app.core.security import hash_pin
 from app.core.consent import PURPOSE
 from app.db import SessionLocal
@@ -19,7 +22,9 @@ from app.models.consent import CONSENT_FIELDS, Consent
 from app.models.mock import MockAccount, MockDeath, MockFamilyLink, MockFamilyPensionDrawn, MockPension, MockPerson
 from app.models.platform import Case, CaseEvent, HelperAssignment, Person, RuleVersion, Tenant, User, utcnow
 
-DEMO_PIN = "1234"
+LOCAL_DEMO_PIN = "1234"  # local development and tests only; never used in production
+PRIVILEGED_ROLES = ("admin", "officer")
+SECOND_ADMIN_PHONE = "00000000031"  # PIN from DEMO_ADMIN2_PIN
 # Bump when the demo world changes: deployed databases re-seed once on the next boot.
 SEED_VERSION = "phase2-dob-raast"
 RULESET_DIR = Path(__file__).parent / "decision" / "rulesets"
@@ -122,6 +127,7 @@ STAFF = [  # phone, name, role, tenant slug
     ("00000000020", "Kamran (officer)", "officer", "pension"),
     ("00000000021", "Sana (officer)", "officer", "pension"),
     ("00000000030", "Admin", "admin", "pension"),
+    ("00000000031", "Second admin", "admin", "pension"),  # rule publish needs two admins (H6)
     ("00000000040", "Auditor", "auditor", "pension"),
     ("00000000050", "Farah (welfare officer)", "officer", "welfare"),
 ]
@@ -167,12 +173,44 @@ def _seed_rules(db: Session) -> None:
         ))
 
 
+def _pin_from_env(name: str) -> str | None:
+    value = (os.environ.get(name) or "").strip()
+    if value and not (value.isdigit() and 4 <= len(value) <= 8):
+        raise RuntimeError(f"{name} must be 4 to 8 digits")
+    return value or None
+
+
+def demo_pins() -> dict[str, str]:
+    """PINs for the demo accounts: DEMO_PIN (citizens, helper, auditor), DEMO_ADMIN_PIN and
+    DEMO_OFFICER_PIN. Outside production all default to 1234. In production every one must be
+    set, and admin/officer must differ from 1234 and from DEMO_PIN, so the public demo PIN
+    never opens a privileged account."""
+    default = _pin_from_env("DEMO_PIN")
+    admin, officer = _pin_from_env("DEMO_ADMIN_PIN"), _pin_from_env("DEMO_OFFICER_PIN")
+    admin2 = _pin_from_env("DEMO_ADMIN2_PIN")
+    if not get_settings().is_production:
+        default = default or LOCAL_DEMO_PIN
+        admin = admin or default
+        return {"default": default, "admin": admin, "officer": officer or default, "admin2": admin2 or admin}
+    if default is None:
+        raise RuntimeError("Production seed needs DEMO_PIN")
+    for name, pin in (("DEMO_ADMIN_PIN", admin), ("DEMO_OFFICER_PIN", officer)):
+        if pin is None or pin in (LOCAL_DEMO_PIN, default):
+            raise RuntimeError(f"Production seed needs {name}, different from 1234 and DEMO_PIN")
+    if admin2 is not None and admin2 in (LOCAL_DEMO_PIN, default):
+        raise RuntimeError("DEMO_ADMIN2_PIN must differ from 1234 and DEMO_PIN")
+    # The second admin (rule-publish approval, H6) uses DEMO_ADMIN2_PIN, else DEMO_ADMIN_PIN.
+    return {"default": default, "admin": admin, "officer": officer, "admin2": admin2 or admin}
+
+
 def _seed_users(db: Session) -> None:
     tenants = {"pension": Tenant(name="Pension Department (mock)", slug="pension"),
                "welfare": Tenant(name="Social Welfare Department (mock)", slug="welfare")}
     db.add_all(tenants.values())
     db.flush()
-    pin = hash_pin(DEMO_PIN)
+    pins = demo_pins()
+    pin = hash_pin(pins["default"])
+    privileged = {role: hash_pin(pins[role]) for role in PRIVILEGED_ROLES}
     names = {p[0]: p[1] for p in PEOPLE}
     persons = {}
     for phone, cnic in CITIZENS:
@@ -182,7 +220,8 @@ def _seed_users(db: Session) -> None:
         db.add(User(tenant_id=tenants["pension"].id, role="citizen", name=names[cnic], phone=phone, pin_hash=pin, person_id=persons[cnic].id))
     staff = {}
     for phone, name, role, slug in STAFF:
-        staff[phone] = User(tenant_id=tenants[slug].id, role=role, name=name, phone=phone, pin_hash=pin)
+        pin_hash = hash_pin(pins["admin2"]) if phone == SECOND_ADMIN_PHONE else privileged.get(role, pin)
+        staff[phone] = User(tenant_id=tenants[slug].id, role=role, name=name, phone=phone, pin_hash=pin_hash)
         db.add(staff[phone])
     db.flush()
     helper = staff["00000000010"]
@@ -231,13 +270,27 @@ def _seed_past_cases(db: Session) -> None:
                     status="submitted", claim=claim, deceased_cnic=deceased_cnic, payout_iban=iban)
         db.add(case)
         db.flush()
+        _seed_case_documents(db, case, docs)  # C2: only analysed uploads count as proof
         run_decision(db, case)
         case.status = "approved"
         db.add(CaseEvent(case_id=case.id, kind="approved", actor_id=officer.id, note="Approved (seeded history)"))
 
 
+def _seed_case_documents(db: Session, case: Case, kinds: list[str]) -> None:
+    """Low-risk, already analysed paper records for seeded history (no image is stored)."""
+    from app.models.document import CaseDocument
+
+    for kind in kinds:
+        db.add(CaseDocument(case_id=case.id, tenant_id=case.tenant_id, kind=kind,
+                            sha256=hashlib.sha256(f"seed:{case.reference}:{kind}".encode()).hexdigest(),
+                            width=1, height=1, risk_level="low", indicator_codes=[], result={"seeded": True},
+                            image_jpeg=b"", ela_jpeg=b"", uploaded_by=case.created_by))
+    db.flush()
+
+
 def reset(db: Session) -> None:
     """Wipe demo data and load the seed. The audit log is never wiped: the reset itself is logged."""
+    demo_pins()  # refuse before wiping anything if production PINs are missing or weak
     _reset_tables(db)
     _seed_registry(db)
     _seed_rules(db)
@@ -252,4 +305,4 @@ def reset(db: Session) -> None:
 if __name__ == "__main__":
     with SessionLocal() as session:
         reset(session)
-    print("Seeded demo data. All PINs:", DEMO_PIN)
+    print("Seeded demo data. PINs come from DEMO_PIN / DEMO_ADMIN_PIN / DEMO_OFFICER_PIN (1234 locally).")

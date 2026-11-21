@@ -13,7 +13,7 @@ from PIL import Image, ImageOps, UnidentifiedImageError
 
 MAX_SIDE = 1568  # Jev limit and plenty for OCR of an A4 page or an ID card
 MIN_SIDE = 280  # Jev minimum; smaller photos are too small to read anyway
-MAX_PIXELS = 40_000_000  # decompression-bomb guard (a 12 MP phone photo is ~12 M)
+MAX_PIXELS = 25_000_000  # checked from the header before decode (a 12 MP phone photo is ~12 M)
 ALLOWED_FORMATS = {"JPEG", "PNG", "WEBP"}
 
 # Quality thresholds, tuned on backend/sample_docs (all pass) and on blurred/darkened copies (all fail).
@@ -26,6 +26,10 @@ LOW_CONTRAST_STD = 12.0
 
 class BadImage(ValueError):
     """The upload is not an image we accept (wrong format, corrupt, or absurdly large)."""
+
+
+class ImageTooLarge(BadImage):
+    """Width x height above MAX_PIXELS (decompression bomb guard): HTTP 413."""
 
 
 @dataclass(frozen=True)
@@ -79,6 +83,10 @@ def load(data: bytes) -> LoadedImage:
         fmt = (img.format or "").upper()
         if fmt not in ALLOWED_FORMATS:
             raise BadImage("Only JPEG, PNG or WebP photos are accepted")
+        # Image.open reads the header only: refuse a pixel bomb before anything is decoded.
+        width, height = img.size
+        if width * height > MAX_PIXELS:
+            raise ImageTooLarge("The photo has too many pixels. Please send a normal phone photo.")
         exif = _exif_summary(img)
         img = ImageOps.exif_transpose(img)
         original_size = img.size

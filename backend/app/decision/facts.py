@@ -17,6 +17,22 @@ from app.schemas.claims import ClaimIn
 
 ACTIVE_STATUSES = ("submitted", "auto_approved", "proof_requested", "in_review", "approved")
 CANDIDATE_MIN_SIMILARITY = 70
+ANALYSED_KEY = "analysed"
+RISK_KEYS = ("high", "mismatch", "unverified")  # document_signals() buckets that disqualify a kind
+OTHER_DEPARTMENT = "other-department"  # never show another tenant's case reference
+
+
+def proven_documents(doc_signals: dict) -> list[str]:
+    """Kinds actually uploaded and analysed with no risk flag (C2).
+
+    The claimant's ticked checkboxes are only a promise; rule gates such as
+    "documents contains death_certificate" see only these. Any bucket other than
+    listed risk bucket (high, mismatch, unverified) disqualifies the kind. Non-risk keys
+    such as "uploads" (a dict of counts) are ignored. A new risk tier must be added to
+    RISK_KEYS explicitly.
+    """
+    flagged = {kind for key in RISK_KEYS for kind in doc_signals.get(key, [])}
+    return sorted(set(doc_signals.get(ANALYSED_KEY, [])) - flagged)
 
 
 @dataclass
@@ -153,18 +169,24 @@ def _other_claims(db: Session, case: Case, claim: ClaimIn, signals: Signals) -> 
         ).limit(50)
     ).all()
     for other, other_cnic in others:
+        # Another department's claim is a signal only (M9): no reference, no lock, no re-decision.
+        reference = other.reference if other.tenant_id == case.tenant_id else OTHER_DEPARTMENT
         if claim.deceased_cnic and other.deceased_cnic == claim.deceased_cnic:
-            entry = {"case": other.reference, "claimant_cnic_last4": other_cnic[-4:]}
+            entry = {"case": reference, "claimant_cnic_last4": other_cnic[-4:]}
             # A claimant in the FRC is a lawful co-sharer; anyone else is a red flag.
             (signals.co_sharers if other_cnic in family else signals.duplicate_claims).append(entry)
         if other.payout_iban == claim.payout_iban:
-            signals.account_reuse.append({"case": other.reference})
+            signals.account_reuse.append({"case": reference})
 
 
 def gather(db: Session, case: Case, claim: ClaimIn, today: date) -> Signals:
     signals = Signals()
-    signals.facts.update({"documents": list(claim.documents), "today": today})
     signals.documents = document_signals(db, case.id)
+    signals.facts.update({
+        "documents": proven_documents(signals.documents),
+        "documents_promised": sorted(set(claim.documents)),
+        "today": today,
+    })
     try:
         _claimant_facts(db, claim, signals, today)
         if claim.deceased_cnic is None:

@@ -270,7 +270,7 @@ function PendingChange({ change, isHelper, claimantName, onChanged }: PendingCha
               <span>Enter your own PIN to confirm</span>
             </span>
             <span dir="ltr" className="ltr-island">
-              <input className="input input-big input-pin" type="password" inputMode="numeric" autoComplete="current-password"
+              <input className="input input-big input-pin" type="password" inputMode="numeric" autoComplete="off"
                 maxLength={8} value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))} />
             </span>
           </label>

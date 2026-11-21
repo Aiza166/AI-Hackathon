@@ -43,19 +43,21 @@ kissa.md   Kissa's task list
 docker compose up -d                                  # Postgres + Redis (repo root)
 cd backend && .venv\Scripts\activate                  # Windows (python -m venv .venv first time)
 pip install -r requirements.txt
-alembic upgrade head && python -m app.seed            # demo data, all PINs 1234
+alembic upgrade head && python -m app.seed            # demo data; PINs from DEMO_PIN / DEMO_ADMIN_PIN / DEMO_OFFICER_PIN (1234 locally only)
 pytest                                                # all backend tests must pass
 uvicorn app.main:app --reload                         # http://localhost:8000/docs
 cd frontend && npm install && npm run dev             # http://localhost:5173 (proxies /api to :8000)
 npm run build                                         # must pass; check size budget
 ```
 
-Tests need a `sahara_test` database once: `docker compose exec db psql -U sahara -c "CREATE DATABASE sahara_test"`.
+Tests need a database whose name ends in `_test` (the audit trigger allows the test-only TRUNCATE reset only there), e.g. `sahara_test`, once: `docker compose exec db psql -U sahara -c "CREATE DATABASE sahara_test"`.
 
-Demo logins (PIN 1234): Zainab 00000000001, Rukhsana 00000000002, helper 00000000010, officer 00000000020, admin 00000000030, auditor 00000000040.
+Demo logins: Zainab 00000000001, Rukhsana 00000000002, helper 00000000010, officer 00000000020, admin 00000000030, second admin 00000000031, auditor 00000000040. Locally every PIN is 1234. In production PINs come from `DEMO_PIN`, `DEMO_ADMIN_PIN`, `DEMO_OFFICER_PIN` (`DEMO_ADMIN2_PIN` optional); admin/officer PINs must differ from 1234 and `DEMO_PIN`. All env vars (DEMO_CONSOLE_TOKEN, ALLOW_DOCS, FORWARDED_ALLOW_IPS, RATELIMIT_STORAGE_URI, MAX_BODY_BYTES, VITE_SHOW_DEMO_ACCOUNTS, VITE_DEMO_PIN, API_ORIGIN, REDIS_PASSWORD) are listed in `docs/INFRA.md`.
 
 ## Key design facts
 
+- Proof is uploaded documents, not checkboxes: the rule fact `documents` is the analysed uploads with no risk flag (high, mismatch, unverified). Ticked boxes are kept as `documents_promised` only.
+- A case an officer holds (in_review or assigned) is never auto-approved by a re-decision. Rule publish needs a Digital Twin run and a second admin's approval; re-decisions stay on the case's original rule version.
 - Routes: `AUTO_APPROVE` (confidence >= 0.95 and no red flag), `ASK_PROOF` (something specific missing, or 0.70-0.95), `UNSURE` (red flag, service outage, or < 0.70). 0.95 comes from a 20:1 cost ratio (wrong approval vs delay).
 - Name matching never matches without an exact CNIC; "Muhammad" variants carry little weight.
 - Rules are versioned JSON (`backend/app/decision/rulesets/`, stored in `rule_versions`). v1 live; v2 = federal 10-year cap for non-spouse heirs (10 Sep 2024), draft. Every decision stores its rule version.

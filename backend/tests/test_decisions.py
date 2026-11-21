@@ -1,4 +1,28 @@
 """End-to-end decision behaviour through the API (the demo scenarios)."""
+import pytest
+
+from tests.adversarial.test_cases_security import attach_documents, redecide_case
+from tests.conftest import BASE_CLAIM
+
+
+@pytest.fixture
+def file_claim(client, login, db):
+    """File a claim, then upload the ticked papers as clean analysed documents and re-decide.
+
+    Since red-team C2, ticked checkboxes alone are not proof; these scenarios test the
+    registry checks, so each one gets real (simulated) uploads of the papers it ticks.
+    """
+    def _file(who: str, **overrides) -> dict:
+        claim = {**BASE_CLAIM, **overrides}
+        response = client.post("/api/v1/cases", json=claim, headers=login(who))
+        assert response.status_code == 201, response.text
+        first = response.json()
+        attach_documents(db, first["data"]["id"], kinds=claim["documents"])
+        redecide_case(db, first["data"]["id"])
+        again = client.get(f"/api/v1/cases/{first['data']['id']}", headers=login(who)).json()
+        return {**again, "meta": first["meta"]}
+
+    return _file
 
 
 def _decision(body: dict) -> tuple[str, list[str]]:

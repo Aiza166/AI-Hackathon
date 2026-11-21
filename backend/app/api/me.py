@@ -1,9 +1,10 @@
 """Who am I, and (for helpers) which families can I act for."""
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.core.auth import Principal, get_principal, require_roles
+from app.core import lockout
+from app.core.auth import Principal, deny, get_principal, require_roles
 from app.core.consent import active_consent
 from app.core.envelope import ok
 from app.db import get_db
@@ -36,3 +37,19 @@ def helper_families(principal: Principal = Depends(require_roles(Role.HELPER)), 
         shared = active_consent(db, principal, p.id, "cnic") is not None
         families.append({"id": p.id, "name": p.display_name, "cnic": p.cnic if shared else None, "consent_active": shared})
     return ok(families)
+
+
+@router.post("/helper/families/{person_id}/unlock")
+def unlock_family(person_id: str, request: Request, principal: Principal = Depends(require_roles(Role.HELPER)),
+                  db: Session = Depends(get_db)) -> dict:
+    """A helper clears the PIN lockout of a family she is assigned to (audited as PIN_UNLOCKED)."""
+    assigned = db.execute(select(HelperAssignment).where(HelperAssignment.helper_user_id == principal.id,
+                                                         HelperAssignment.person_id == person_id)).first()
+    if assigned is None:
+        raise deny(db, principal, request, "not an assigned family")
+    user = db.execute(select(User).where(User.person_id == person_id)).scalars().first()
+    if user is None:
+        raise HTTPException(status_code=404, detail="This family has no sign-in account")
+    lockout.unlock(db, principal.actor, user)
+    db.commit()
+    return ok({"unlocked": True})

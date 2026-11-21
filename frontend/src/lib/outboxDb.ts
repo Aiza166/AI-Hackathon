@@ -1,8 +1,9 @@
 import Dexie, { type Table } from 'dexie'
+import type { Sealed } from './outboxCrypto'
 
 // The only module that imports Dexie. It is loaded with a dynamic import (see outbox.ts),
 // so Dexie lives in its own chunk and never weighs down the first screen.
-// Everything here is PROTOTYPE mock data; rows are scoped to the signed-in user (owner)
+// Everything here is PROTOTYPE mock data, encrypted at rest; rows are scoped to the signed-in user (owner)
 // and deleted on sign-out. Drafts older than 7 days are dropped when the database opens.
 
 export interface SavedDraft {
@@ -10,12 +11,7 @@ export interface SavedDraft {
   data: unknown
 }
 
-export interface DraftRow extends SavedDraft {
-  key: string // `${owner}:${claimantCnic}`
-  owner: string
-  updatedAt: number
-}
-
+// What the app works with (decrypted in memory).
 export interface OutboxRow {
   id: string // UUID made when the user tapped Send; sent as the Idempotency-Key header on every attempt
   owner: string // signed-in user id
@@ -33,9 +29,30 @@ export interface OutboxRow {
   status: 'queued' | 'failed' // failed = refused by the server (4xx), waiting for "Open and fix"
 }
 
+// The private parts of a row, stored only encrypted (see outboxCrypto.ts).
+export interface OutboxSecret {
+  subject: string
+  subjectName: string
+  draft: SavedDraft | null
+  body: unknown
+}
+
+// What IndexedDB holds: personal data only as AES-GCM ciphertext; the CNIC only masked.
+export interface StoredDraft {
+  key: string // `${owner}:${blind id of the claimant CNIC}`
+  owner: string
+  updatedAt: number
+  sealed: Sealed // SavedDraft
+}
+
+export interface StoredOutbox extends Omit<OutboxRow, 'subject' | 'subjectName' | 'draft' | 'body'> {
+  subjectMask: string // ****1234, for nothing but debugging
+  sealed: Sealed // OutboxSecret
+}
+
 class SaharaDb extends Dexie {
-  drafts!: Table<DraftRow, string>
-  outbox!: Table<OutboxRow, string>
+  drafts!: Table<StoredDraft, string>
+  outbox!: Table<StoredOutbox, string>
 
   constructor() {
     super('sahara-offline')
@@ -43,6 +60,13 @@ class SaharaDb extends Dexie {
       drafts: 'key, owner',
       outbox: 'id, owner, createdAt',
     })
+    // v2: rows are encrypted. Version 1 rows were plain text: delete them on upgrade.
+    this.version(2)
+      .stores({ drafts: 'key, owner', outbox: 'id, owner, createdAt' })
+      .upgrade(async (tx) => {
+        await tx.table('drafts').clear()
+        await tx.table('outbox').clear()
+      })
   }
 }
 

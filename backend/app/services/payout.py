@@ -16,6 +16,8 @@ from sqlalchemy.orm import Session
 
 from app.core import audit
 from app.core.auth import Principal
+from app.core.consent import active_consent
+from app.schemas.contracts import Role
 from app.mock import raast, registry
 from app.models.payout import PayoutChangeRequest
 from app.models.platform import Case, Person, utcnow
@@ -25,6 +27,7 @@ FLAGGED_BUSINESS_DAYS = 4
 RECENT_DEATH_DAYS = 30
 OPEN_STATUSES = ("held", "confirmed", "flagged", "approved")
 CANCELLABLE = OPEN_STATUSES
+FINISHED_CASE_STATUSES = ("rejected", "closed")  # no payout changes on a claim that is over
 
 
 def add_business_days(start: datetime, days: int) -> datetime:
@@ -63,6 +66,8 @@ def _flags(db: Session, case: Case, new_iban: str, check: raast.TitleFetch) -> l
 
 
 def request_change(db: Session, principal: Principal, case: Case, new_iban: str) -> PayoutChangeRequest:
+    if case.status in FINISHED_CASE_STATUSES:
+        raise HTTPException(status_code=409, detail=f"This claim is {case.status}: the payout account cannot be changed")
     if db.execute(select(PayoutChangeRequest).where(PayoutChangeRequest.case_id == case.id,
                                                      PayoutChangeRequest.status.in_(OPEN_STATUSES))).first():
         raise HTTPException(status_code=409, detail="A payout change is already in progress for this claim")
@@ -115,6 +120,11 @@ def cancel(db: Session, principal: Principal, change_id: str) -> PayoutChangeReq
     own = principal.person_id is not None and principal.person_id == case.claimant_person_id
     if not own and principal.id != change.requested_by:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only the claimant or the person who started it can cancel")
+    if not own and principal.role == Role.HELPER and active_consent(db, principal, case.claimant_person_id, "payout_account") is None:
+        audit.record(db, principal.actor, "CONSENT_DENIED", resource=f"person:{case.claimant_person_id}",
+                     details={"field": "payout_account", "path": f"cancel payout_change:{change.id}"})
+        db.commit()
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="This person has not shared this information with you")
     if change.status not in CANCELLABLE:
         raise HTTPException(status_code=409, detail=f"This change is {change.status}")
     change.status = "cancelled"
@@ -143,6 +153,8 @@ def apply_due(db: Session, now: datetime | None = None) -> list[str]:
     applied = []
     for change in due:
         case = db.get(Case, change.case_id)
+        if case.status in FINISHED_CASE_STATUSES:
+            continue  # claim rejected or closed during the hold: never move money
         case.payout_iban = change.new_iban
         case.claim = {**case.claim, "payout_iban": change.new_iban}
         change.status, change.applied_at = "applied", now

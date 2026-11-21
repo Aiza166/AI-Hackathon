@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.core import audit
 from app.core.auth import Principal, deny, require_roles
-from app.core.consent import PURPOSE, person_resource
+from app.core.consent import PURPOSE, active_consent, person_resource
 from app.core.envelope import ok
 from app.db import get_db
 from app.models.audit import AuditEvent
@@ -169,9 +169,24 @@ def my_corrections(principal: Principal = Depends(CITIZEN), db: Session = Depend
 
 
 @router.get("/corrections")
-def pending_corrections(principal: Principal = Depends(require_roles(Role.OFFICER, Role.ADMIN)), db: Session = Depends(get_db)) -> dict:
-    rows = db.execute(select(CorrectionRequest).where(CorrectionRequest.tenant_id == principal.tenant_id, CorrectionRequest.status == "pending")).scalars()
-    return ok([_correction_row(c) for c in rows])
+def pending_corrections(request: Request, principal: Principal = Depends(require_roles(Role.OFFICER, Role.ADMIN)),
+                        db: Session = Depends(get_db)) -> dict:
+    """Per-row consent (case_details): without it the officer sees a redacted stub, and the refusal is logged."""
+    rows = db.execute(select(CorrectionRequest).where(CorrectionRequest.tenant_id == principal.tenant_id, CorrectionRequest.status == "pending")).scalars().all()
+    path = f"{request.method} {request.url.path}"
+    out = []
+    for c in rows:
+        if active_consent(db, principal, c.person_id, "case_details") is None:
+            audit.record(db, principal.actor, "CONSENT_DENIED", resource=person_resource(c.person_id),
+                         details={"field": "case_details", "path": path, "redacted": True})
+            out.append({"id": c.id, "person_id": c.person_id, "field": c.field, "status": c.status,
+                        "created_at": c.created_at.isoformat(), "consent_active": False})
+        else:
+            audit.record(db, principal.actor, "DATA_ACCESS", resource=person_resource(c.person_id),
+                         details={"field": "case_details", "basis": "consent", "path": path})
+            out.append({**_correction_row(c), "consent_active": True})
+    db.commit()
+    return ok(out)
 
 
 @router.post("/corrections/{correction_id}/{decision}")

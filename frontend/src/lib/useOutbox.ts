@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { flush, listRows, MAX_AUTO_ATTEMPTS, OUTBOX_CHANGED, removeRow, type OutboxRow } from './outbox'
+import { flush, listRows, MAX_AUTO_ATTEMPTS, OUTBOX_CHANGED, OUTBOX_DISCARDED, removeRow, type OutboxRow } from './outbox'
 
 // Tracks claims saved on the phone but not yet sent, and sends them on app open, on
 // reconnect (the browser's "online" event), when a backoff timer is due, or with "Send now".
@@ -18,6 +18,8 @@ export interface OutboxState {
   online: boolean
   syncing: boolean
   notices: DuplicateNotice[]
+  discarded: number // saved items that could not be read any more (key gone) and were removed
+  dismissDiscarded: () => void
   sendNow: () => Promise<void>
   dismissNotice: (notice: DuplicateNotice) => void
   remove: (row: OutboxRow) => Promise<void>
@@ -31,6 +33,7 @@ export function useOutbox(owner: string, subject: string | null | undefined, onS
   const [online, setOnline] = useState(() => navigator.onLine)
   const [syncing, setSyncing] = useState(false)
   const [notices, setNotices] = useState<DuplicateNotice[]>([])
+  const [discarded, setDiscarded] = useState(0)
   const onSentRef = useRef(onSent)
   useEffect(() => {
     onSentRef.current = onSent
@@ -64,6 +67,8 @@ export function useOutbox(owner: string, subject: string | null | undefined, onS
     }
     const goOffline = () => setOnline(false)
     const changed = () => void refresh()
+    const lost = (e: Event) => setDiscarded((n) => n + Number((e as CustomEvent<number>).detail ?? 0))
+    window.addEventListener(OUTBOX_DISCARDED, lost)
     window.addEventListener('online', goOnline)
     window.addEventListener('offline', goOffline)
     window.addEventListener(OUTBOX_CHANGED, changed)
@@ -75,6 +80,7 @@ export function useOutbox(owner: string, subject: string | null | undefined, onS
       window.removeEventListener('online', goOnline)
       window.removeEventListener('offline', goOffline)
       window.removeEventListener(OUTBOX_CHANGED, changed)
+      window.removeEventListener(OUTBOX_DISCARDED, lost)
     }
   }, [send, refresh])
 
@@ -97,5 +103,5 @@ export function useOutbox(owner: string, subject: string | null | undefined, onS
     await removeRow(row)
   }, [])
 
-  return { queued, failed, needsLogin, paused, online, syncing, notices, sendNow: () => send(true), dismissNotice, remove }
+  return { queued, failed, needsLogin, paused, online, syncing, notices, discarded, dismissDiscarded: () => setDiscarded(0), sendNow: () => send(true), dismissNotice, remove }
 }

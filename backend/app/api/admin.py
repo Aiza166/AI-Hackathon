@@ -6,9 +6,10 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.core import audit
+from app.core import audit, lockout
 from app.core.auth import Principal, deny, require_roles
 from app.core.config import get_settings
+from app.core.demo_console import require_console
 from app.core.envelope import ok
 from app.core.security import new_api_key
 from app.db import get_db
@@ -41,7 +42,7 @@ def platform_admin(request: Request, principal: Principal = Depends(ADMIN), db: 
     return principal
 
 
-@router.post("/seed/reset")
+@router.post("/seed/reset", dependencies=[Depends(require_console)])
 def seed_reset(principal: Principal = Depends(platform_admin), db: Session = Depends(get_db)) -> dict:
     """Judge console 'Reset demo'. Audit history is kept; the reset is logged."""
     audit.record(db, principal.actor, "DEMO_RESET_REQUESTED")
@@ -78,7 +79,7 @@ def revoke_api_key(key_id: str, principal: Principal = Depends(ADMIN), db: Sessi
     return ok({"revoked": True})
 
 
-@router.post("/faults")
+@router.post("/faults", dependencies=[Depends(require_console)])
 def set_fault(body: FaultIn, principal: Principal = Depends(platform_admin), db: Session = Depends(get_db)) -> dict:
     """Judge console: break or slow down a mock government service."""
     fault = registry.set_fault(db, body.service, body.mode, body.latency_ms)
@@ -101,3 +102,14 @@ def list_rules(principal: Principal = Depends(require_roles(Role.ADMIN, Role.AUD
         "effective_from": r.effective_from.isoformat() if r.effective_from else None,
         "thresholds": r.thresholds, "rules": r.rules,
     } for r in rows])
+
+
+@router.post("/users/{user_id}/unlock")
+def unlock_user(user_id: str, principal: Principal = Depends(ADMIN), db: Session = Depends(get_db)) -> dict:
+    """Clear a PIN lockout for a user in this department (audited as PIN_UNLOCKED)."""
+    user = db.get(User, user_id)
+    if user is None or user.tenant_id != principal.tenant_id:
+        raise HTTPException(status_code=404, detail="User not found")
+    lockout.unlock(db, principal.actor, user)
+    db.commit()
+    return ok({"unlocked": True})

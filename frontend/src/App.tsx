@@ -1,5 +1,5 @@
 import { Suspense, lazy, useState } from 'react'
-import { setToken } from './api/client'
+import { serverLogout, setToken } from './api/client'
 import type { Role, SessionUser } from './api/types'
 import { PrototypeBanner } from './components/PrototypeBanner'
 import { Icon } from './lib/icons'
@@ -77,11 +77,13 @@ export default function App() {
       }
       await clearOwnerData(user.id)
     }
+    await serverLogout()
     endSession()
   }
 
   async function confirmLogout(): Promise<void> {
     if (user) await clearOwnerData(user.id)
+    await serverLogout()
     endSession()
   }
 

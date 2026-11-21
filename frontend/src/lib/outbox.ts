@@ -1,5 +1,6 @@
 import { api, ApiError } from '../api/client'
-import type { OutboxRow, SavedDraft } from './outboxDb'
+import { blindId, cryptoAvailable, forgetKey, maskSubject, seal, unseal } from './outboxCrypto'
+import type { OutboxRow, OutboxSecret, SavedDraft, StoredOutbox } from './outboxDb'
 
 // Offline-first sending (Challenge 7: weak internet).
 // 1. Each claim step is saved on the phone as a draft, so a reload resumes from the same step.
@@ -11,10 +12,13 @@ import type { OutboxRow, SavedDraft } from './outboxDb'
 // same body replays the first response, a changed body gets 422, a request still in flight
 // gets 409. A second open claim for the same deceased person is refused with 409 + reference.
 // The draft is kept until the queued claim is confirmed sent.
+// At rest everything personal is AES-GCM encrypted with a per-sign-in key (outboxCrypto.ts).
+// Rows whose key is gone are discarded and OUTBOX_DISCARDED tells the screen to say so.
 
 export type { OutboxRow } from './outboxDb'
 
 export const OUTBOX_CHANGED = 'sahara-outbox-changed'
+export const OUTBOX_DISCARDED = 'sahara-outbox-discarded' // detail: number of rows that could not be read
 // '1' while drafts or queued claims exist on this phone. Lets the home screen skip loading
 // Dexie (its own chunk) when there is nothing stored. Holds no personal data.
 const LOCAL_FLAG = 'sahara.offline'
@@ -54,6 +58,7 @@ async function refreshFlag(db: Db): Promise<void> {
 // Loads Dexie on first use (its own chunk). Resolves null if IndexedDB is not available,
 // e.g. some private-browsing modes: the app then sends directly, without offline storage.
 function getDb(): Promise<Db | null> {
+  if (!cryptoAvailable()) return Promise.resolve(null) // no WebCrypto (plain http): never store in clear
   dbPromise ??= import('./outboxDb')
     .then(async ({ db }) => {
       await db.open()
@@ -78,6 +83,43 @@ function notifyChanged(): void {
   window.dispatchEvent(new Event(OUTBOX_CHANGED))
 }
 
+function notifyDiscarded(count: number): void {
+  if (count > 0) window.dispatchEvent(new CustomEvent(OUTBOX_DISCARDED, { detail: count }))
+}
+
+async function putDraft(db: Db, owner: string, key: string, draft: SavedDraft): Promise<void> {
+  await db.drafts.put({ key, owner, updatedAt: Date.now(), sealed: await seal(owner, { step: draft.step, data: draft.data }) })
+}
+
+async function putRow(db: Db, row: OutboxRow): Promise<void> {
+  const { subject, subjectName, draft, body, ...meta } = row
+  const secret: OutboxSecret = { subject, subjectName, draft, body }
+  const stored: StoredOutbox = { ...meta, subjectMask: maskSubject(subject), sealed: await seal(row.owner, secret) }
+  await db.outbox.put(stored)
+}
+
+// Decrypt this user's rows, oldest first. Rows sealed with a lost key are deleted and reported.
+async function readRows(db: Db, owner: string): Promise<OutboxRow[]> {
+  const stored = await db.outbox.where('owner').equals(owner).sortBy('createdAt')
+  const rows: OutboxRow[] = []
+  let lost = 0
+  for (const item of stored) {
+    const { sealed, subjectMask, ...meta } = item
+    void subjectMask
+    try {
+      rows.push({ ...meta, ...(await unseal<OutboxSecret>(owner, sealed)) })
+    } catch {
+      lost += 1
+      await db.outbox.delete(meta.id)
+    }
+  }
+  if (lost > 0) {
+    await refreshFlag(db)
+    notifyDiscarded(lost)
+  }
+  return rows
+}
+
 export function newIdempotencyKey(): string {
   if (typeof crypto.randomUUID === 'function') return crypto.randomUUID()
   // Fallback for non-secure contexts (plain http on a LAN): random v4-style id.
@@ -90,14 +132,29 @@ export function newIdempotencyKey(): string {
 
 // ---------- drafts ----------
 
-export const makeDraftKey = (owner: string, subject: string) => `${owner}:${subject}`
+// The CNIC is never part of the key: a keyed hash (HMAC) stands in for it.
+async function makeDraftKey(owner: string, subject: string): Promise<string> {
+  return `${owner}:${await blindId(owner, subject)}`
+}
 
 // The data comes back as unknown: the caller checks its shape before using it.
 export async function loadDraft(owner: string, subject: string): Promise<SavedDraft | null> {
   const db = await getDb()
   if (!db) return null
-  const row = await db.drafts.get(makeDraftKey(owner, subject)).catch(() => undefined)
-  return row ? { step: row.step, data: row.data } : null
+  try {
+    const key = await makeDraftKey(owner, subject)
+    const row = await db.drafts.get(key)
+    if (!row) return null
+    try {
+      return await unseal<SavedDraft>(owner, row.sealed)
+    } catch {
+      await db.drafts.delete(key)
+      notifyDiscarded(1)
+      return null
+    }
+  } catch {
+    return null
+  }
 }
 
 // Best effort: if saving fails the claim still works, it just will not resume after a reload.
@@ -105,7 +162,7 @@ export async function saveDraft(owner: string, subject: string, draft: SavedDraf
   const db = await getDb()
   if (!db) return false
   try {
-    await db.drafts.put({ key: makeDraftKey(owner, subject), owner, step: draft.step, data: draft.data, updatedAt: Date.now() })
+    await putDraft(db, owner, await makeDraftKey(owner, subject), draft)
     writeFlag(true)
     return true
   } catch {
@@ -116,13 +173,14 @@ export async function saveDraft(owner: string, subject: string, draft: SavedDraf
 export async function clearDraft(owner: string, subject: string): Promise<void> {
   const db = await storedDb()
   if (!db) return
-  await db.drafts.delete(makeDraftKey(owner, subject)).catch(() => undefined)
+  await db.drafts.delete(await makeDraftKey(owner, subject)).catch(() => undefined)
   await refreshFlag(db)
 }
 
 // Sign-out on a shared phone: remove everything this user left here.
 export async function clearOwnerData(owner: string): Promise<void> {
   const db = await storedDb()
+  forgetKey() // anything left behind can no longer be read
   if (!db) return
   await db.drafts.where('owner').equals(owner).delete()
   await db.outbox.where('owner').equals(owner).delete()
@@ -191,7 +249,7 @@ async function markFailed(db: Db, row: OutboxRow, message: string): Promise<void
   await db.outbox.update(row.id, { status: 'failed', lastError: message, needsLogin: false })
   if (row.draft) {
     // Put the claim back into the wizard so "Open and fix" starts from what was sent.
-    await db.drafts.put({ key: row.draftKey, owner: row.owner, step: row.draft.step, data: row.draft.data, updatedAt: Date.now() })
+    await putDraft(db, row.owner, row.draftKey, row.draft)
   }
 }
 
@@ -245,12 +303,12 @@ export async function submit<T>(req: SubmitRequest): Promise<SendResult<T>> {
   const db = await getDb()
   if (!db) return sendWithoutStorage<T>(id, req)
   const row: OutboxRow = {
-    id, owner: req.owner, subject: req.subject, subjectName: req.subjectName, draftKey: makeDraftKey(req.owner, req.subject),
+    id, owner: req.owner, subject: req.subject, subjectName: req.subjectName, draftKey: await makeDraftKey(req.owner, req.subject),
     draft: req.draft, path: req.path, body: req.body, createdAt: Date.now(), attempts: 0, nextAttemptAt: 0,
     lastError: null, needsLogin: false, status: 'queued',
   }
   const result = await withLock(async () => {
-    await db.outbox.put(row)
+    await putRow(db, row)
     writeFlag(true)
     return sendRow<T>(db, row)
   })
@@ -270,7 +328,7 @@ export async function flush(owner: string, subject: string | undefined, force: b
   const summary: FlushSummary = { sent: 0, duplicates: [] }
   if (!db) return summary
   await withLock(async () => {
-    const rows = await db.outbox.where('owner').equals(owner).sortBy('createdAt')
+    const rows = await readRows(db, owner)
     const now = Date.now()
     for (const row of rows) {
       if (row.status !== 'queued' || (subject !== undefined && row.subject !== subject)) continue
@@ -288,7 +346,7 @@ export async function flush(owner: string, subject: string | undefined, force: b
 export async function listRows(owner: string): Promise<OutboxRow[]> {
   const db = await storedDb()
   if (!db) return []
-  return db.outbox.where('owner').equals(owner).sortBy('createdAt').catch(() => [])
+  return readRows(db, owner).catch(() => [])
 }
 
 // Every claim this user has not got onto the server yet (queued or refused), for the sign-out warning.

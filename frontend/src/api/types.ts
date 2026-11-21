@@ -6,7 +6,7 @@ export type Route = 'AUTO_APPROVE' | 'ASK_PROOF' | 'UNSURE'
 export type DocumentKind = 'death_certificate' | 'claimant_cnic' | 'frc' | 'nikah_nama'
 
 export type SessionUser = { id: string; name: string; role: Role; tenant_id: string; person_id: string | null }
-export type LoginResult = { access_token: string; refresh_token: string; user: SessionUser }
+export type LoginResult = { access_token: string; user: SessionUser }
 
 export type Me = {
   id: string
@@ -39,6 +39,15 @@ export type CaseView = {
   deceased_cnic: string | null
   created_at: string
   latest_decision: DecisionSummary | null
+}
+
+// A list row whose claimant has withdrawn consent for this viewer (Security review H1):
+// only the reference and status come back, never personal details or an id to open.
+export type CaseStub = { reference: string; status: string; consent_active: false }
+export type CaseRow = CaseView | CaseStub
+
+export function isCaseStub(row: CaseRow): row is CaseStub {
+  return (row as CaseStub).consent_active === false
 }
 
 export type Explanation = { reason_code: string; text_ur: string; text_en: string; audio_key: string; icon: string }
@@ -107,7 +116,7 @@ export type RuleVersionRow = {
   ruleset: string
   version: number
   label: string
-  status: 'live' | 'draft' | 'retired'
+  status: 'live' | 'draft' | 'scheduled' | 'retired'
   effective_from: string | null
   thresholds: Record<string, number>
   rules: RuleDef[]

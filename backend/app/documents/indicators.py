@@ -3,6 +3,8 @@
 Never a "fake" verdict and never one combined score. Severities, decided in code:
   high      -> the case goes to an officer (UNSURE, DOC_EDIT_RISK)
   mismatch  -> ask for proof (ASK_PROOF, DOC_MISMATCH): a record disagrees or the paper looks wrong
+  unverified-> we could not read or check the paper: it never counts as a clean document
+               and an officer reads it ("We could not read this paper")
   confirm   -> the citizen is asked to confirm a field we read with low confidence
   info      -> shown to the officer as context only; never changes the route
 
@@ -18,7 +20,7 @@ from app.documents.forensics import ForensicReport
 from app.documents.imaging import Quality
 from app.documents.jev_checks import JevDocResult
 
-SEVERITY_ORDER = ("high", "mismatch", "confirm", "info")
+SEVERITY_ORDER = ("high", "mismatch", "unverified", "confirm", "info")
 
 # code: (severity, citizen_visible, english, urdu, what this cannot tell)
 TEXTS: dict[str, tuple[str, bool, str, str, str]] = {
@@ -62,6 +64,30 @@ TEXTS: dict[str, tuple[str, bool, str, str, str]] = {
         "This looks like a photo or screenshot of a screen. The officer may ask for the paper.",
         "یہ اسکرین کی تصویر لگتی ہے۔ افسر اصل کاغذ مانگ سکتا ہے۔",
         "Forwarded copies are normal; this is context, not a problem."),
+    "DOC_UNREADABLE": ("unverified", True,
+        "We could not read this paper. An officer will read it.",
+        "ہم یہ کاغذ نہیں پڑھ سکے۔ ایک افسر اسے پڑھے گا۔",
+        "A blank, cut-off or unusual photo can hide the details; nothing is wrong with the person."),
+    "CHECK_UNAVAILABLE": ("unverified", True,
+        "We could not check this paper automatically. An officer will look at it.",
+        "ہم یہ کاغذ خود سے جانچ نہیں سکے۔ ایک افسر اسے دیکھے گا۔",
+        "The checking service did not answer properly; this says nothing about the paper."),
+    "DOC_REUSED": ("high", False,
+        "This paper, or a near-identical photo of it, was already sent on another claim for a different person. Needs a second look.",
+        "یہ کاغذ یا اس کی تقریباً ایک جیسی تصویر کسی دوسرے شخص کے دعوے میں پہلے بھیجی جا چکی ہے۔ دوبارہ دیکھنے کی ضرورت ہے۔",
+        "Families share papers and a helper may send the same photo twice; compare the two cases."),
+    "DOC_SEEN_BEFORE": ("info", False,
+        "The same paper was already sent on another case about the same person. Context only.",
+        "یہی کاغذ اسی شخص کے کسی دوسرے کیس میں پہلے بھیجا جا چکا ہے۔ صرف معلومات کے لیے۔",
+        "Co-sharers (two widows, children) send the same certificate lawfully."),
+    "REPEATED_UPLOAD": ("info", False,
+        "This kind of paper was uploaded several times on this case. Look at the earlier copies too.",
+        "اس کیس میں یہ کاغذ کئی بار بھیجا گیا۔ پہلی کاپیاں بھی دیکھیں۔",
+        "A blurry first photo is the usual reason; an earlier flag stays until an officer clears it."),
+    "RESOLVED_BY_TYPING": ("info", False,
+        "A detail that disagreed or was unclear now matches because the claimant typed it, not because it was read from the paper.",
+        "ایک معلومات اب اس لیے ملتی ہے کہ درخواست گزار نے اسے خود لکھا، کاغذ سے نہیں پڑھی گئی۔",
+        "Typing a correction is normal for a blurry photo; compare the typed value with the image."),
     "EDIT_SOFTWARE_TAG": ("info", False,
         "The photo file names editing software. Context only.",
         "تصویر کی فائل میں ایڈیٹنگ سافٹ ویئر کا نام ہے۔ صرف معلومات کے لیے۔",
@@ -123,6 +149,8 @@ def from_forensics(report: ForensicReport) -> list[Indicator]:
 
 
 def from_jev(result: JevDocResult) -> list[Indicator]:
+    if result.status == "unavailable":  # configured but down or junk: fail closed, never "clean"
+        return [make("CHECK_UNAVAILABLE", sensor="jev", note=result.note[:120])]
     if result.status != "ok":
         return []
     a = result.answers
@@ -161,4 +189,21 @@ def risk_level(indicators: list[Indicator]) -> str:
         return "high"
     if "mismatch" in severities:
         return "mismatch"
+    if "unverified" in severities:
+        return "unverified"
     return "confirm" if "confirm" in severities else "low"
+
+
+# The fields without which a paper of this kind says nothing we can check.
+REQUIRED_FIELDS = {
+    "claimant_cnic": ("cnic",),
+    "deceased_cnic": ("cnic",),
+    "death_certificate": ("name_of_deceased", "date_of_death"),
+    "frc": ("member_cnics",),
+    "nikah_nama": ("groom_name", "bride_name"),
+}
+
+
+def from_required(kind: str, fields: dict[str, Field]) -> list[Indicator]:
+    missing = [k for k in REQUIRED_FIELDS.get(kind, ()) if k not in fields]
+    return [make("DOC_UNREADABLE", missing_fields=missing)] if missing else []

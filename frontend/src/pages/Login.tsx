@@ -4,14 +4,19 @@ import type { LoginResult, SessionUser } from '../api/types'
 import { ErrorNote, ListenButton } from '../components/ui'
 import { Icon } from '../lib/icons'
 
-// Demo personas (all mock). Hidden behind a toggle so the default screen looks like a real sign-in.
+// Demo personas (all mock). Only in builds made with VITE_SHOW_DEMO_ACCOUNTS=true.
+// One tap signs in with VITE_DEMO_PIN (the public demo PIN) when it is set at build time.
+// Officer and admin have their own PINs that are never in the bundle: their buttons only
+// fill in the phone number.
+const SHOW_DEMO = import.meta.env.VITE_SHOW_DEMO_ACCOUNTS === 'true'
+const DEMO_PIN: string = import.meta.env.VITE_DEMO_PIN ?? ''
 const DEMO_USERS = [
-  { phone: '00000000001', label: 'Zainab', role: 'Widow', icon: 'widow' },
-  { phone: '00000000002', label: 'Rukhsana', role: 'Competing claim', icon: 'people' },
-  { phone: '00000000010', label: 'Ayesha', role: 'Helper', icon: 'helper' },
-  { phone: '00000000020', label: 'Kamran', role: 'Officer', icon: 'person' },
-  { phone: '00000000030', label: 'Admin', role: 'Rules + console', icon: 'rules' },
-  { phone: '00000000040', label: 'Auditor', role: 'Read-only log', icon: 'eye' },
+  { phone: '00000000001', label: 'Zainab', role: 'Widow', icon: 'widow', privileged: false },
+  { phone: '00000000002', label: 'Rukhsana', role: 'Competing claim', icon: 'people', privileged: false },
+  { phone: '00000000010', label: 'Ayesha', role: 'Helper', icon: 'helper', privileged: false },
+  { phone: '00000000020', label: 'Kamran', role: 'Officer', icon: 'person', privileged: true },
+  { phone: '00000000030', label: 'Admin', role: 'Rules + console', icon: 'rules', privileged: true },
+  { phone: '00000000040', label: 'Auditor', role: 'Read-only log', icon: 'eye', privileged: false },
 ]
 const DEMO_KEY = 'sahara.demoOpen'
 const WELCOME_UR = 'سہارا میں خوش آمدید۔ اپنا فون نمبر اور پن لکھیں۔'
@@ -43,6 +48,15 @@ export function Login({ onLogin }: LoginProps) {
     } catch {
       // storage blocked: the toggle still works for this page view
     }
+  }
+
+  function pickDemo(demoPhone: string, privileged: boolean): void {
+    if (!privileged && DEMO_PIN) {
+      void signIn(demoPhone, DEMO_PIN)
+      return
+    }
+    setPhone(demoPhone)
+    setPin('')
   }
 
   async function signIn(usePhone: string, usePin: string): Promise<void> {
@@ -109,8 +123,8 @@ export function Login({ onLogin }: LoginProps) {
               className="input input-big input-pin"
               inputMode="numeric"
               type="password"
-              autoComplete="current-password"
-              maxLength={6}
+              autoComplete="off"
+              maxLength={8}
               value={pin}
               onChange={(e) => setPin(e.target.value.replace(/[^\d]/g, ''))}
               required
@@ -123,26 +137,30 @@ export function Login({ onLogin }: LoginProps) {
           </button>
         </form>
 
-        <div className="demo">
-          <button type="button" className="demo-toggle" aria-expanded={demoOpen} aria-controls="demo-list" onClick={toggleDemo}>
-            <Icon name={demoOpen ? 'close' : 'people'} size={18} />
-            {demoOpen ? 'Hide demo accounts' : 'Demo accounts (mock)'}
-          </button>
-          {demoOpen && (
-            <div id="demo-list" className="demo-panel">
-              <p className="demo-hint">One tap signs in as a mock persona (PIN 1234). For judges and testing only.</p>
-              <div className="demo-grid">
-                {DEMO_USERS.map((u) => (
-                  <button key={u.phone} className="demo-persona" type="button" disabled={busy} onClick={() => void signIn(u.phone, '1234')}>
-                    <Icon name={u.icon} size={26} />
-                    <span className="demo-name">{u.label}</span>
-                    <span className="demo-role">{u.role}</span>
-                  </button>
-                ))}
+        {SHOW_DEMO && (
+          <div className="demo">
+            <button type="button" className="demo-toggle" aria-expanded={demoOpen} aria-controls="demo-list" onClick={toggleDemo}>
+              <Icon name={demoOpen ? 'close' : 'people'} size={18} />
+              {demoOpen ? 'Hide demo accounts' : 'Demo accounts (mock)'}
+            </button>
+            {demoOpen && (
+              <div id="demo-list" className="demo-panel">
+                <p className="demo-hint">
+                  Mock personas for judges and testing. Officer and admin fill in the phone only: type their PIN yourself.
+                </p>
+                <div className="demo-grid">
+                  {DEMO_USERS.map((u) => (
+                    <button key={u.phone} className="demo-persona" type="button" disabled={busy} onClick={() => pickDemo(u.phone, u.privileged)}>
+                      <Icon name={u.icon} size={26} />
+                      <span className="demo-name">{u.label}</span>
+                      <span className="demo-role">{u.role}</span>
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
       </section>
     </main>
   )

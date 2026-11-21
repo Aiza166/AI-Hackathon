@@ -12,7 +12,7 @@ from fastapi.security import APIKeyHeader, HTTPAuthorizationCredentials, HTTPBea
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.core import audit
+from app.core import audit, lockout
 from app.core.security import decode_token, hash_api_key
 from app.db import get_db
 from app.models.platform import ApiKey, User
@@ -47,6 +47,8 @@ def _from_jwt(db: Session, token: str) -> Principal:
         raise _unauthorized() from exc
     user = db.get(User, claims["sub"])
     if user is None or not user.active:
+        raise _unauthorized()
+    if lockout.token_revoked(db, user.id, claims.get("sid")):  # logged out or PIN-locked since issue
         raise _unauthorized()
     return Principal("user", user.id, user.role, user.tenant_id, user.person_id)
 
