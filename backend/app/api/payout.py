@@ -70,7 +70,7 @@ def confirm(change_id: str, body: ConfirmIn, request: Request,
     if user is None or not verify_pin(body.pin, user.pin_hash):
         audit.record(db, principal.actor, "PAYOUT_CONFIRM_FAILED", resource=f"payout_change:{change_id}")
         db.commit()
-        raise HTTPException(status_code=401, detail="Wrong PIN")
+        raise HTTPException(status_code=403, detail="Wrong PIN")  # 403, not 401: a wrong step-up PIN must not end her session
     change = svc.confirm(db, principal, change_id)
     db.commit()
     return ok(svc.view(change))

@@ -44,7 +44,7 @@ def test_wrong_pin_does_not_confirm_and_is_logged(client, login, file_claim):
     case_id = _zainab_case(file_claim)
     zainab = login("zainab")
     change = _request(client, zainab, case_id, "PK00MOCK0000000000000007").json()["data"]
-    assert client.post(f"/api/v1/payout-changes/{change['id']}/confirm", json={"pin": "9999"}, headers=zainab).status_code == 401
+    assert client.post(f"/api/v1/payout-changes/{change['id']}/confirm", json={"pin": "9999"}, headers=zainab).status_code == 403
     events = client.get("/api/v1/audit?action=PAYOUT_CONFIRM_FAILED", headers=login("auditor")).json()["data"]
     assert events
 
