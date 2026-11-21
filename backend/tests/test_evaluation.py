@@ -120,3 +120,18 @@ def test_impostor_with_conflicting_dob_is_never_auto_approved(ruleset):
              and c.claimant_dob_entered != c.claimant_record.dob]
     assert cases
     assert all(route != Route.AUTO_APPROVE for _, route, _ in claims.run_at(cases, ruleset, 0.95))
+
+
+def test_impostor_with_blank_dob_is_never_auto_approved(ruleset):
+    cases = [c for c in claims.generate_cases()
+             if c.category == "lookalike_different_person" and c.claimant_dob_entered is None]
+    assert cases
+    assert all(route != Route.AUTO_APPROVE for _, route, _ in claims.run_at(cases, ruleset, 0.95))
+
+
+def test_auto_approval_costs_less_than_never_auto_approving(claim_result):
+    assert claim_result["at_configured"]["total_cost"] < claim_result["baseline_never_auto"]
+
+
+def test_only_full_credential_identity_theft_is_wrongly_approved(claim_result):
+    assert set(claim_result["wrong_approvals_by_kind_at_configured"]) <= {claims.FULL_CREDENTIALS}

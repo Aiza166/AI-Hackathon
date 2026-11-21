@@ -14,7 +14,7 @@ def test_clean_widow_claim_with_name_variants_is_auto_approved(file_claim):
 
 def test_competing_claimant_not_in_family_record_pauses_both_cases(file_claim, client, login):
     zainab = file_claim("zainab")
-    rukhsana = file_claim("rukhsana", claimant_cnic="9000000000033", claimant_name="Rukhsana", payout_iban="PK00MOCK0000000000000002")
+    rukhsana = file_claim("rukhsana", claimant_cnic="9000000000033", claimant_name="Rukhsana", claimant_dob="1975-01-20", payout_iban="PK00MOCK0000000000000002")
 
     assert _decision(rukhsana) == ("in_review", ["NOT_IN_FAMILY_RECORD"])
     assert rukhsana["meta"] == {"rechecked_count": 1}  # citizens never see other people's case references
@@ -24,8 +24,8 @@ def test_competing_claimant_not_in_family_record_pauses_both_cases(file_claim, c
 
 def test_lawful_second_widow_is_a_co_sharer_not_a_fraud_flag(file_claim):
     common = {"deceased_cnic": "9000000000055", "deceased_name": "Abdul Rauf"}
-    saima = file_claim("saima", claimant_cnic="9000000000056", claimant_name="Saima", payout_iban="PK00MOCK0000000000000003", **common)
-    nasreen = file_claim("nasreen", claimant_cnic="9000000000057", claimant_name="Nasreen", payout_iban="PK00MOCK0000000000000004", **common)
+    saima = file_claim("saima", claimant_cnic="9000000000056", claimant_name="Saima", claimant_dob="1970-02-15", payout_iban="PK00MOCK0000000000000003", **common)
+    nasreen = file_claim("nasreen", claimant_cnic="9000000000057", claimant_name="Nasreen", claimant_dob="1966-04-18", payout_iban="PK00MOCK0000000000000004", **common)
     assert _decision(saima)[0] == "auto_approved"
     assert _decision(nasreen)[0] == "auto_approved"
 
@@ -66,7 +66,7 @@ def test_payout_to_someone_elses_account_goes_to_a_human(file_claim):
 
 def test_person_already_drawing_a_family_pension_goes_to_a_human(file_claim):
     body = file_claim(
-        "kausar", claimant_cnic="9000000000088", claimant_name="Kausar Parveen",
+        "kausar", claimant_cnic="9000000000088", claimant_name="Kausar Parveen", claimant_dob="1968-10-10",
         deceased_cnic="9000000000089", deceased_name="Tariq Mehmood", payout_iban="PK00MOCK0000000000000009",
     )
     assert _decision(body) == ("in_review", ["ALREADY_DRAWING"])
@@ -91,7 +91,27 @@ def test_auditor_trace_shows_rule_version_signals_and_thresholds(file_claim, cli
 
 def test_officer_queue_sorts_by_priority_then_lowest_confidence(file_claim, client, login):
     file_claim("zainab", documents=["death_certificate", "claimant_cnic", "frc"])  # proof requested, priority 1
-    file_claim("rukhsana", claimant_cnic="9000000000033", claimant_name="Rukhsana", payout_iban="PK00MOCK0000000000000002")
+    file_claim("rukhsana", claimant_cnic="9000000000033", claimant_name="Rukhsana", claimant_dob="1975-01-20", payout_iban="PK00MOCK0000000000000002")
     queue = client.get("/api/v1/queue", headers=login("officer")).json()["data"]
     priorities = [c["priority"] for c in queue]
     assert priorities == sorted(priorities, reverse=True)
+
+
+def test_blank_claimant_dob_asks_her_to_confirm_it_never_rejects(file_claim, client, login):
+    body = file_claim("zainab", claimant_dob=None)
+    assert _decision(body) == ("proof_requested", ["CONFIRM_DOB"])
+    explanation = client.get(f"/api/v1/cases/{body['data']['id']}/explanation", headers=login("zainab")).json()["data"]
+    assert explanation["missing_items"] == ["claimant_dob"]
+    assert explanation["explanations"][0]["text_en"].startswith("Please confirm your date of birth")
+    assert explanation["explanations"][0]["text_ur"]
+
+
+def test_wrong_claimant_dob_is_never_auto_approved(file_claim):
+    status, reasons = _decision(file_claim("zainab", claimant_dob="1963-06-01"))
+    assert status == "proof_requested"
+    assert reasons == ["DOB_MISMATCH"]
+
+
+def test_claimant_dob_one_day_off_is_asked_not_matched(file_claim):
+    status, reasons = _decision(file_claim("zainab", claimant_dob="1962-06-02"))
+    assert (status, reasons) == ("proof_requested", ["DOB_MISMATCH"])

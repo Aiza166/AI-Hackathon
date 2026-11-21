@@ -3,7 +3,8 @@
 Pipeline (docs/research/survivor-pension.md section 3):
 parse -> canonicalise -> score (Fellegi-Sunter style log2(m/u) weights) -> route.
 Rules that never bend: no match without an exact CNIC, no match when the
-DOB given conflicts with the record, "muhammad" carries little evidence, phonetic codes and token_set_ratio are never used as evidence.
+DOB given conflicts with the record, no claimant auto-match unless the typed DOB equals
+the record (require_dob), "muhammad" carries little evidence, phonetic codes and token_set_ratio are never used as evidence.
 """
 import math
 import re
@@ -27,6 +28,13 @@ PRIOR_WEIGHT = math.log2(1 / 1000)  # before evidence, a random pair is very unl
 
 MATCH_P = 0.95
 REVIEW_P = 0.70
+
+# Reason strings the decision engine maps to citizen-facing reason codes.
+REASON_DOB_MISSING = "date of birth not given"
+REASON_DOB_CONFLICT = "DOB conflicts with the record"
+REASON_DOB_NOT_EXACT = "DOB close to the record but not exact"
+REASON_DOB_NOT_ON_RECORD = "no DOB on the record to compare"
+DOB_REASONS = frozenset({REASON_DOB_MISSING, REASON_DOB_CONFLICT, REASON_DOB_NOT_EXACT, REASON_DOB_NOT_ON_RECORD})
 
 
 @dataclass(frozen=True)
@@ -131,7 +139,10 @@ def match_identity(
     claimed_dob: date | None = None,
     record_dob: date | None = None,
     match_p: float = MATCH_P,
+    require_dob: bool = False,
 ) -> MatchResult:
+    """require_dob=True is used for the claimant: a MATCH then also needs her typed DOB to equal
+    the record. A blank DOB asks her to confirm it (ASK); it never rejects."""
     score = name_similarity(claimed_name, record_name)
     levels = {
         "name": name_level(score),
@@ -147,6 +158,8 @@ def match_identity(
     }
     probability = 1 / (1 + 2 ** (-sum(weights.values())))
     route, reasons = _route(probability, levels, match_p)
+    if require_dob and route == "MATCH" and levels["dob"] != "exact":
+        route, reasons = "ASK", (_dob_gap_reason(claimed_dob, record_dob),)
     return MatchResult(round(probability, 4), route, levels, weights, reasons)
 
 
@@ -160,9 +173,17 @@ def _route(probability: float, levels: dict, match_p: float = MATCH_P) -> tuple[
     if levels["dob"] == "different":
         # An exact CNIC alone makes p ~0.998, but a CNIC number is easy to copy from a
         # photocopy. A DOB that conflicts with the record must be checked by a person.
-        return "ASK", ("DOB conflicts with the record",)
+        return "ASK", (REASON_DOB_CONFLICT,)
     if probability >= match_p:
         return "MATCH", ()
     if probability >= REVIEW_P:
         return "ASK", ("match not strong enough",)
     return "UNSURE", ("low match probability",)
+
+
+def _dob_gap_reason(claimed_dob: date | None, record_dob: date | None) -> str:
+    if record_dob is None:
+        return REASON_DOB_NOT_ON_RECORD
+    if claimed_dob is None:
+        return REASON_DOB_MISSING
+    return REASON_DOB_NOT_EXACT

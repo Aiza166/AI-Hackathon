@@ -15,7 +15,7 @@ from app.core.ratelimit import limiter
 from app.core.security import verify_pin
 from app.db import get_db
 from app.models.payout import PayoutChangeRequest
-from app.models.platform import User, utcnow
+from app.models.platform import Case, User, utcnow
 from app.schemas.contracts import Role
 from app.services import payout as svc
 
@@ -64,6 +64,30 @@ def confirm(change_id: str, body: ConfirmIn, request: Request,
     change = svc.confirm(db, principal, change_id)
     db.commit()
     return ok(svc.view(change))
+
+
+@router.post("/payout-changes/{change_id}/cancel")
+@limiter.limit("10/minute")
+def cancel(change_id: str, request: Request,
+           principal: Principal = Depends(require_roles(Role.CITIZEN, Role.HELPER)), db: Session = Depends(get_db)) -> dict:
+    """Stop a change before it is applied: the claimant, or the helper who started it."""
+    change = svc.cancel(db, principal, change_id)
+    db.commit()
+    return ok(svc.view(change))
+
+
+@router.get("/payout-changes")
+def officer_list(status: str = "flagged", principal: Principal = Depends(require_roles(Role.OFFICER)),
+                 db: Session = Depends(get_db)) -> dict:
+    """Officer view: payout changes in this department, flagged ones by default (newest first)."""
+    if status not in ("flagged", "held", "confirmed", "approved", "applied", "rejected", "cancelled", "all"):
+        raise HTTPException(status_code=422, detail="Unknown status")
+    query = (select(PayoutChangeRequest, Case.reference).join(Case, Case.id == PayoutChangeRequest.case_id)
+             .where(PayoutChangeRequest.tenant_id == principal.tenant_id)
+             .order_by(PayoutChangeRequest.created_at.desc()).limit(100))
+    if status != "all":
+        query = query.where(PayoutChangeRequest.status == status)
+    return ok([{**svc.view(change), "case_reference": ref} for change, ref in db.execute(query).all()])
 
 
 @router.post("/payout-changes/{change_id}/{decision}")

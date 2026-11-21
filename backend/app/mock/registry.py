@@ -21,7 +21,7 @@ from app.models.mock import (
     MockPerson,
 )
 
-SERVICES = ("identity", "death_registry", "pension_office", "payments")
+SERVICES = ("identity", "death_registry", "pension_office", "payments", "raast")
 SLOW_LIMIT_MS = 2000  # anything slower than this counts as unavailable
 
 
@@ -35,7 +35,7 @@ def _check_fault(db: Session, service: str) -> None:
     fault = db.get(MockFault, service)
     if fault is None or fault.mode == "ok":
         return
-    if fault.mode == "error":
+    if fault.mode in ("error", "timeout"):
         raise MockServiceUnavailable(service)
     if fault.mode == "slow":
         if fault.latency_ms >= SLOW_LIMIT_MS:
@@ -99,3 +99,8 @@ def set_fault(db: Session, service: str, mode: str, latency_ms: int = 0) -> Mock
     db.add(fault)
     db.flush()
     return fault
+
+
+def fault_mode(db: Session, service: str) -> str:
+    fault = db.get(MockFault, service)
+    return "ok" if fault is None else fault.mode

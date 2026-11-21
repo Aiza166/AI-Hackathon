@@ -155,13 +155,15 @@ def to_signals(case: ClaimCase, match_p: float) -> Signals:
         "claimant_disabled": False, "already_draws_family_pension": case.already_drawing,
     }
 
-    def m(claimed: str, cnic: str, record: Identity, claimed_dob: date | None = None, record_dob: date | None = None):
+    def m(claimed: str, cnic: str, record: Identity, claimed_dob: date | None = None, record_dob: date | None = None,
+          require_dob: bool = False):
         return match_identity(claimed, record.name, claimed_cnic=cnic, record_cnic=record.cnic,
-                              claimed_dob=claimed_dob, record_dob=record_dob, match_p=match_p)
+                              claimed_dob=claimed_dob, record_dob=record_dob, match_p=match_p, require_dob=require_dob)
 
     return Signals(
         facts=facts,
-        claimant_match=m(case.claimant_name_entered, rec.cnic, rec, case.claimant_dob_entered, rec.dob),
+        # Same as the app (facts._claimant_facts): the claimant's typed DOB must equal the record.
+        claimant_match=m(case.claimant_name_entered, rec.cnic, rec, case.claimant_dob_entered, rec.dob, require_dob=True),
         deceased_matches={
             "claim_vs_identity": m(case.deceased_name_entered, dec.cnic, dec),
             "death_certificate_vs_identity": m(case.name_on_death_certificate, dec.cnic, dec),

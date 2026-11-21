@@ -17,11 +17,35 @@ from app.schemas.contracts import Role, ScamCheckIn
 from app.services import scam as svc
 
 router = APIRouter(prefix="/api/v1", tags=["scam shield"])
-# Real-world reporting routes (shown after a scam verdict). Sources: docs/research/win-strategy-jev.md.
+# Real-world places to report a scam, shown after a scam verdict (real help, not part of the mock).
+# Source and confidence for each: docs/research/round2.md section 4. 1799 replaced FIA's 1991.
 REPORT_ROUTES = [
-    {"name": "NCCIA cybercrime complaint (official portal)", "url": "https://complaint.nccia.gov.pk/"},
-    {"name": "PTA: report fraud calls and SMS", "url": "https://www.pta.gov.pk/category/report-fraud-callssmss-884766986-2023-05-30"},
+    {"id": "nccia_call", "kind": "call", "name": "Call NCCIA cybercrime helpline 1799", "name_ur": "سائبر کرائم ہیلپ لائن 1799 پر کال کریں",
+     "url": "tel:1799", "confidence": "confirmed", "source": "https://www.nccia.gov.pk/"},
+    {"id": "nccia_portal", "kind": "link", "name": "NCCIA complaint portal (needs your CNIC)", "name_ur": "این سی سی آئی اے کو آن لائن شکایت",
+     "url": "https://complaint.nccia.gov.pk/", "confidence": "confirmed", "source": "https://complaint.nccia.gov.pk/"},
+    {"id": "pta_portal", "kind": "link", "name": "Report the number to PTA (Reporting Fraudulent Call/SMS)", "name_ur": "نمبر کی شکایت پی ٹی اے کو کریں",
+     "url": "https://complaint.pta.gov.pk/", "confidence": "confirmed", "source": "https://pta.gov.pk/category/consumer-complaints"},
+    {"id": "pta_call", "kind": "call", "name": "PTA helpline 0800-55055", "name_ur": "پی ٹی اے ہیلپ لائن 0800-55055",
+     "url": "tel:080055055", "confidence": "confirmed", "source": "https://complaint.pta.gov.pk/UserLogIn.aspx"},
+    {"id": "pta_9000", "kind": "sms", "name": "Forward the spam SMS to 9000 (per PTA, 2023)", "name_ur": "جعلی پیغام 9000 پر بھیجیں",
+     "url": "sms:9000", "confidence": "as of 2023", "source": "https://www.pta.gov.pk/category/pta-short-codes-obnoxious-com-420-unsolicit-comdncr-3627-and-spam-reporting-9000-568848153-2023-06-01"},
+    {"id": "bank", "kind": "info", "name": "Shared a code? Call your bank now on the number printed on your card", "name_ur": "اگر کوڈ بتا دیا ہے تو ابھی اپنے بینک کو کارڈ پر لکھے نمبر پر کال کریں",
+     "url": None, "confidence": "general advice", "source": None},
+    {"id": "sunwai", "kind": "link", "name": "Bank did not help? Complain to SBP Sunwai", "name_ur": "بینک نے مدد نہیں کی تو اسٹیٹ بینک سنوائی پر شکایت",
+     "url": "https://sunwai.sbp.org.pk/", "confidence": "confirmed", "source": "https://sunwai.sbp.org.pk/about-us.html"},
 ]
+BISP_ROUTE = {"id": "bisp", "kind": "call", "name": "BISP helpline 0800-26477 (official SMS sender is only 8171)", "name_ur": "بی آئی ایس پی ہیلپ لائن 0800-26477",
+              "url": "tel:080026477", "confidence": "confirmed", "source": "https://bisp.gov.pk/NewsDetail/M2MzZDg0ZjctYjBkMS00YzQ1LTkwMjQtMmVhZWFiZDgyZmI0"}
+BISP_WORDS = ("bisp", "benazir", "8171", "بینظیر", "احساس", "ehsaas")
+
+
+def report_routes(verdict: str, text: str, sender: str | None) -> list[dict]:
+    """No routes for a genuine-looking message. The BISP line only when the message is about BISP."""
+    if verdict == "LOOKS_GENUINE":
+        return []
+    haystack = f"{text} {sender or ''}".lower()
+    return [*REPORT_ROUTES, *([BISP_ROUTE] if any(w in haystack for w in BISP_WORDS) else [])]
 
 
 def _run(db: Session, principal: Principal, body: ScamCheckIn) -> dict:
@@ -35,7 +59,7 @@ def _run(db: Session, principal: Principal, body: ScamCheckIn) -> dict:
     return {
         "verdict": result.verdict, "confidence": result.score, "reasons": result.reasons, "reasons_ur": result.reasons_ur,
         "case_cross_check": result.case_cross_check, "model_id": result.model_id,
-        "report_routes": REPORT_ROUTES if result.verdict != "LOOKS_GENUINE" else [],
+        "report_routes": report_routes(result.verdict, body.text, body.sender),
     }
 
 

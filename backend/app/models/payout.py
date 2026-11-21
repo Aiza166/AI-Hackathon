@@ -19,6 +19,8 @@ class PayoutChangeRequest(Base):
     requested_role: Mapped[str] = mapped_column(String(20))
     payee_result: Mapped[str] = mapped_column(String(12))  # match | close_match | no_match
     flags: Mapped[list] = mapped_column(JSON, default=list)
+    # Mock Raast title fetch result (masked title, account type, holding, verdict). Never a CNIC.
+    payee_check: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     # held -> confirmed -> applied ; flagged -> (officer) approved -> applied ; rejected / cancelled
     status: Mapped[str] = mapped_column(String(12))
     hold_until: Mapped[datetime] = mapped_column(DateTime(timezone=True))

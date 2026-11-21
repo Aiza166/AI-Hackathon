@@ -84,10 +84,46 @@ def test_exact_cnic_with_conflicting_dob_is_never_a_match():
     assert result.reasons == ("DOB conflicts with the record",)
 
 
-def test_exact_cnic_with_missing_dob_still_matches():
+def test_exact_cnic_with_missing_dob_matches_only_when_dob_is_not_required():
+    # Deceased-person checks have no typed DOB, so DOB is not required there.
     result = match_identity(
         "Muhammad Aslam", "Muhammad Aslam", claimed_cnic="9000000000011", record_cnic="9000000000011",
         claimed_dob=None, record_dob=date(1955, 9, 2),
+    )
+    assert result.route == "MATCH"
+
+
+def test_claimant_with_blank_dob_is_asked_to_confirm_it():
+    result = match_identity(
+        "Zainab Bibi", "Zainab Bibi", claimed_cnic="9000000000022", record_cnic="9000000000022",
+        claimed_dob=None, record_dob=date(1962, 6, 1), require_dob=True,
+    )
+    assert result.route == "ASK"
+    assert result.reasons == ("date of birth not given",)
+
+
+@pytest.mark.parametrize("typed", [date(1962, 6, 2), date(1962, 1, 1)])
+def test_claimant_dob_must_equal_the_record_exactly(typed):
+    result = match_identity(
+        "Zainab Bibi", "Zainab Bibi", claimed_cnic="9000000000022", record_cnic="9000000000022",
+        claimed_dob=typed, record_dob=date(1962, 6, 1), require_dob=True,
+    )
+    assert result.route == "ASK"
+    assert result.reasons == ("DOB close to the record but not exact",)
+
+
+def test_claimant_dob_missing_from_the_record_is_not_a_match():
+    result = match_identity(
+        "Zainab Bibi", "Zainab Bibi", claimed_cnic="9000000000022", record_cnic="9000000000022",
+        claimed_dob=date(1962, 6, 1), record_dob=None, require_dob=True,
+    )
+    assert result.route == "ASK"
+
+
+def test_claimant_with_exact_dob_matches():
+    result = match_identity(
+        "Mst. Zainab Bibi", "Zainab Bibi", claimed_cnic="9000000000022", record_cnic="9000000000022",
+        claimed_dob=date(1962, 6, 1), record_dob=date(1962, 6, 1), require_dob=True,
     )
     assert result.route == "MATCH"
 

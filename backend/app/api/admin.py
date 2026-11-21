@@ -28,8 +28,8 @@ class ApiKeyIn(BaseModel):
 
 
 class FaultIn(BaseModel):
-    service: Literal["identity", "death_registry", "pension_office", "payments"]
-    mode: Literal["ok", "error", "slow"]
+    service: Literal["identity", "death_registry", "pension_office", "payments", "raast"]
+    mode: Literal["ok", "error", "slow", "timeout"]
     latency_ms: int = Field(default=0, ge=0, le=10000)
 
 

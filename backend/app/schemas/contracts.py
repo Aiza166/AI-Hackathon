@@ -46,6 +46,8 @@ class ReasonCode(StrEnum):
     PAYEE_CLOSE_MATCH = "PAYEE_CLOSE_MATCH"
     TIME_LIMITED = "TIME_LIMITED"
     MULTIPLE_CANDIDATES = "MULTIPLE_CANDIDATES"
+    CONFIRM_DOB = "CONFIRM_DOB"  # claimant left her date of birth blank: ask, never reject
+    DOB_MISMATCH = "DOB_MISMATCH"  # typed DOB differs from the identity record
 
 
 class CaseStatus(StrEnum):

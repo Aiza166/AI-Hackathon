@@ -10,7 +10,7 @@ from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from app.decision.matching import MatchResult, match_identity, name_similarity, parse_name
-from app.mock import registry
+from app.mock import raast, registry
 from app.models.platform import Case, Person
 from app.schemas.claims import ClaimIn
 
@@ -30,6 +30,7 @@ class Signals:
     account_reuse: list = field(default_factory=list)
     candidates: list = field(default_factory=list)  # when the deceased CNIC is missing
     service_down: list = field(default_factory=list)
+    payee_check: dict | None = None  # mock Raast title fetch (masked title, holding, verdict)
 
     def to_dict(self) -> dict:
         def m(r: MatchResult | None) -> dict | None:
@@ -46,6 +47,7 @@ class Signals:
             "account_reuse": self.account_reuse,
             "candidates": self.candidates,
             "service_down": self.service_down,
+            "payee_check": self.payee_check,
         }
 
 
@@ -117,7 +119,7 @@ def _claimant_facts(db: Session, claim: ClaimIn, signals: Signals, today: date) 
     signals.claimant_match = match_identity(
         claim.claimant_name, record.full_name,
         claimed_cnic=claim.claimant_cnic, record_cnic=record.cnic,
-        claimed_dob=claim.claimant_dob, record_dob=record.dob,
+        claimed_dob=claim.claimant_dob, record_dob=record.dob, require_dob=True,
     )
     signals.facts["claimant_dob"] = record.dob  # NADRA CNIC DOB is the single source of truth
     signals.facts["claimant_age"] = _age(record.dob, today)
@@ -128,20 +130,15 @@ def _claimant_facts(db: Session, claim: ClaimIn, signals: Signals, today: date) 
 
 
 def _payee(db: Session, claim: ClaimIn, signals: Signals) -> None:
-    """Mock Confirmation of Payee: match / close match / no match on the account title."""
-    account = registry.get_account(db, claim.payout_iban)
+    """Mock Confirmation of Payee on top of a Raast-style title fetch: match / close match / no match.
+    A JOINT account is a close match (ask for proof); a timeout or outage is a service outage (officer)."""
     registry_name = signals.facts.get("_claimant_registry_name", claim.claimant_name)
-    if account is None:
-        signals.payee = "no_match"
-        return
-    signals.payee_owner_ok = account.owner_cnic == claim.claimant_cnic
-    score = name_similarity(account.title, registry_name)
-    if not signals.payee_owner_ok or score < 70:
-        signals.payee = "no_match"
-    elif score >= 95:
-        signals.payee = "match"
-    else:
-        signals.payee = "close_match"
+    check = raast.title_fetch(db, claim.payout_iban, registry_name, claim.claimant_cnic)
+    signals.payee_check = check.to_dict()
+    if not check.reachable:
+        raise registry.MockServiceUnavailable(raast.SERVICE)
+    signals.payee_owner_ok = bool(check.cnic_match)
+    signals.payee = check.payee
 
 
 def _other_claims(db: Session, case: Case, claim: ClaimIn, signals: Signals) -> None:
