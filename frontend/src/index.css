@@ -290,7 +290,7 @@ textarea.input { resize: vertical; }
 .demo { border-top: 1px solid var(--line); padding-top: var(--s3); }
 .demo-toggle {
   display: inline-flex; align-items: center; gap: var(--s2);
-  min-height: 44px; padding: 0 var(--s2);
+  min-height: 48px; padding: 0 var(--s2);
   background: none; border: 0; border-radius: var(--r-chip);
   color: var(--ink-soft); font-size: var(--t-sm); font-weight: 600; cursor: pointer;
   text-decoration: underline; text-underline-offset: 3px;
