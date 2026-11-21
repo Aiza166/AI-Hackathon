@@ -120,7 +120,10 @@ def _jev_signals(text: str) -> tuple[dict[str, float], str | None, dict]:
     client = JevClient()
     try:
         result = client.ask({"reader_note": READER_NOTE, "untrusted_message": text}, QUESTIONS)
-        nouls = {name: result.noul(name) for name in QUESTIONS if name in result.answers}
+        try:
+            nouls = {name: result.noul(name) for name in QUESTIONS if name in result.answers}
+        except (KeyError, TypeError, ValueError) as exc:  # junk Nouls are an outage, never a value
+            raise JevUnavailable(f"Jev answer was not usable: {type(exc).__name__}") from exc
         return nouls, result.model, {"latency_ms": result.latency_ms, "usage": result.usage}
     finally:
         client.close()
