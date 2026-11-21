@@ -67,3 +67,5 @@ Filled in as we build. Final version goes in the submission README.
 | Document reading (OCR) | Real: Azure Document Intelligence `prebuilt-read` when keys are set, else Tesseract in the container. The documents are mock specimens |
 | Document checks (stamp copy-move, ELA, registry cross-check, Jev image questions) | Real code; indicators for an officer, never a verdict. The registry compared against is the mock one |
 | Login, roles, consent, audit log, rules engine | Real (implemented in this project) |
+
+Infrastructure (Railway services, Azure resources, variable names): [docs/INFRA.md](docs/INFRA.md).
