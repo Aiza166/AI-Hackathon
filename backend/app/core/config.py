@@ -43,16 +43,16 @@ class Settings(BaseSettings):
     jev_image_timeout_seconds: float = 8.0
     tts_cache_dir: str | None = None  # disk cache for synthesised audio; memory-only when unset
 
-    # Second independent sensor (OpenAI-compatible chat model, e.g. an Azure OpenAI gpt-4o-mini
+    # Second independent sensor (OpenAI-compatible chat model, e.g. the Azure OpenAI gpt-5-mini
     # deployment). Optional: blank = disabled, and the cascade runs Jev + deterministic checks only.
     second_sensor_endpoint: str | None = None
     second_sensor_key: str | None = None
     second_sensor_deployment: str | None = None
     second_sensor_api_version: str | None = None  # set = Azure OpenAI style URL; blank = OpenAI-style /chat/completions
-    second_sensor_timeout_seconds: float = 8.0
-    # List price per million tokens used for the cost estimate (gpt-4o-mini; change if the deployment differs).
-    second_sensor_usd_per_1m_input: float = 0.15
-    second_sensor_usd_per_1m_output: float = 0.60
+    second_sensor_timeout_seconds: float = 20.0  # reasoning models think before answering
+    # List price per million tokens for the cost estimate (gpt-5-mini; reasoning tokens count as output).
+    second_sensor_usd_per_1m_input: float = 0.25
+    second_sensor_usd_per_1m_output: float = 2.00
 
     @field_validator("database_url")
     @classmethod

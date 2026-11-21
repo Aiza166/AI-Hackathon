@@ -193,3 +193,29 @@ def test_malformed_response_shapes_are_unavailable_not_errors():
 def test_clear_jev_with_undecided_second_sensor_is_unresolved_not_a_disagreement():
     fused = cascade.fuse({"asks_fee": 0.05}, {"asks_fee": True}, ok({"asks_fee": 0.5}), ["asks_fee"])
     assert fused.unresolved == ["asks_fee"] and not fused.disagreements and fused.probabilities["asks_fee"] == 0.05
+
+
+def test_reasoning_model_gets_probability_fields_and_no_temperature_or_logprobs():
+    seen = {}
+
+    def handler(request):
+        seen["body"] = json.loads(request.content)
+        content = json.dumps({"asks_fee": 0.93, "has_link": 0.04, "advisory_note": "Asks for money."})
+        return httpx.Response(200, json={"model": "gpt-5-mini", "usage": {"prompt_tokens": 500, "completion_tokens": 300},
+                                         "choices": [{"message": {"content": content}}]})
+
+    result = SecondSensor(settings(second_sensor_deployment="gpt-5-mini"), transport=transport(handler)).ask(QUESTIONS, untrusted_text="x")
+    body = seen["body"]
+    assert "temperature" not in body and "logprobs" not in body and "max_tokens" not in body
+    assert body["max_completion_tokens"] >= 800
+    props = body["response_format"]["json_schema"]["schema"]["properties"]
+    assert props["asks_fee"]["type"] == "number"
+    assert result.status == "ok" and result.probabilities == {"asks_fee": 0.93, "has_link": 0.04}
+
+
+def test_reasoning_probabilities_are_clamped():
+    def handler(request):
+        content = json.dumps({"asks_fee": 1.7, "has_link": -0.2, "advisory_note": ""})
+        return httpx.Response(200, json={"choices": [{"message": {"content": content}}]})
+    result = SecondSensor(settings(second_sensor_deployment="gpt-5-mini"), transport=transport(handler)).ask(QUESTIONS, untrusted_text="x")
+    assert result.probabilities == {"asks_fee": 1.0, "has_link": 0.0}

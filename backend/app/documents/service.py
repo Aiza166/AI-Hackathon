@@ -93,6 +93,8 @@ def analyse_upload(db: Session, principal: Principal, case: Case, kind: str, dat
     sensed = cascade_checks.run(kind, loaded.image, fields, report, jev)
     disagree = [indicators.make("SENSORS_DISAGREE", questions=sensed.fused.disagreements)] \
         if sensed.fused and sensed.fused.disagreements else []
+    if sensed.second_only_flags:
+        disagree.append(indicators.make("SECOND_SENSOR_FLAG", questions=sensed.second_only_flags))
     found = indicators.dedupe([*found, *check_indicators, *indicators.from_forensics(report),
                                *indicators.from_jev(sensed.jev), *disagree])
     risk = indicators.risk_level(found)

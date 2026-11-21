@@ -73,6 +73,6 @@ Filled in as we build. Final version goes in the submission README.
 | Screenshot check (OCR) | Real: Azure Document Intelligence / Tesseract on the uploaded screenshot. Not stored |
 | Voice note / call recording check | Real: ffmpeg conversion + Azure speech-to-text (`ur-IN`) when keys are set, else "type what was said". Not stored |
 | Share to Sahara from WhatsApp / SMS | Real PWA Web Share Target (installed app); stays on the phone until she taps Check |
-| Second sensor (cascade) | Real Azure OpenAI chat model (gpt-4o-mini) when `SECOND_SENSOR_*` is set, called only when Jev is unsure; off without the settings |
+| Second sensor (cascade) | Real Azure OpenAI model (gpt-5-mini) when `SECOND_SENSOR_*` is set, called only when Jev is unsure; off without the settings |
 
 Infrastructure (Railway services, Azure resources, variable names): [docs/INFRA.md](docs/INFRA.md).

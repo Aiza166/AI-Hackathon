@@ -12,7 +12,11 @@ without one it is OpenAI style {endpoint}/chat/completions (Bearer, model = depl
 Missing env = disabled: ask() returns status "skipped" and nothing is sent anywhere.
 
 Safety:
-- temperature 0 and a strict JSON schema: one boolean per question plus a short note.
+- a strict JSON schema: one answer per question plus a short note. Chat models: temperature 0,
+  boolean answers, probabilities from token log-probabilities. Reasoning models (gpt-5 / o-series,
+  e.g. the live Azure deployment gpt-5-mini): no temperature or logprobs (not supported), so each
+  answer is a number "probability that the answer is yes" (clamped to 0-1), reasoning_effort low,
+  max_completion_tokens 2000.
 - untrusted content (a message, OCR text, a transcript or a document photo) sits between
   random per-request markers and the system prompt says it is data, never instructions.
 - probabilities come from the token log-probabilities of each boolean when available;
@@ -39,6 +43,8 @@ log = logging.getLogger("sahara.second_sensor")
 NOTE_PREFIX = "AI-written, advisory: "
 MAX_NOTE_CHARS = 280
 MAX_TOKENS = 300
+REASONING_MAX_COMPLETION_TOKENS = 2000  # reasoning models spend completion tokens thinking before the JSON
+REASONING_PREFIXES = ("gpt-5", "o1", "o3", "o4")
 NO_LOGPROB_YES, NO_LOGPROB_NO = 0.9, 0.1
 SYSTEM_PROMPT = (
     "You are a careful reading assistant for a government pension office. You answer only the yes/no questions "
@@ -66,8 +72,12 @@ class SensorAnswers:
         return asdict(self)
 
 
-def _schema(questions: dict[str, str]) -> dict:
-    props = {name: {"type": "boolean", "description": text} for name, text in questions.items()}
+def _schema(questions: dict[str, str], reasoning: bool = False) -> dict:
+    if reasoning:  # no logprobs on reasoning models: ask for the probability itself
+        props = {name: {"type": "number", "description": f"Probability from 0 to 1 that the answer is yes. {text}"}
+                 for name, text in questions.items()}
+    else:
+        props = {name: {"type": "boolean", "description": text} for name, text in questions.items()}
     props["advisory_note"] = {"type": "string", "description": "At most two short factual sentences for an officer."}
     return {"type": "object", "properties": props, "required": list(props), "additionalProperties": False}
 
@@ -104,6 +114,13 @@ def _boolean_probabilities(names: list[str], logprobs: dict | None) -> dict[str,
     return out if len(out) == len(names) else None
 
 
+def _as_probability(value: object) -> float:
+    """A boolean maps to 0.9 / 0.1 (clear, never certain); a number is clamped to 0-1."""
+    if isinstance(value, bool):
+        return NO_LOGPROB_YES if value else NO_LOGPROB_NO
+    return round(min(1.0, max(0.0, float(value))), 4)
+
+
 class SecondSensor:
     def __init__(self, settings: Settings | None = None, transport: httpx.BaseTransport | None = None):
         self._settings = settings or get_settings()
@@ -122,6 +139,25 @@ class SecondSensor:
             return url, {"api-key": s.second_sensor_key or ""}
         return f"{endpoint}/chat/completions", {"Authorization": f"Bearer {s.second_sensor_key}"}
 
+    @property
+    def reasoning(self) -> bool:
+        """gpt-5 / o-series deployments: no temperature or logprobs, max_completion_tokens instead of max_tokens."""
+        return (self._settings.second_sensor_deployment or "").lower().startswith(REASONING_PREFIXES)
+
+    def _body(self, questions: dict[str, str], content: list[dict]) -> dict:
+        body: dict = {
+            "messages": [{"role": "system", "content": SYSTEM_PROMPT}, {"role": "user", "content": content}],
+            "response_format": {"type": "json_schema", "json_schema": {"name": "sensor_answers", "strict": True,
+                                                                       "schema": _schema(questions, self.reasoning)}},
+        }
+        if self.reasoning:
+            body.update({"max_completion_tokens": REASONING_MAX_COMPLETION_TOKENS, "reasoning_effort": "low"})
+        else:
+            body.update({"temperature": 0, "max_tokens": MAX_TOKENS, "logprobs": True, "top_logprobs": 3})
+        if not self._settings.second_sensor_api_version:
+            body["model"] = self._settings.second_sensor_deployment
+        return body
+
     def _cost(self, usage: dict) -> float:
         s = self._settings
         return round(usage.get("prompt_tokens", 0) / 1e6 * s.second_sensor_usd_per_1m_input
@@ -135,14 +171,7 @@ class SecondSensor:
         if image_jpeg is not None:
             url = "data:image/jpeg;base64," + base64.b64encode(image_jpeg).decode()
             content.append({"type": "image_url", "image_url": {"url": url, "detail": "high"}})
-        body = {
-            "messages": [{"role": "system", "content": SYSTEM_PROMPT}, {"role": "user", "content": content}],
-            "temperature": 0, "max_tokens": MAX_TOKENS, "logprobs": True, "top_logprobs": 3,
-            "response_format": {"type": "json_schema", "json_schema": {"name": "sensor_answers", "strict": True,
-                                                                       "schema": _schema(questions)}},
-        }
-        if not self._settings.second_sensor_api_version:
-            body["model"] = self._settings.second_sensor_deployment
+        body = self._body(questions, content)
         url, headers = self._request()
         started = time.perf_counter()
         try:
@@ -157,9 +186,10 @@ class SecondSensor:
         with httpx.Client(timeout=self._settings.second_sensor_timeout_seconds, transport=self._transport,
                           verify=shared_ssl_context()) as client:
             response = client.post(url, json=body, headers=headers)
-            if response.status_code == 400 and body.get("logprobs"):
-                # Some deployments reject logprobs (e.g. with images): retry once without them.
-                body = {k: v for k, v in body.items() if k not in ("logprobs", "top_logprobs")}
+            optional = ("logprobs", "top_logprobs", "reasoning_effort")
+            if response.status_code == 400 and any(k in body for k in optional):
+                # Some deployments reject logprobs (e.g. with images) or reasoning_effort: retry once without them.
+                body = {k: v for k, v in body.items() if k not in optional}
                 response = client.post(url, json=body, headers=headers)
             response.raise_for_status()
             return response.json()
@@ -177,14 +207,14 @@ class SecondSensor:
         try:
             choice = data["choices"][0]
             answers = json.loads(choice["message"]["content"])
-            booleans = {n: bool(answers[n]) for n in names}
+            raw = {n: answers[n] for n in names}
         except (KeyError, IndexError, TypeError, ValueError):
             return SensorAnswers(status="unavailable", error="unreadable answer", latency_ms=latency_ms, usage=usage,
                                  cost_usd=self._cost(usage))
-        probabilities = _boolean_probabilities(names, choice.get("logprobs"))
+        probabilities = None if self.reasoning else _boolean_probabilities(names, choice.get("logprobs"))
         used_logprobs = probabilities is not None
         if probabilities is None:
-            probabilities = {n: NO_LOGPROB_YES if v else NO_LOGPROB_NO for n, v in booleans.items()}
+            probabilities = {n: _as_probability(v) for n, v in raw.items()}
         note = " ".join(str(answers.get("advisory_note", "")).split())[:MAX_NOTE_CHARS]
         return SensorAnswers(status="ok", model=str(data.get("model") or self._settings.second_sensor_deployment),
                              probabilities=probabilities, note=f"{NOTE_PREFIX}{note}" if note else "",

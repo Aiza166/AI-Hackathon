@@ -63,7 +63,9 @@ def test_jev_down_second_sensor_stands_in():
     skipped = JevDocResult(status="skipped", note="Jev not configured")
     out = cascade_checks.run("claimant_cnic", IMG, {}, report(), skipped, sensor)
     assert out.jev.status == "ok" and out.jev.model == "gpt-4o-mini"
-    assert "WRONG_DOCUMENT" in [i.code for i in indicators.from_jev(out.jev)]
+    # One AI sensor alone may not raise a flag: it becomes officer info instead.
+    assert "WRONG_DOCUMENT" not in [i.code for i in indicators.from_jev(out.jev)]
+    assert out.second_only_flags == ["right_type"]
 
 
 def test_not_configured_changes_nothing():
@@ -89,3 +91,13 @@ def test_second_sensor_down_keeps_jevs_answers_unchanged():
     out = cascade_checks.run("death_certificate", IMG, {}, report(), original, DownSensor({}))
     assert out.jev == original and out.second.status == "unavailable"
     assert out.sensors[-1]["status"] == "unavailable"
+
+
+def test_second_sensor_alone_cannot_raise_a_document_flag():
+    sensor = FakeSensor({"right_type": 0.05, "text_altered": 0.95})
+    out = cascade_checks.run("claimant_cnic", IMG, {}, report(), jev({"right_type": 0.5, "text_altered": 0.5}), sensor)
+    codes = [i.code for i in indicators.from_jev(out.jev)]
+    assert "WRONG_DOCUMENT" not in codes and "TEXT_LOOKS_ALTERED" not in codes
+    assert sorted(out.second_only_flags) == ["right_type", "text_altered"]
+    flag = indicators.make("SECOND_SENSOR_FLAG", questions=out.second_only_flags)
+    assert flag.severity == "info" and flag.citizen_visible is False
