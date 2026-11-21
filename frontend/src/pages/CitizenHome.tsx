@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { api, errorText } from '../api/client'
 import type { CaseView, Family, Me, SessionUser } from '../api/types'
 import { OutboxStrip } from '../components/OutboxStrip'
+import { takeForFixing, type OutboxRow } from '../lib/outbox'
 import { useOutbox } from '../lib/useOutbox'
 import { Badge, Bilingual, ErrorNote, ListenButton, Pictogram, humanize, toneFor } from '../components/ui'
 import { Icon } from '../lib/icons'
@@ -29,9 +30,10 @@ const HOME_UR = 'نیا دعویٰ شروع کرنے کے لیے بڑا بٹن �
 
 interface CitizenHomeProps {
   user: SessionUser
+  onSignInAgain: () => void // session ended: sign in again without deleting saved claims
 }
 
-export function CitizenHome({ user }: CitizenHomeProps) {
+export function CitizenHome({ user, onSignInAgain }: CitizenHomeProps) {
   const [me, setMe] = useState<Me | null>(null)
   const [families, setFamilies] = useState<Family[]>([])
   const [actingFor, setActingFor] = useState<Family | null>(null)
@@ -40,7 +42,9 @@ export function CitizenHome({ user }: CitizenHomeProps) {
   const [error, setError] = useState<string | null>(null)
   const [refreshKey, setRefreshKey] = useState(0)
   const isHelper = user.role === 'helper'
-  const outbox = useOutbox(user.id, () => setRefreshKey((k) => k + 1))
+  // Helper Mode: only the selected family's saved claims are shown and sent (null = none chosen).
+  const outboxSubject = isHelper ? (actingFor?.cnic ?? null) : undefined
+  const outbox = useOutbox(user.id, outboxSubject, () => setRefreshKey((k) => k + 1))
 
   useEffect(() => {
     let active = true
@@ -70,6 +74,18 @@ export function CitizenHome({ user }: CitizenHomeProps) {
   const claimant = isHelper ? helperClaimant : citizenClaimant
   const back = () => setView({ kind: 'list' })
 
+  // A refused claim is already back in the draft: drop the refused copy and open the wizard.
+  async function openFix(row: OutboxRow): Promise<void> {
+    if (isHelper) {
+      const family = families.find((f) => f.cnic === row.subject)
+      if (!family) return
+      setActingFor(family)
+      if (!hasConsent(family)) return // the lock note explains what to do first
+    }
+    await takeForFixing(row.id)
+    setView({ kind: 'new' })
+  }
+
   if (view.kind === 'case') return <CaseResult caseId={view.id} onBack={back} />
   if (view.kind === 'data') return <MyData onBack={back} />
   if (view.kind === 'new' && claimant) {
@@ -95,7 +111,7 @@ export function CitizenHome({ user }: CitizenHomeProps) {
         <ListenButton audioKey="prompt_home" text={HOME_UR} />
       </div>
       <ErrorNote message={error} />
-      <OutboxStrip state={outbox} />
+      <OutboxStrip state={outbox} showWho={isHelper} onSignInAgain={onSignInAgain} onOpenFix={(row) => void openFix(row)} />
 
       {isHelper && (
         <FamilyPicker families={families} selected={actingFor} onSelect={setActingFor} />
