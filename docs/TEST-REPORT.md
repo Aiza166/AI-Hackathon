@@ -38,6 +38,27 @@ Console errors: none recorded in any journey (React/Vite noise and expected 4xx 
 | B10 | LOW | No locked family in the seed, and no judge-console page yet (faults, reset, competing claimant are API/Swagger only) |
 | B11 | LOW (dev) | `vite.config.ts` hard-codes the `/api` proxy to `:8000`, so a second local stack needs a config override |
 
+### Fix status
+
+Fixed in `fix/e2e-findings` (PR __PR__), except B1 and B7, which the Scam Shield v2 branch owns.
+
+| ID | Fixed in | How (test) |
+|---|---|---|
+| B1 | Scam Shield v2 branch (not here) | |
+| B2 | __PR__ | Seed: the Haider heirs' claims SP-0001/SP-0002 are pending (`in_review`, the heirs asked an officer to check shares); the Rakha claims are officer-approved. Publishing a rule version re-decides only pending cases whose entitlement starts on or after its effective date (audited `CASE_REDECIDED`, listed in `RULES_PUBLISHED`), keeps them with the officer, and never touches decided cases. Digital Twin shows "On publish: Re-decided / Keeps its version" (`will_redecide`). Tests: `test_rule_versions.py` (5 new, 1 updated), `j07` |
+| B3 | __PR__ | "Fill demo data" never sets the DOB. Test: `j02` (now a hard expectation) |
+| B4 | __PR__ | Last `/me` cached in sessionStorage (scoped to the user id, minimal fields, cleared on sign-out); home shows a "No signal, you can continue your saved claim" note (Urdu + English) and the saved draft opens offline. Tests: `frontend/unit/meCache.test.ts` (7, `npm run test:unit`), `j10` |
+| B5 | __PR__ | Server refuses to withdraw (or hide fields of) the Pension Department's consent while the claimant has an open claim with it: 409, audited `CONSENT_CHANGE_REFUSED`. New `POST /cases/{id}/withdraw` (claimant only, only while the claim is still being decided; final status `withdrawn`, audited `CASE_WITHDRAWN`, open payout change cancelled, later uploads never re-open it); then the department's access can be taken back. A paid (approved) claim keeps the department's access while it is paid. Filing a claim while the department's access is taken back is refused. My data explains this in Urdu + English and offers "Withdraw my claim" when allowed. Helper access stays freely revocable. Tests: `test_consent.py` (9 new), `test_documents_api.py` (updated), `j01` |
+| B6 | __PR__ | 05-DEMO-SCRIPT Q&A, 03-ARCHITECTURE (principle 6, diagram, `service_health`) and 02-COMPLIANCE now say Jev is used only for Scam Shield and document checks; claims use registries + rules + code thresholds; what Jev-down does in each place |
+| B7 | Scam Shield v2 branch (not here) | |
+| B8 | __PR__ | FRC uses `DOC_ICONS.frc` (family icon) |
+| B9 | __PR__ | `.btn-sm` is 48 px; report-card source links are 48x48 px tap targets (`index.css`) |
+| B10 | __PR__ (partly) | Seed has one locked helper family (Mehrunnisa). Test: `test_seed_has_exactly_one_locked_helper_family`, `j03`. Judge console page: not built |
+| B11 | __PR__ | `vite.config.ts` reads `VITE_PROXY_TARGET` (dev and preview), so the README snippet works without `vite.e2e.config.ts` |
+| Login limit (observation) | __PR__ | PIN lockout stays per account (5 wrong / 15 min); per-IP login limit raised from 10 to 60 per minute for a shared venue IP. Tests: `test_pin_lockout_is_per_account_not_per_venue`, `test_login_per_ip_limit_allows_a_room_of_judges_but_is_still_limited` |
+
+Browser rerun after the fixes (localhost, own DB, Vite with `VITE_PROXY_TARGET` and no override file): `j07` 2/2 and `j02` 4/4 passed in 2.4 min. The full suite was not rerun yet (planned for final testing).
+
 ### B1 (HIGH) Scam Shield says "looks genuine" for unknown-sender pretext messages
 
 Repro (Zainab, Scam Shield, or `POST /api/v1/scam/check`, Jev up):

@@ -55,7 +55,7 @@ Legend: P = Planned, B = Built, T = Tested, X = Cut
 
 | AI feature | Where | State |
 |---|---|---|
-| Classification and routing (Jev) | Claim routing AUTO / ASK_PROOF / UNSURE; scam check | B |
+| Classification and routing | Claim routing AUTO / ASK_PROOF / UNSURE from registries + versioned rules + code thresholds (no Jev); Jev as a sensor in the scam check and document image checks only | B |
 | Guardrails + human approval | Never auto-reject; payout change needs confirmation; red flags go to officer | B |
 | Explainability | Two-view explanations from reason codes | B |
 | Voice | Urdu audio prompts via Azure neural TTS (cached, phone voice fallback); STT API (ur-IN) pre-fill only, not yet wired to a mic button | B (TTS) / P (STT in UI) |

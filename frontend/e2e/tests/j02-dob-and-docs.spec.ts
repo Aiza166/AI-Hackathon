@@ -24,15 +24,15 @@ test.describe('J2 DOB and document checks', () => {
     expect(cases.body.data[0].status).not.toBe('rejected')
   })
 
-  test('blank DOB but "Fill demo data" pressed -> demo button silently fills the DOB', async ({ page, request }) => {
-    // Demo script says "File Zainab's claim with the DOB step empty". If the judge uses the
-    // demo-data button on step 3 (the quick path), the wizard fills her DOB behind her back.
+  test('blank DOB and "Fill demo data" pressed -> DOB stays blank (B3)', async ({ page, request }) => {
+    // Demo script says "File Zainab's claim with the DOB step empty". The demo-data button on a later
+    // step must not fill her DOB behind her back (fixed: it never touches the DOB).
     await openAs(page, await apiLogin(request, 'zainab'))
     await fillWizard(page, { dob: '', useDemoButton: true })
     const dobRow = page.locator('.review-row').filter({ hasText: 'Your date of birth' })
     const shown = (await dobRow.locator('dd').textContent()) ?? ''
     test.info().annotations.push({ type: 'dob-after-demo-button', description: shown })
-    expect.soft(shown, 'DOB left blank should stay blank after "Fill demo data"').toContain('Not given')
+    expect(shown, 'DOB left blank should stay blank after "Fill demo data"').toContain('Not given')
   })
 
   test('wrong DOB -> DOB_MISMATCH, routed for proof/officer, not rejected', async ({ page, request }) => {

@@ -197,7 +197,7 @@ export function ClaimWizard({ ownerId, claimant, onDone, onQueued, onCancel }: C
     setDeceasedCnic(DEMO_DECEASED.cnic)
     setIban(DEMO_DECEASED.iban)
     setDocuments(DOCS.map((d) => d.key))
-    if (claimant.cnic === DEMO_CLAIMANT.cnic && !dob) setDob(DEMO_CLAIMANT.dob)
+    // Never the DOB: a DOB she left blank stays blank (judges test "leave the DOB blank").
   }
 
   const relationLabel = RELATIONS.find((r) => r.key === relation)

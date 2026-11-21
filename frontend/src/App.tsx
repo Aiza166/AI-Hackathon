@@ -3,6 +3,7 @@ import { SESSION_ENDED_EVENT, setToken, signOutOnServer } from './api/client'
 import type { Role, SessionUser } from './api/types'
 import { PrototypeBanner } from './components/PrototypeBanner'
 import { Icon } from './lib/icons'
+import { clearMe } from './lib/meCache'
 import { clearOwnerData, unsentCount } from './lib/outbox'
 import { CitizenHome } from './pages/CitizenHome'
 import { Login } from './pages/Login'
@@ -61,6 +62,7 @@ export default function App() {
 
   // Ends the session but keeps claims saved on this phone (used when the session expired).
   function endSession(): void {
+    clearMe()
     setToken(null)
     sessionStorage.removeItem(USER_KEY)
     setUnsent(0)

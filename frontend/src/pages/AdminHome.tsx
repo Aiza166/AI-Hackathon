@@ -180,6 +180,7 @@ function VersionDetail({ rule, onPublished }: VersionDetailProps) {
           <p>
             Publish version {rule.version}? The current live version will be retired.
             {sim ? ` The Digital Twin found ${sim.changed} of ${sim.checked} past cases would be decided differently.` : ' You have not run the Digital Twin yet.'}
+            {sim?.will_redecide ? ` ${sim.will_redecide} pending case(s) will be re-decided under v${rule.version}; decided cases keep their version.` : ''}
           </p>
           <div className="row">
             <button type="button" className="btn btn-primary" disabled={busy !== null} onClick={() => void publish()}>
@@ -209,11 +210,14 @@ function TwinTable({ sim }: { sim: Simulation }) {
       <h3 id="twin-title" className="twin-title">
         Digital Twin: <strong>{sim.changed}</strong> of {sim.checked} past cases would change under v{sim.draft_version}
       </h3>
-      <p className="muted">Nothing was saved. Changed rows are highlighted.</p>
+      <p className="muted">
+        Nothing was saved. Changed rows are highlighted. On publish, only pending cases entitled on or after the new
+        rule&apos;s start date are re-decided (audited); decided cases keep the version they were decided under.
+      </p>
       <div className="table-wrap">
         <table className="table table-dense">
           <thead>
-            <tr><th scope="col">Case</th><th scope="col">Route</th><th scope="col">Paid until</th><th scope="col">Reasons</th></tr>
+            <tr><th scope="col">Case</th><th scope="col">Route</th><th scope="col">Paid until</th><th scope="col">Reasons</th><th scope="col">On publish</th></tr>
           </thead>
           <tbody>
             {sim.cases.map((c) => <TwinRow key={c.case} row={c} />)}
@@ -245,6 +249,7 @@ function TwinRow({ row }: { row: TwinCase }) {
       <td className="codes">
         <Delta before={row.before.reasons.join(', ') || '-'} after={row.after.reasons.join(', ') || '-'} changed={row.changed.includes('reasons')} />
       </td>
+      <td>{row.applies_on_publish ? <strong>Re-decided</strong> : <span className="muted">Keeps its version</span>}</td>
     </tr>
   )
 }

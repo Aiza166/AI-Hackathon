@@ -23,6 +23,8 @@ from app.schemas.contracts import ReasonCode, Role, Route
 RULESET = "survivor-pension"
 STATUS_FOR_ROUTE = {Route.AUTO_APPROVE: "auto_approved", Route.ASK_PROOF: "proof_requested", Route.UNSURE: "in_review"}
 OFFICER_FINAL = ("approved", "rejected", "closed")
+FINAL_STATUSES = (*OFFICER_FINAL, "withdrawn")  # nobody can act on these any more
+WITHDRAWABLE = ("submitted", "proof_requested", "in_review")  # not decided yet: the claimant may withdraw
 MAX_RECHECK = 10  # bound the work a single new claim can trigger
 SAME_NAME_SCORE = 95  # canonical deceased-name match used for duplicates when no CNIC is given
 HIGH_RISK = {ReasonCode.DUPLICATE_CLAIM, ReasonCode.ACCOUNT_REUSED, ReasonCode.ACCOUNT_NOT_OWNED, ReasonCode.NOT_IN_FAMILY_RECORD}
@@ -89,8 +91,23 @@ def _claimant_person(db: Session, principal: Principal, claim: ClaimIn) -> Perso
     return person
 
 
+def _require_department_access(db: Session, person_id: str, tenant_id: str) -> None:
+    """An open claim needs the department's access (the citizen cannot take it back while one is
+    open), so a claim cannot be filed while that access is taken back."""
+    from app.models.consent import Consent  # local import keeps this module's imports light
+
+    shared = db.execute(select(Consent.id).where(
+        Consent.subject_person_id == person_id, Consent.grantee_type == "department", Consent.grantee_id == tenant_id,
+        Consent.status == "active",
+    )).first()
+    if shared is None:
+        raise HTTPException(status_code=409, detail="The pension department cannot see your details, so it cannot process a claim. "
+                                                    "Share access with the department again in My data, then file the claim.")
+
+
 def create_case(db: Session, principal: Principal, claim: ClaimIn) -> Case:
     person = _claimant_person(db, principal, claim)
+    _require_department_access(db, person.id, principal.tenant_id)
     _refuse_duplicate(db, person.id, claim.deceased_cnic, claim.deceased_name)
     number = db.execute(text("SELECT nextval('case_ref_seq')")).scalar()
     case = Case(
@@ -197,7 +214,7 @@ def recheck_related(db: Session, case: Case) -> list[str]:
 
 
 def officer_decide(db: Session, principal: Principal, case: Case, approve: bool, reason: str) -> Case:
-    if case.status in OFFICER_FINAL:
+    if case.status in FINAL_STATUSES:
         raise HTTPException(status_code=409, detail=f"Case is already {case.status}")
     case.status = "approved" if approve else "rejected"
     _event(db, case, case.status, principal.id, reason)
@@ -216,7 +233,7 @@ def assign(db: Session, principal: Principal, case: Case, officer_id: str) -> Ca
 
 
 def escalate(db: Session, principal: Principal, case: Case, reason: str) -> Case:
-    if case.status in OFFICER_FINAL:
+    if case.status in FINAL_STATUSES:
         raise HTTPException(status_code=409, detail=f"Case is already {case.status}")
     case.status = "in_review"
     case.priority = max(case.priority, 2)
@@ -231,7 +248,7 @@ def close(db: Session, principal: Principal, case: Case, reason: str) -> Case:
     """Close a case. A finished case stays as the officer left it, and a case still waiting for a
     decision may only be closed by an officer: an admin closing it would be a rejection by
     someone who is not an officer (hard rule 5)."""
-    if case.status in (*OFFICER_FINAL, "auto_approved"):
+    if case.status in (*FINAL_STATUSES, "auto_approved"):
         raise HTTPException(status_code=409, detail=f"This case is already {case.status}")
     if principal.role != Role.OFFICER and case.status in ("in_review", "proof_requested"):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only an officer can close a case that is waiting for a decision")
@@ -239,3 +256,33 @@ def close(db: Session, principal: Principal, case: Case, reason: str) -> Case:
     _event(db, case, "closed", principal.id, reason)
     audit.record(db, principal.actor, "CASE_CLOSED", resource=f"case:{case.reference}", case_id=case.id, details={"reason": reason})
     return case
+
+
+def withdraw_by_claimant(db: Session, principal: Principal, case: Case, reason: str | None) -> Case:
+    """The claimant stops her own claim. Final: nobody can act on it afterwards, and once no
+    claim is open she can take back the department's access to her data."""
+    if principal.role != Role.CITIZEN or case.claimant_person_id != principal.person_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only the claimant can withdraw her claim")
+    if case.status not in WITHDRAWABLE:
+        # A decided (approved / auto-approved) pension is being paid: the claimant cannot stop it from the app.
+        raise HTTPException(status_code=409, detail=f"Case is {case.status}: only a claim still being decided can be withdrawn.")
+    previous = case.status
+    case.status = "withdrawn"
+    _event(db, case, "withdrawn", principal.id, reason)
+    cancelled = _cancel_open_payout_changes(db, principal, case)
+    audit.record(db, principal.actor, "CASE_WITHDRAWN", resource=f"case:{case.reference}", case_id=case.id,
+                 tenant_id=case.tenant_id, details={"previous_status": previous, "reason": reason, "payout_changes_cancelled": cancelled})
+    return case
+
+
+def _cancel_open_payout_changes(db: Session, principal: Principal, case: Case) -> list[str]:
+    from app.models.payout import PayoutChangeRequest  # local import: payout service imports this module
+    from app.services.payout import OPEN_STATUSES
+
+    changes = db.execute(select(PayoutChangeRequest).where(PayoutChangeRequest.case_id == case.id,
+                                                           PayoutChangeRequest.status.in_(OPEN_STATUSES)).with_for_update()).scalars().all()
+    for change in changes:
+        change.status = "cancelled"
+        audit.record(db, principal.actor, "PAYOUT_CHANGE_CANCELLED", resource=f"payout_change:{change.id}", case_id=case.id,
+                     details={"reason": "claim_withdrawn"})
+    return [c.id for c in changes]

@@ -7,6 +7,15 @@
 
 ## 0. What changed overnight (read first)
 
+**Update Sun ~06:00 (Aiza + Claude): E2E bugs fixed** (details in `docs/TEST-REPORT.md`, "Fix status"). What changes for you:
+- Admin -> Rules -> Run Digital Twin now has an "On publish" column; publishing v2 caps the Haider heirs (Bilal sees "paid until 2034-11-01"), Rakha stays v1. Reset the demo to repeat it.
+- My data: the Pension Department card has no "Take back" while a claim is open; it explains why (Urdu + English) and offers "Withdraw my claim" for a claim still being decided (a paid pension keeps the department's access). Please check the Urdu wording and line breaks.
+- Home shows a "No signal" note and still opens the saved claim after an offline reload.
+- "Fill demo data" no longer fills the DOB (use "Fill demo DOB" on the DOB step).
+- Helper Mode: Mehrunnisa is a locked family in the seed.
+- `.btn-sm` is now 48 px; scam report "source" links are 48 px tap targets.
+- E2E suite lives in `frontend/e2e` (own package). Run against a local stack with `VITE_PROXY_TARGET=http://localhost:8010 npx vite --port 5180 --strictPort` (no override file needed). Frontend unit tests: `npm run test:unit`.
+
 **Update Sat ~23:30 (Aiza + Claude): Scam Shield, SafeSwitch, Scam Map and officer payout screens are built** (first versions, yours to polish). What is new:
 - Claim wizard has a **date of birth step** (step 2). Auto-approval now needs her DOB to match the record; blank DOB = "Please confirm your date of birth", never a rejection. "Fill demo DOB" appears for Zainab.
 - Citizen and helper home: two new tiles, **"Is this message a scam?"** (`src/pages/ScamShield.tsx`) and **"Change payout account"** (`src/pages/SafeSwitch.tsx`). Both are lazy-loaded so the first screen stays small.

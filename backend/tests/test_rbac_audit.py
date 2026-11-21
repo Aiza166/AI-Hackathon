@@ -173,3 +173,18 @@ def test_case_references_come_from_a_sequence(file_claim):
     second = file_claim("rukhsana", claimant_cnic="9000000000033", claimant_name="Rukhsana", payout_iban="PK00MOCK0000000000000002")["data"]["reference"]
     assert first != second
     assert int(second.split("-")[1]) > int(first.split("-")[1])
+
+
+def test_pin_lockout_is_per_account_not_per_venue(client):
+    for _ in range(5):
+        client.post("/api/v1/auth/login", json={"phone": "00000000001", "pin": "0000"})
+    assert client.post("/api/v1/auth/login", json={"phone": "00000000001", "pin": "1234"}).status_code == 429
+    # Another judge on the same IP is not affected by Zainab's lockout.
+    assert client.post("/api/v1/auth/login", json={"phone": "00000000002", "pin": "1234"}).status_code == 200
+
+
+def test_login_per_ip_limit_allows_a_room_of_judges_but_is_still_limited(client):
+    phones = ["00000000001", "00000000002", "00000000003", "00000000004", "00000000005", "00000000006"]
+    codes = [client.post("/api/v1/auth/login", json={"phone": phones[i % len(phones)], "pin": "1234"}).status_code for i in range(60)]
+    assert codes == [200] * 60
+    assert client.post("/api/v1/auth/login", json={"phone": "00000000001", "pin": "1234"}).status_code == 429

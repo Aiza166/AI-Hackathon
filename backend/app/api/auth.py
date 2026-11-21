@@ -55,7 +55,7 @@ def _tokens(user: User, session: AuthSession) -> dict:
 
 
 @router.post("/login")
-@limiter.limit("10/minute")
+@limiter.limit("60/minute")  # per IP: judges share one venue IP; guessing is stopped by the per-account lockout
 def login(request: Request, body: LoginIn, db: Session = Depends(get_db)) -> dict:
     user = db.execute(select(User).where(User.phone == body.phone)).scalar_one_or_none()
     if user is not None and recent_failures(db, user.id, "LOGIN_FAILED") >= MAX_FAILURES:

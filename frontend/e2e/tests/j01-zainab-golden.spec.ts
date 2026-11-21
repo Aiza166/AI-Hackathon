@@ -56,6 +56,11 @@ test.describe('J1 Zainab golden path', () => {
     await page.getByRole('button', { name: /My data/ }).click()
     await expect(page.getByRole('heading', { name: /My data/ })).toBeVisible()
     await shot(page, 'j1-05-my-data')
+    const deptCard = page.locator('.grant').filter({ hasText: 'Pension Department' })
+    // Her claim was auto-approved (being paid): the department's access cannot be taken back, and the
+    // card says why (Urdu + English) (B5).
+    await expect(deptCard.getByText(/is approved and being paid\. The pension department needs this access/)).toBeVisible()
+    await expect(deptCard.getByRole('button', { name: /Take back all access/ })).toHaveCount(0)
     const ayeshaCard = page.locator('.grant').filter({ hasText: 'Ayesha' })
     await ayeshaCard.getByRole('button', { name: /Take back all access/ }).click()
     await ayeshaCard.getByRole('button', { name: /Yes, take back/ }).click()

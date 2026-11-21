@@ -112,8 +112,8 @@ def analyse_upload(db: Session, principal: Principal, case: Case, kind: str, dat
 
 
 def redecide(db: Session, case: Case) -> None:
-    """New document evidence: decide again, unless an officer already finished the case."""
-    if case.status not in case_svc.OFFICER_FINAL:
+    """New document evidence: decide again, unless the case is finished (officer decision or withdrawn)."""
+    if case.status not in case_svc.FINAL_STATUSES:
         db.refresh(case, with_for_update=True)
         case_svc.run_decision(db, case)
 

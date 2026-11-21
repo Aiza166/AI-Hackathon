@@ -2,6 +2,7 @@ import { Suspense, lazy, useEffect, useState } from 'react'
 import { api, errorText } from '../api/client'
 import type { CaseView, Family, Me, SessionUser } from '../api/types'
 import { OutboxStrip } from '../components/OutboxStrip'
+import { loadMe, saveMe } from '../lib/meCache'
 import { takeForFixing, type OutboxRow } from '../lib/outbox'
 import { useOutbox } from '../lib/useOutbox'
 import { Badge, Bilingual, ErrorNote, ListenButton, Loading, Pictogram, humanize, toneFor } from '../components/ui'
@@ -24,6 +25,7 @@ const STATUS_UR: Record<string, string> = {
   proof_requested: 'مزید کاغذ چاہیے',
   in_review: 'افسر دیکھ رہا ہے',
   rejected: 'نامنظور',
+  withdrawn: 'واپس لیا گیا',
 }
 // Older backends omit consent_active: fall back to "CNIC was shared".
 function hasConsent(f: Family): boolean {
@@ -38,7 +40,8 @@ interface CitizenHomeProps {
 }
 
 export function CitizenHome({ user, onSignInAgain }: CitizenHomeProps) {
-  const [me, setMe] = useState<Me | null>(null)
+  // Last good profile from this tab: after a reload with no signal she can still open her saved claim.
+  const [me, setMe] = useState<Me | null>(() => (user.role === 'citizen' ? loadMe(user.id) : null))
   const [families, setFamilies] = useState<Family[]>([])
   const [actingFor, setActingFor] = useState<Family | null>(null)
   const [cases, setCases] = useState<CaseView[]>([])
@@ -60,6 +63,7 @@ export function CitizenHome({ user, onSignInAgain }: CitizenHomeProps) {
         if (!active) return
         setError(null) // a successful reload (e.g. after reconnect) clears an old "No connection" note
         setMe(meResult.data)
+        if (!isHelper) saveMe(user.id, meResult.data)
         setCases(caseResult.data)
         if (familyResult) setFamilies(familyResult.data)
       } catch (e) {
@@ -71,7 +75,7 @@ export function CitizenHome({ user, onSignInAgain }: CitizenHomeProps) {
       active = false
     }
     // Reload when the view changes, after a sync sends something, and when signal returns.
-  }, [isHelper, view, refreshKey, outbox.online])
+  }, [isHelper, user.id, view, refreshKey, outbox.online])
 
   const helperClaimant = actingFor && hasConsent(actingFor) && actingFor.cnic ? { cnic: actingFor.cnic, name: actingFor.name } : null
   const citizenClaimant = me?.person ? { cnic: me.person.cnic, name: me.person.name } : null
@@ -141,6 +145,15 @@ export function CitizenHome({ user, onSignInAgain }: CitizenHomeProps) {
         <span className="action-main-icon"><Icon name="plus" size={36} /></span>
         <Bilingual ur="نیا پنشن دعویٰ" en="Start a new pension claim" />
       </button>
+      {!outbox.online && claimant && (
+        <p className="note note-attn" role="status">
+          <Icon name="cloud-off" size={20} />
+          <span>
+            <span lang="ur" dir="rtl" className="note-ur">سگنل نہیں ہے۔ آپ اپنا محفوظ دعویٰ جاری رکھ سکتی ہیں، سگنل آنے پر یہ بھیج دیا جائے گا۔</span>
+            No signal. You can continue your saved claim; it will be sent when signal returns.
+          </span>
+        </p>
+      )}
       {isHelper && actingFor && !hasConsent(actingFor) && (
         <p className="note note-attn">
           <Icon name="lock" size={20} />

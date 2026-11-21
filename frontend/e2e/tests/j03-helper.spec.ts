@@ -13,7 +13,9 @@ test.describe('J3 Helper mode', () => {
     const created = await apiCall<any>(request, z, 'POST', '/api/v1/cases', zainabClaim('1962-06-01'))
     expect(created.status).toBe(201)
 
-    // The seed gives all 40 families consent, so lock one by having Zainab take access back.
+    // The seed has one locked family (Mehrunnisa took back access); also lock Zainab by taking access back.
+    const seeded = (await apiCall<any[]>(request, await apiLogin(request, 'ayesha'), 'GET', '/api/v1/helper/families')).body.data
+    expect(seeded.filter((f: any) => f.consent_active === false).map((f: any) => f.name)).toEqual(['Mehrunnisa'])
     const consents = (await apiCall<any>(request, z, 'GET', '/api/v1/me/consents')).body.data.consents
     const helperConsent = consents.find((c: any) => c.grantee_type === 'helper' && c.status === 'active')
     expect((await apiCall(request, z, 'POST', `/api/v1/me/consents/${helperConsent.id}/withdraw`, {})).status).toBe(200)

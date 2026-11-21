@@ -4,9 +4,13 @@ import { VitePWA } from 'vite-plugin-pwa'
 
 // PWA: the app shell and Urdu audio clips are cached so the citizen flow
 // keeps working on a weak or dropped connection.
+// Dev and preview forward /api to a local FastAPI server. Set VITE_PROXY_TARGET to point a second
+// local stack elsewhere, e.g. VITE_PROXY_TARGET=http://localhost:8010 for the E2E backend.
+const proxy = { '/api': process.env.VITE_PROXY_TARGET || 'http://localhost:8000' }
+
 export default defineConfig({
-  // Dev: forward API calls to the local FastAPI server.
-  server: { proxy: { '/api': 'http://localhost:8000' } },
+  server: { proxy },
+  preview: { proxy },
   plugins: [
     react(),
     VitePWA({

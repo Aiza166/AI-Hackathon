@@ -52,6 +52,12 @@ def _hash(prev_hash: str, canonical: str) -> str:
     return hashlib.sha256((prev_hash + canonical).encode()).hexdigest()
 
 
+def lock_chain(db: Session) -> None:
+    """Take the audit-chain lock now (held to the end of the transaction). Callers that also row-lock
+    cases take this first, in the same order as claim filing, so the two can never deadlock."""
+    db.execute(text("SELECT pg_advisory_xact_lock(:k)"), {"k": _CHAIN_LOCK_KEY})
+
+
 def record(
     db: Session,
     actor: Actor,
@@ -68,7 +74,7 @@ def record(
     details = redact(details or {})
     resource = redact_text(resource) if resource else resource
     tenant_id = tenant_id or actor.tenant_id
-    db.execute(text("SELECT pg_advisory_xact_lock(:k)"), {"k": _CHAIN_LOCK_KEY})
+    lock_chain(db)
     last = db.execute(select(AuditEvent.hash).order_by(AuditEvent.seq.desc()).limit(1)).scalar()
     prev_hash = last or GENESIS_HASH
     ts = utcnow()

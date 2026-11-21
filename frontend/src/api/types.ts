@@ -84,7 +84,11 @@ export type Consent = {
   status: 'active' | 'withdrawn'
   created_at: string
   withdrawn_at: string | null
+  // Open claims that need this department's access: it cannot be taken back until they are withdrawn/closed.
+  needed_for_claims?: OpenClaim[]
 }
+
+export type OpenClaim = { id: string; reference: string; status: string; can_withdraw: boolean }
 
 export type ConsentList = { fields: ConsentField[]; consents: Consent[] }
 
@@ -115,9 +119,10 @@ export type RuleVersionRow = {
 
 export type TwinOutcome = { route: string; reasons: string[]; entitlement_end: string | null }
 
-export type TwinCase = { case: string; status: string; before: TwinOutcome; after: TwinOutcome; changed: string[] }
+export type TwinCase = { case: string; status: string; before: TwinOutcome; after: TwinOutcome; changed: string[]; applies_on_publish?: boolean }
 
-export type Simulation = { draft_version: number; checked: number; changed: number; cases: TwinCase[] }
+// will_redecide / applies_on_publish: pending cases entitled on or after the draft's effective date (older backends omit them).
+export type Simulation = { draft_version: number; checked: number; changed: number; will_redecide?: number; cases: TwinCase[] }
 
 // Scam Shield (backend/app/api/scam.py)
 export type ScamVerdict = 'LIKELY_SCAM' | 'LOOKS_GENUINE' | 'NOT_SURE'

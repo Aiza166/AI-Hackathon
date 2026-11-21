@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { api, errorText, patch, post } from '../api/client'
-import type { AccessLogRow, Consent, ConsentField, ConsentList, CorrectionField } from '../api/types'
+import type { AccessLogRow, Consent, ConsentField, ConsentList, CorrectionField, OpenClaim } from '../api/types'
 import { Badge, Bilingual, ErrorNote, ListenButton, Loading, Pictogram, formatTime } from '../components/ui'
 import { Icon } from '../lib/icons'
 
@@ -22,6 +22,7 @@ const ACTION_LABEL: Record<string, { icon: string; tone: 'ok' | 'attn' | 'risk' 
   CONSENT_WITHDRAWN: { icon: 'close', tone: 'quiet', ur: 'آپ نے اجازت واپس لی', en: 'You took back access' },
   CONSENT_GRANTED: { icon: 'unlock', tone: 'ok', ur: 'آپ نے اجازت دی', en: 'You gave access' },
   CONSENT_CHANGED: { icon: 'pen', tone: 'attn', ur: 'آپ نے اجازت بدلی', en: 'You changed what is shared' },
+  CONSENT_CHANGE_REFUSED: { icon: 'lock', tone: 'attn', ur: 'دعویٰ کھلا ہے، محکمے کی اجازت ابھی واپس نہیں ہو سکتی', en: 'Not changed: your claim is open, the department still needs access' },
   CORRECTION_REQUESTED: { icon: 'pen', tone: 'info', ur: 'درستی کی درخواست', en: 'You asked for a correction' },
   CORRECTION_APPROVED: { icon: 'check', tone: 'ok', ur: 'درستی منظور', en: 'Correction approved' },
   CORRECTION_REJECTED: { icon: 'warning', tone: 'attn', ur: 'درستی نامنظور', en: 'Correction not approved' },
@@ -106,10 +107,10 @@ function SharePanel() {
     try {
       await action()
       setConfirmId(null)
-      await load()
     } catch (e) {
       setError(errorText(e))
     } finally {
+      await load() // also after a partial failure, so the screen shows what really changed
       setBusyId(null)
     }
   }
@@ -141,6 +142,7 @@ function SharePanel() {
             {data.fields.map((f) => {
               const on = c.fields.includes(f)
               const last = on && c.fields.length === 1
+              const neededForClaim = on && (c.needed_for_claims?.length ?? 0) > 0
               const label = FIELD_LABEL[f] ?? { icon: 'document', ur: f, en: f }
               return (
                 <li key={f}>
@@ -149,8 +151,8 @@ function SharePanel() {
                     role="switch"
                     aria-checked={on}
                     className="switch-row"
-                    disabled={busyId !== null || last}
-                    title={last ? 'At least one item must stay shared. Use “Take back all access” instead.' : undefined}
+                    disabled={busyId !== null || last || neededForClaim}
+                    title={neededForClaim ? 'Needed while your claim is open.' : last ? 'At least one item must stay shared. Use “Take back all access” instead.' : undefined}
                     onClick={() => toggleField(c, f)}
                   >
                     <Icon name={label.icon} size={24} />
@@ -165,7 +167,22 @@ function SharePanel() {
               )
             })}
           </ul>
-          {confirmId === c.id ? (
+          {(c.needed_for_claims?.length ?? 0) > 0 ? (
+            <ClaimOpenNote
+              claims={c.needed_for_claims ?? []}
+              confirming={confirmId === c.id}
+              busy={busyId !== null}
+              onAsk={() => setConfirmId(c.id)}
+              onKeep={() => setConfirmId(null)}
+              onWithdraw={() => void run(c.id, async () => {
+                // Her decision: stop the claim(s) first, then the department's access can end.
+                for (const claim of c.needed_for_claims ?? []) {
+                  if (claim.can_withdraw) await post(`/api/v1/cases/${claim.id}/withdraw`, { reason: 'Claimant withdrew to take back access' })
+                }
+                await post(`/api/v1/me/consents/${c.id}/withdraw`, {})
+              })}
+            />
+          ) : confirmId === c.id ? (
             <div className="confirm" role="group" aria-label="Confirm withdrawal">
               <p>
                 <span lang="ur" dir="rtl" className="note-ur">کیا آپ واقعی اجازت واپس لینا چاہتی ہیں؟</span>
@@ -319,5 +336,64 @@ function CorrectionForm() {
         <span className="btn-en">{busy ? 'Sending…' : 'Send correction request'}</span>
       </button>
     </form>
+  )
+}
+
+interface ClaimOpenNoteProps {
+  claims: OpenClaim[]
+  confirming: boolean
+  busy: boolean
+  onAsk: () => void
+  onKeep: () => void
+  onWithdraw: () => void
+}
+
+// The department's access cannot be taken back while it is processing her claim (the server refuses).
+// Explain why, in Urdu and English, and offer the honest alternative: withdraw the claim.
+function ClaimOpenNote({ claims, confirming, busy, onAsk, onKeep, onWithdraw }: ClaimOpenNoteProps) {
+  const refs = claims.map((c) => c.reference).join(', ')
+  if (!claims.every((c) => c.can_withdraw)) {
+    // Already decided and being paid: the department keeps the access it needs to pay her.
+    return (
+      <p className="note note-attn" role="note">
+        <Icon name="lock" size={22} />
+        <span>
+          <span lang="ur" dir="rtl" className="note-ur">آپ کی پنشن {refs} منظور ہو چکی ہے اور اس کی ادائیگی ہو رہی ہے۔ ادائیگی جاری رکھنے کے لیے پنشن محکمے کو یہ اجازت چاہیے، اس لیے جب تک پنشن مل رہی ہے یہ واپس نہیں ہو سکتی۔</span>
+          Your pension {refs} is approved and being paid. The pension department needs this access to keep paying it, so it cannot be taken back while the pension is paid.
+        </span>
+      </p>
+    )
+  }
+  return (
+    <div className="stack">
+      <p className="note note-attn" role="note">
+        <Icon name="lock" size={22} />
+        <span>
+          <span lang="ur" dir="rtl" className="note-ur">آپ کا دعویٰ {refs} ابھی کھلا ہے۔ پنشن محکمے کو اسے مکمل کرنے کے لیے یہ اجازت چاہیے، اس لیے یہ ابھی واپس نہیں ہو سکتی۔ اگر آپ چاہیں تو پہلے اپنا دعویٰ واپس لیں۔</span>
+          Your claim {refs} is open. The pension department needs this access to process it, so it cannot be taken back now. If you want, withdraw your claim first: the department&apos;s access then ends.
+        </span>
+      </p>
+      {confirming ? (
+        <div className="confirm" role="group" aria-label="Confirm claim withdrawal">
+          <p>
+            <span lang="ur" dir="rtl" className="note-ur">کیا آپ واقعی اپنا دعویٰ واپس لینا چاہتی ہیں؟ افسر اس پر کام بند کر دیں گے۔ آپ بعد میں نیا دعویٰ کر سکتی ہیں۔</span>
+            Your claim {refs} will stop and officers will no longer work on it. You can file a new claim later.
+          </p>
+          <div className="row">
+            <button type="button" className="btn btn-danger btn-big" disabled={busy} onClick={onWithdraw}>
+              <span lang="ur" dir="rtl">ہاں، دعویٰ واپس لیں</span>
+              <span className="btn-en">Yes, withdraw my claim</span>
+            </button>
+            <button type="button" className="btn btn-secondary btn-big" onClick={onKeep}>Keep my claim</button>
+          </div>
+        </div>
+      ) : (
+        <button type="button" className="btn btn-danger-outline btn-big btn-block" onClick={onAsk}>
+          <Icon name="close" size={24} />
+          <span lang="ur" dir="rtl">میرا دعویٰ واپس لیں</span>
+          <span className="btn-en">Withdraw my claim</span>
+        </button>
+      )}
+    </div>
   )
 }

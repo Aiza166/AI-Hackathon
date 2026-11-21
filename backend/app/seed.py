@@ -21,7 +21,7 @@ from app.models.platform import Case, CaseEvent, HelperAssignment, Person, RuleV
 
 DEMO_PIN = "1234"
 # Bump when the demo world changes: deployed databases re-seed once on the next boot.
-SEED_VERSION = "phase2-dob-raast"
+SEED_VERSION = "phase3-e2e-fixes"
 RULESET_DIR = Path(__file__).parent / "decision" / "rulesets"
 RESET_TABLES = (
     "idempotency_keys", "scam_checks", "payout_change_requests", "consents", "correction_requests", "decisions", "case_events", "cases", "api_keys", "helper_assignments", "users", "persons", "rule_versions", "tenants",
@@ -52,12 +52,15 @@ PEOPLE = [
     ("9000000000103", "Sajida Rakha", "Allah Rakha", date(1990, 8, 8), "F", "Faisalabad", "unmarried", False),
     ("9000000000104", "Naveed Rakha", "Allah Rakha", date(2006, 1, 1), "M", "Faisalabad", "unmarried", False),
 ]
-# Past, already-approved claims (decided under rule v1) for the Digital Twin to replay.
-PAST_CASES = [  # claimant cnic, relation, deceased cnic, deceased name, iban
-    ("9000000000068", "son", "9000000000066", "Ghulam Haider", "PK00MOCK0000000000000005"),
-    ("9000000000069", "daughter", "9000000000066", "Ghulam Haider", "PK00MOCK0000000000000006"),
-    ("9000000000103", "daughter", "9000000000101", "Allah Rakha", "PK00MOCK0000000000000010"),
-    ("9000000000104", "son", "9000000000101", "Allah Rakha", "PK00MOCK0000000000000011"),
+# Past claims for the Digital Twin to replay, all first decided under rule v1.
+# The Haider heirs (mother died 2024-11-01) asked an officer to check their shares, so their
+# claims are still pending: publishing v2 re-decides them (10-year cap). The Rakha heirs
+# (mother died 2019) were approved by an officer: decided, they stay on v1.
+PAST_CASES = [  # claimant cnic, relation, deceased cnic, deceased name, iban, status after seeding
+    ("9000000000068", "son", "9000000000066", "Ghulam Haider", "PK00MOCK0000000000000005", "in_review"),
+    ("9000000000069", "daughter", "9000000000066", "Ghulam Haider", "PK00MOCK0000000000000006", "in_review"),
+    ("9000000000103", "daughter", "9000000000101", "Allah Rakha", "PK00MOCK0000000000000010", "approved"),
+    ("9000000000104", "son", "9000000000101", "Allah Rakha", "PK00MOCK0000000000000011", "approved"),
 ]
 FAMILIES = [  # frc, head, member, relation
     ("FRC-1001", "9000000000011", "9000000000022", "wife"),
@@ -133,6 +136,7 @@ HELPER_FAMILY_NAMES = [
     "Sadia Bibi", "Naheed Akhtar", "Tasleem Bibi", "Irshad Begum", "Shamshad Bibi", "Robina Bibi", "Saeeda Bibi",
     "Shaheen Akhtar", "Iqbal Begum", "Nargis Bibi", "Mehrunnisa",
 ]
+LOCKED_FAMILY = "Mehrunnisa"  # took back the helper's access: shows a locked family in Helper Mode
 
 
 def _reset_tables(db: Session) -> None:
@@ -202,13 +206,16 @@ def _seed_consents(db: Session, pension_tenant_id: str, helper_id: str) -> None:
     fields = list(CONSENT_FIELDS)
     for person in db.query(Person).all():
         db.add(Consent(subject_person_id=person.id, grantee_type="department", grantee_id=pension_tenant_id, purpose=PURPOSE, fields=fields))
+    locked = db.query(Person).filter(Person.display_name == LOCKED_FAMILY).one()
     for assignment in db.query(HelperAssignment).filter(HelperAssignment.helper_user_id == helper_id).all():
-        db.add(Consent(subject_person_id=assignment.person_id, grantee_type="helper", grantee_id=helper_id, purpose=PURPOSE, fields=fields))
+        withdrawn = assignment.person_id == locked.id
+        db.add(Consent(subject_person_id=assignment.person_id, grantee_type="helper", grantee_id=helper_id, purpose=PURPOSE, fields=fields,
+                       status="withdrawn" if withdrawn else "active", withdrawn_at=utcnow() if withdrawn else None))
 
 
 def _seed_past_cases(db: Session) -> None:
-    """Claims decided under rule v1 and approved by an officer, so the Digital Twin has
-    history to replay when an admin tries rule v2."""
+    """Claims decided under rule v1 (some approved by an officer, some still with one), so the
+    Digital Twin has history to replay and publishing v2 has pending cases to re-decide."""
     from app.services.cases import run_decision  # local import: services import the models this module seeds
 
     pension = db.query(Tenant).filter(Tenant.slug == "pension").one()
@@ -216,7 +223,7 @@ def _seed_past_cases(db: Session) -> None:
     names = {p[0]: p[1] for p in PEOPLE}
     dobs = {p[0]: p[3] for p in PEOPLE}
     docs = ["death_certificate", "claimant_cnic", "frc"]
-    for number, (cnic, relation, deceased_cnic, deceased_name, iban) in enumerate(PAST_CASES, start=1):
+    for number, (cnic, relation, deceased_cnic, deceased_name, iban, final_status) in enumerate(PAST_CASES, start=1):
         person = db.query(Person).filter(Person.cnic == cnic).one_or_none()
         if person is None:
             person = Person(cnic=cnic, display_name=names[cnic])
@@ -232,8 +239,13 @@ def _seed_past_cases(db: Session) -> None:
         db.add(case)
         db.flush()
         run_decision(db, case)
-        case.status = "approved"
-        db.add(CaseEvent(case_id=case.id, kind="approved", actor_id=officer.id, note="Approved (seeded history)"))
+        if final_status == "approved":
+            case.status = "approved"
+            db.add(CaseEvent(case_id=case.id, kind="approved", actor_id=officer.id, note="Approved (seeded history)"))
+        else:
+            case.status, case.priority, case.assigned_officer_id = "in_review", max(case.priority, 2), officer.id
+            db.add(CaseEvent(case_id=case.id, kind="escalated", actor_id=None,
+                             note="Heirs asked an officer to check the share split (seeded)"))
 
 
 def reset(db: Session) -> None:

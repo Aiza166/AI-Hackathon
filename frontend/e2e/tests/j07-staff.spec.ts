@@ -1,7 +1,8 @@
 import { apiCall, apiLogin, expect, openAs, resetDemo, shot, test, zainabClaim } from './helpers'
 
 // Journey 7 (desktop): officer decides a queued case -> audit entry; auditor verifies the
-// hash chain; admin runs the Digital Twin for v2, publishes it, and a new heir case is decided under v2.
+// hash chain; admin runs the Digital Twin for v2 and publishes it: the pending Haider heir claims are
+// re-decided under v2 (capped 2034-11-01), the decided Rakha claims keep v1.
 
 test.use({ viewport: { width: 1280, height: 900 }, hasTouch: false })
 
@@ -58,7 +59,7 @@ test.describe('J7 Staff: officer, auditor, admin rules', () => {
     expect(blocked.status).toBe(403)
   })
 
-  test('admin Digital Twin v2, publish, new heir case decided under v2', async ({ page, request }) => {
+  test('admin Digital Twin v2, publish re-decides pending Haider heirs, Rakha keeps v1', async ({ page, request }) => {
     const admin = await apiLogin(request, 'admin')
     await openAs(page, admin)
     await expect(page.getByRole('heading', { name: 'Rule versions' })).toBeVisible()
@@ -69,38 +70,25 @@ test.describe('J7 Staff: officer, auditor, admin rules', () => {
     test.info().annotations.push({ type: 'twin', description: `checked=${simBody.checked} changed=${simBody.changed} ${JSON.stringify(simBody.cases.filter((c: any) => c.changed?.length).map((c: any) => [c.case, c.after.entitlement_end]))}` })
     expect(simBody.changed).toBeGreaterThan(0)
     await expect(page.getByText('2034-11-01').first()).toBeVisible()
+    expect(simBody.will_redecide).toBe(2)
+    await expect(page.getByText('Re-decided').first()).toBeVisible()
     await shot(page, 'j7-03-digital-twin')
     await page.getByRole('button', { name: /Publish v2/ }).click()
     await page.getByRole('button', { name: /Yes, publish v2/ }).click()
     await expect(page.locator('button.version').filter({ hasText: /live/i }).filter({ hasText: /2/ })).toHaveCount(1)
 
-    // New heir case after publish: decided under v2 with the 10-year cap
-    let decided: any = null
-    for (const who of ['bilal', 'hina'] as const) {
-      const s = await apiLogin(request, who)
-      const me = (await apiCall<any>(request, s, 'GET', '/api/v1/me')).body.data
-      const relation = who === 'bilal' ? 'son' : 'daughter'
-      const res = await apiCall<any>(request, s, 'POST', '/api/v1/cases', {
-        claimant_cnic: me.person.cnic, claimant_name: me.person.name, claimant_dob: who === 'bilal' ? '2006-05-01' : '1991-12-12',
-        relation_claimed: relation, deceased_cnic: '9000000000066', deceased_name: 'Ghulam Haider',
-        payout_iban: who === 'bilal' ? 'PK00MOCK0000000000000005' : 'PK00MOCK0000000000000006', documents: ['death_certificate', 'frc', 'claimant_cnic'],
-      })
-      test.info().annotations.push({ type: `heir-${who}`, description: `${res.status} ${JSON.stringify(res.body.data?.latest_decision ?? res.body.error).slice(0, 300)}` })
-      if (res.status === 201) {
-        decided = { session: s, data: res.body.data }
-        break
-      }
-    }
-    // The seeded Haider heirs already hold open claims (409), so a brand-new heir claim cannot be filed.
-    test.info().annotations.push({ type: 'heir-new-claim-possible', description: String(Boolean(decided)) })
-    if (decided) expect(decided.data.latest_decision.rule_version).toBe(2)
-
-    // Existing Haider case after publish: does the citizen see the v2 cap?
+    // Publish re-decides the pending Haider claims under v2 (B2); the decided Rakha claims keep v1.
+    const officerRows = (await apiCall<any[]>(request, await apiLogin(request, 'kamran'), 'GET', '/api/v1/cases')).body.data
+    const byRef = Object.fromEntries(officerRows.filter((c: any) => c.reference.startsWith('SP-0')).map((c: any) => [c.reference, [c.status, c.latest_decision.rule_version]]))
+    test.info().annotations.push({ type: 'after-publish', description: JSON.stringify(byRef) })
+    expect(byRef['SP-0001']).toEqual(['in_review', 2])
+    expect(byRef['SP-0002']).toEqual(['in_review', 2])
+    expect(byRef['SP-0003']).toEqual(['approved', 1])
+    expect(byRef['SP-0004']).toEqual(['approved', 1])
     const bilal = await apiLogin(request, 'bilal')
     const bcases = (await apiCall<any[]>(request, bilal, 'GET', '/api/v1/cases')).body.data
     const bexpl = await apiCall<any>(request, bilal, 'GET', `/api/v1/cases/${bcases[0].id}/explanation`)
-    test.info().annotations.push({ type: 'haider-after-publish', description: JSON.stringify({ ref: bcases[0].reference, rule: bcases[0].latest_decision?.rule_version, end: bexpl.body.data.entitlement_end }) })
-    expect.soft(bexpl.body.data.entitlement_end, 'Haider heir capped after v2 publish').toBe('2034-11-01')
+    expect(bexpl.body.data.entitlement_end, 'Haider heir capped after v2 publish').toBe('2034-11-01')
 
     // Zainab (widow) files a new claim under v2: unaffected by the heir cap
     const z = await apiLogin(request, 'zainab')

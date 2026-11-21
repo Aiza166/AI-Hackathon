@@ -16,21 +16,17 @@ Results of the last run: [`docs/TEST-REPORT.md`](../../docs/TEST-REPORT.md).
    uvicorn app.main:app --port 8010
    ```
 
-2. Frontend dev server on 5180 with `/api` sent to 8010. `vite.config.ts` hardcodes `:8000`, so use a
-   local, uncommitted override `frontend/vite.e2e.config.ts`:
+2. Frontend dev server on 5180 with `/api` sent to 8010. `vite.config.ts` reads the proxy target from
+   `VITE_PROXY_TARGET` (default `http://localhost:8000`), so no config override is needed:
 
-   ```ts
-   import { mergeConfig } from 'vite'
-   import base from './vite.config'
-   const proxy = { '/api': 'http://localhost:8010' }
-   export default mergeConfig(base, {
-     server: { port: 5180, strictPort: true, proxy },
-     preview: { port: 5181, strictPort: true, proxy },
-   })
+   ```bash
+   cd frontend
+   VITE_PROXY_TARGET=http://localhost:8010 npx vite --port 5180 --strictPort
+   # journey 10 (production build + service worker):
+   npm run build && VITE_PROXY_TARGET=http://localhost:8010 npx vite preview --port 5181 --strictPort
    ```
 
-   `npx vite --config vite.e2e.config.ts` (dev, 5180). For journey 10 also
-   `npm run build && npx vite preview --config vite.e2e.config.ts` (production build + service worker, 5181).
+   (Windows cmd: `set VITE_PROXY_TARGET=http://localhost:8010` first.)
 
 3. Tests:
 
@@ -38,7 +34,7 @@ Results of the last run: [`docs/TEST-REPORT.md`](../../docs/TEST-REPORT.md).
    cd frontend/e2e
    npm install
    npx playwright install chromium
-   npm test                                  # all journeys, ~10 min (login limit is 10/min: the helper waits)
+   npm test                                  # all journeys, ~10 min
    npx playwright test j04                   # one journey
    E2E_JEV_DOWN=1 npx playwright test -g Jev # needs a backend started with TYPESAFE_BASE_URL=http://127.0.0.1:9
    ```

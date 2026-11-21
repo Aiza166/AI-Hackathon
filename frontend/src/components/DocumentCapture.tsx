@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { getToken, post } from '../api/client'
-import { Icon } from '../lib/icons'
+import { DOC_ICONS, Icon } from '../lib/icons'
 import { preparePhoto, uploadWithProgress, type PhotoHint, type PreparedPhoto } from '../lib/photo'
 import { ListenButton } from './ui'
 
@@ -15,7 +15,7 @@ const DOC_LABELS: Record<DocKind, { ur: string; en: string; icon: string }> = {
   claimant_cnic: { ur: 'آپ کا شناختی کارڈ', en: 'Your CNIC', icon: 'id-card' },
   deceased_cnic: { ur: 'مرحوم کا شناختی کارڈ', en: 'His CNIC', icon: 'id-card' },
   death_certificate: { ur: 'وفات کا سرٹیفکیٹ', en: 'Death certificate', icon: 'document' },
-  frc: { ur: 'خاندانی سرٹیفکیٹ', en: 'Family certificate (FRC)', icon: 'frc' },
+  frc: { ur: 'خاندانی سرٹیفکیٹ', en: 'Family certificate (FRC)', icon: DOC_ICONS.frc },
   nikah_nama: { ur: 'نکاح نامہ', en: 'Nikah nama', icon: 'document' },
 }
 

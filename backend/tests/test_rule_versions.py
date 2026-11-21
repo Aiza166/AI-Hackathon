@@ -1,6 +1,7 @@
 """Rules that change (Challenge 4) and the Digital Twin (bonus)."""
 from sqlalchemy import func, select
 
+from app.models.audit import AuditEvent
 from app.models.platform import Decision
 
 
@@ -21,18 +22,73 @@ def test_digital_twin_shows_only_post_2024_heirs_change_and_writes_nothing(clien
     assert db.execute(select(func.count(Decision.id))).scalar() == before
 
 
-def test_publishing_v2_applies_to_new_claims_and_old_decisions_keep_v1(client, login, file_claim):
+def _publish_v2(client, admin) -> None:
+    v2 = _versions(client, admin)[2]
+    assert client.post(f"/api/v1/rules/{v2['id']}/publish", headers=admin).status_code == 200
+
+
+def _case_versions(client, login) -> dict:
+    rows = client.get("/api/v1/cases", headers=login("officer")).json()["data"]
+    return {c["reference"]: (c["status"], c["latest_decision"]["rule_version"]) for c in rows if c["reference"].startswith("SP-0")}
+
+
+def test_seed_haider_heirs_wait_for_an_officer_and_rakha_heirs_are_decided(client, login):
+    versions = _case_versions(client, login)
+    assert versions == {"SP-0001": ("in_review", 1), "SP-0002": ("in_review", 1),
+                        "SP-0003": ("approved", 1), "SP-0004": ("approved", 1)}
+
+
+def test_publishing_v2_applies_to_new_claims_and_decided_cases_keep_v1(client, login, file_claim):
     admin = login("admin")
-    versions = _versions(client, admin)
-    assert client.post(f"/api/v1/rules/{versions[2]['id']}/publish", headers=admin).status_code == 200
+    _publish_v2(client, admin)
 
     after = _versions(client, admin)
     assert (after[1]["status"], after[2]["status"]) == ("retired", "live")
     new_case = file_claim("zainab")["data"]
     assert new_case["latest_decision"]["rule_version"] == 2
-    old = client.get("/api/v1/cases", headers=login("officer")).json()["data"]
-    old_versions = {c["reference"]: c["latest_decision"]["rule_version"] for c in old if c["reference"].startswith("SP-0")}
-    assert set(old_versions.values()) == {1}
+    versions = _case_versions(client, login)
+    assert versions["SP-0003"] == ("approved", 1)  # Rakha heirs: entitled in 2019, already decided
+    assert versions["SP-0004"] == ("approved", 1)
+
+
+def test_publishing_v2_redecides_pending_heir_cases_entitled_after_its_effective_date(client, login, db):
+    start = db.execute(select(func.max(AuditEvent.seq))).scalar() or 0  # the audit log survives resets
+    _publish_v2(client, login("admin"))
+
+    versions = _case_versions(client, login)
+    assert versions["SP-0001"] == ("in_review", 2)  # still with the officer, now decided under v2
+    assert versions["SP-0002"] == ("in_review", 2)
+    bilal = login("bilal")
+    case = client.get("/api/v1/cases", headers=bilal).json()["data"][0]
+    explanation = client.get(f"/api/v1/cases/{case['id']}/explanation", headers=bilal).json()["data"]
+    assert explanation["entitlement_end"] == "2034-11-01"
+    redecided = db.execute(select(AuditEvent).where(AuditEvent.action == "CASE_REDECIDED", AuditEvent.seq > start)).scalars().all()
+    assert sorted(e.resource for e in redecided) == ["case:SP-0001", "case:SP-0002"]
+    assert {e.details["from_version"] for e in redecided} == {1}
+    assert {e.details["to_version"] for e in redecided} == {2}
+    published = db.execute(select(AuditEvent).where(AuditEvent.action == "RULES_PUBLISHED", AuditEvent.seq > start)).scalar_one()
+    assert published.details["redecided_cases"] == ["SP-0001", "SP-0002"]
+
+
+def test_publishing_never_touches_a_case_an_officer_already_decided(client, login):
+    officer = login("officer")
+    sp1 = next(c for c in client.get("/api/v1/cases", headers=officer).json()["data"] if c["reference"] == "SP-0001")
+    assert client.post(f"/api/v1/cases/{sp1['id']}/approve", json={"reason": "Checked in person (mock)"}, headers=officer).status_code == 200
+
+    _publish_v2(client, login("admin"))
+
+    versions = _case_versions(client, login)
+    assert versions["SP-0001"] == ("approved", 1)
+    assert versions["SP-0002"] == ("in_review", 2)
+
+
+def test_digital_twin_marks_which_cases_publish_will_redecide(client, login):
+    admin = login("admin")
+    v2 = _versions(client, admin)[2]
+    sim = client.post(f"/api/v1/rules/{v2['id']}/simulate", headers=admin).json()["data"]
+    applies = {row["case"]: row["applies_on_publish"] for row in sim["cases"]}
+    assert applies == {"SP-0001": True, "SP-0002": True, "SP-0003": False, "SP-0004": False}
+    assert sim["will_redecide"] == 2
 
 
 def test_publishing_twice_is_refused(client, login):
