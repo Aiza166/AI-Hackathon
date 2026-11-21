@@ -54,6 +54,9 @@ class Settings(BaseSettings):
     second_sensor_usd_per_1m_input: float = 0.25
     second_sensor_usd_per_1m_output: float = 2.00
 
+    # Sentry error monitoring. Blank = off. Never log this value.
+    sentry_dsn: str | None = None
+
     @field_validator("database_url")
     @classmethod
     def _use_psycopg_driver(cls, url: str) -> str:
@@ -64,7 +67,7 @@ class Settings(BaseSettings):
         return url
 
     @field_validator("azure_speech_key", "azure_speech_region", "azure_docintel_endpoint", "azure_docintel_key", "typesafe_api_key",
-                     "second_sensor_endpoint", "second_sensor_key", "second_sensor_deployment", "second_sensor_api_version")
+                     "second_sensor_endpoint", "second_sensor_key", "second_sensor_deployment", "second_sensor_api_version", "sentry_dsn")
     @classmethod
     def _blank_is_unset(cls, value: str | None) -> str | None:
         """An empty placeholder in .env means "not configured"."""

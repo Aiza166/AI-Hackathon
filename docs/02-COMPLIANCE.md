@@ -71,7 +71,7 @@ Legend: P = Planned, B = Built, T = Tested, X = Cut
 | Database with migrations | Postgres + Alembic | B |
 | Deployed link | Backend + DB on Railway (always on), frontend on Railway too (Vercel Hobby is non-commercial only; Cloudflare Pages is the fallback) | B (live) |
 | Application security | Audited item by item against the GitHub Well-Architected and Invicti AppSec checklists: [SECURITY-CHECKLIST.md](SECURITY-CHECKLIST.md) (STRIDE threat model, headers, upload guards, revocable refresh tokens, IDOR and consent on every id route, rate limits, PII-free logs; CI runs pip-audit, npm audit, Bandit and gitleaks; Dependabot on) | B (tested) |
-| Monitoring, logs, basic tests | Structured logs, Sentry, uptime ping, pytest on decision engine, RBAC, consent, matching | P |
+| Deployment, Testing & Monitoring | Railway auto-deploy from `main` after CI; Sentry for API and PWA (projects `sahara-backend` / `sahara-frontend`, EU ingest; CNIC, IBAN, PIN, phone, tokens and request bodies scrubbed before sending; admin `POST /api/v1/admin/sentry-test` for the demo); masked logs and audit trail; `/readyz`; pytest + frontend unit tests with coverage uploaded to Codecov (informational); CI security scans. See [INFRA.md](INFRA.md#monitoring) | B (tested) |
 
 ## Technical challenges
 
