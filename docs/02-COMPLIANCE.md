@@ -84,7 +84,7 @@ Legend: P = Planned, B = Built, T = Tested, X = Cut
 | 5 | Explain and audit | Urdu reason for citizen; full trace + audit replay for auditor | P |
 | 6 | Consent and take-back | Withdraw helper access: next request 403, logged | B (API, tested) |
 | 7 | Works for everyone | Voice + icons on throttled network, offline resume | P |
-| 8 | Scams and fake documents | Fee/OTP scam SMS flagged with case cross-check; edited certificate flagged (stamp copy-move + record mismatch -> UNSURE; 0 of 18 clean sample images flagged); false-alarm rate shown | B (documents, tested) |
+| 8 | Scams and fake documents | Fee/OTP scam SMS flagged with case cross-check; links checked without opening (lookalike, shortener, punycode, IP); call check (on the phone now, official number calling you = red flag); screenshot (OCR) and voice note (STT) intake; share from WhatsApp/SMS; second sensor only when Jev is unsure, disagreement = NOT_SURE / officer; edited certificate flagged (stamp copy-move + record mismatch -> UNSURE; 0 of 18 clean sample images flagged); per-tier FPR/FNR/undecided/latency/cost shown | B (scam v2 + documents, tested; live Jev eval 80 messages: cascade FPR 0, FNR 0) |
 
 ## Bonus (optional)
 
@@ -122,6 +122,9 @@ Legend: P = Planned, B = Built, T = Tested, X = Cut
 - Family pension amounts are mock values. "An officer will check within 3 days" is a **mock target**, not an official service level.
 - Rule v2 models the federal civil-service family pension only. When a child's 10-year clock starts is our **assumption** (from the spouse's death or ineligibility); armed-forces coverage is unconfirmed; provincial rules differ.
 - Scam Shield treats sender IDs (even BISP 8171) as evidence, never proof, because 8171 has been spoofed (PID PR No. 59, 5 July 2024).
+- Scam Shield never opens or unshortens a link (no server-side fetch); a shortener is reported as "we cannot see where this goes".
+- The second sensor (Azure OpenAI) only answers the same yes/no questions as Jev and is called only when Jev is unsure; its note is labelled "AI-written, advisory" and shown to officers only. Without its env settings it is off.
+- Screenshots, voice notes and transcripts are not stored; only a hash of the text and the signals.
 - Urdu speech-to-text is only used to pre-fill fields that the user confirms with a tap.
 
 ## Open compliance risk

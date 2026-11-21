@@ -1,7 +1,7 @@
 {
  "prototype": true,
  "note": "Synthetic mock data only. Numbers describe this prototype on invented cases, not real-world accuracy.",
- "generated_at": "2026-11-21T08:10:01+00:00",
+ "generated_at": "2026-11-21T10:04:29+00:00",
  "ruleset_version": 1,
  "claims": {
   "seed": 20261122,
@@ -780,460 +780,2432 @@
   }
  },
  "scam": {
-  "mode": "keyword_fallback",
-  "n": 40,
-  "n_scam": 22,
-  "n_genuine": 18,
+  "mode": "live",
+  "primary_tier": "cascade",
+  "n": 80,
+  "n_scam": 46,
+  "n_genuine": 34,
+  "accuracy": 0.8875,
   "fpr": 0.0,
   "fnr": 0.0,
-  "scam_caught_rate": 0.0,
-  "genuine_passed_rate": 0.0,
-  "not_sure_rate": 1.0,
-  "not_sure_rate_scam": 1.0,
-  "not_sure_rate_genuine": 1.0,
-  "median_latency_ms": 0.09,
-  "model_id": null,
-  "fallback_count": 40,
+  "scam_caught_rate": 0.8478,
+  "genuine_passed_rate": 0.9412,
+  "not_sure_rate": 0.1125,
+  "not_sure_rate_scam": 0.1522,
+  "not_sure_rate_genuine": 0.0588,
+  "median_latency_ms": 321.19,
+  "fallback_count": 0,
+  "model_id": "jev-1.14.0",
   "by_language": {
    "en": {
-    "n": 16,
-    "n_scam": 8,
-    "n_genuine": 8,
+    "n": 35,
+    "n_scam": 19,
+    "n_genuine": 16,
+    "accuracy": 0.8857,
     "fpr": 0.0,
     "fnr": 0.0,
-    "scam_caught_rate": 0.0,
-    "genuine_passed_rate": 0.0,
-    "not_sure_rate": 1.0,
-    "not_sure_rate_scam": 1.0,
-    "not_sure_rate_genuine": 1.0
+    "scam_caught_rate": 0.8421,
+    "genuine_passed_rate": 0.9375,
+    "not_sure_rate": 0.1143,
+    "not_sure_rate_scam": 0.1579,
+    "not_sure_rate_genuine": 0.0625
    },
    "roman_ur": {
-    "n": 13,
-    "n_scam": 8,
-    "n_genuine": 5,
+    "n": 26,
+    "n_scam": 17,
+    "n_genuine": 9,
+    "accuracy": 0.8846,
     "fpr": 0.0,
     "fnr": 0.0,
-    "scam_caught_rate": 0.0,
-    "genuine_passed_rate": 0.0,
-    "not_sure_rate": 1.0,
-    "not_sure_rate_scam": 1.0,
-    "not_sure_rate_genuine": 1.0
+    "scam_caught_rate": 0.8824,
+    "genuine_passed_rate": 0.8889,
+    "not_sure_rate": 0.1154,
+    "not_sure_rate_scam": 0.1176,
+    "not_sure_rate_genuine": 0.1111
    },
    "ur": {
-    "n": 11,
-    "n_scam": 6,
-    "n_genuine": 5,
+    "n": 19,
+    "n_scam": 10,
+    "n_genuine": 9,
+    "accuracy": 0.8947,
     "fpr": 0.0,
     "fnr": 0.0,
-    "scam_caught_rate": 0.0,
+    "scam_caught_rate": 0.8,
+    "genuine_passed_rate": 1.0,
+    "not_sure_rate": 0.1053,
+    "not_sure_rate_scam": 0.2,
+    "not_sure_rate_genuine": 0.0
+   }
+  },
+  "tiers": {
+   "deterministic": {
+    "tier": "deterministic",
+    "status": "ran",
+    "n": 80,
+    "n_scam": 46,
+    "n_genuine": 34,
+    "accuracy": 0.125,
+    "fpr": 0.0,
+    "fnr": 0.0,
+    "scam_caught_rate": 0.2174,
     "genuine_passed_rate": 0.0,
-    "not_sure_rate": 1.0,
-    "not_sure_rate_scam": 1.0,
-    "not_sure_rate_genuine": 1.0
+    "not_sure_rate": 0.875,
+    "not_sure_rate_scam": 0.7826,
+    "not_sure_rate_genuine": 1.0,
+    "median_latency_ms": 0.255,
+    "p95_latency_ms": 0.48,
+    "total_cost_usd": 0.0,
+    "cost_per_check_usd": 0.0,
+    "second_sensor_calls": 0,
+    "disagreements": 0,
+    "fallback_count": 80,
+    "model_id": null,
+    "by_language": {
+     "en": {
+      "n": 35,
+      "n_scam": 19,
+      "n_genuine": 16,
+      "accuracy": 0.2286,
+      "fpr": 0.0,
+      "fnr": 0.0,
+      "scam_caught_rate": 0.4211,
+      "genuine_passed_rate": 0.0,
+      "not_sure_rate": 0.7714,
+      "not_sure_rate_scam": 0.5789,
+      "not_sure_rate_genuine": 1.0
+     },
+     "roman_ur": {
+      "n": 26,
+      "n_scam": 17,
+      "n_genuine": 9,
+      "accuracy": 0.0385,
+      "fpr": 0.0,
+      "fnr": 0.0,
+      "scam_caught_rate": 0.0588,
+      "genuine_passed_rate": 0.0,
+      "not_sure_rate": 0.9615,
+      "not_sure_rate_scam": 0.9412,
+      "not_sure_rate_genuine": 1.0
+     },
+     "ur": {
+      "n": 19,
+      "n_scam": 10,
+      "n_genuine": 9,
+      "accuracy": 0.0526,
+      "fpr": 0.0,
+      "fnr": 0.0,
+      "scam_caught_rate": 0.1,
+      "genuine_passed_rate": 0.0,
+      "not_sure_rate": 0.9474,
+      "not_sure_rate_scam": 0.9,
+      "not_sure_rate_genuine": 1.0
+     }
+    },
+    "by_channel": {
+     "call": {
+      "n": 9,
+      "n_scam": 6,
+      "n_genuine": 3,
+      "accuracy": 0.0,
+      "fpr": 0.0,
+      "fnr": 0.0,
+      "scam_caught_rate": 0.0,
+      "genuine_passed_rate": 0.0,
+      "not_sure_rate": 1.0,
+      "not_sure_rate_scam": 1.0,
+      "not_sure_rate_genuine": 1.0
+     },
+     "sms": {
+      "n": 59,
+      "n_scam": 32,
+      "n_genuine": 27,
+      "accuracy": 0.1695,
+      "fpr": 0.0,
+      "fnr": 0.0,
+      "scam_caught_rate": 0.3125,
+      "genuine_passed_rate": 0.0,
+      "not_sure_rate": 0.8305,
+      "not_sure_rate_scam": 0.6875,
+      "not_sure_rate_genuine": 1.0
+     },
+     "whatsapp": {
+      "n": 12,
+      "n_scam": 8,
+      "n_genuine": 4,
+      "accuracy": 0.0,
+      "fpr": 0.0,
+      "fnr": 0.0,
+      "scam_caught_rate": 0.0,
+      "genuine_passed_rate": 0.0,
+      "not_sure_rate": 1.0,
+      "not_sure_rate_scam": 1.0,
+      "not_sure_rate_genuine": 1.0
+     }
+    }
+   },
+   "jev_only": {
+    "tier": "jev_only",
+    "status": "ran",
+    "n": 80,
+    "n_scam": 46,
+    "n_genuine": 34,
+    "accuracy": 0.775,
+    "fpr": 0.0,
+    "fnr": 0.0652,
+    "scam_caught_rate": 0.6522,
+    "genuine_passed_rate": 0.9412,
+    "not_sure_rate": 0.1875,
+    "not_sure_rate_scam": 0.2826,
+    "not_sure_rate_genuine": 0.0588,
+    "median_latency_ms": 319.94,
+    "p95_latency_ms": 375.42,
+    "total_cost_usd": 0.00256,
+    "cost_per_check_usd": 3.2e-05,
+    "second_sensor_calls": 0,
+    "disagreements": 0,
+    "fallback_count": 0,
+    "model_id": "jev-1.14.0",
+    "by_language": {
+     "en": {
+      "n": 35,
+      "n_scam": 19,
+      "n_genuine": 16,
+      "accuracy": 0.6857,
+      "fpr": 0.0,
+      "fnr": 0.0526,
+      "scam_caught_rate": 0.4737,
+      "genuine_passed_rate": 0.9375,
+      "not_sure_rate": 0.2857,
+      "not_sure_rate_scam": 0.4737,
+      "not_sure_rate_genuine": 0.0625
+     },
+     "roman_ur": {
+      "n": 26,
+      "n_scam": 17,
+      "n_genuine": 9,
+      "accuracy": 0.8462,
+      "fpr": 0.0,
+      "fnr": 0.0588,
+      "scam_caught_rate": 0.8235,
+      "genuine_passed_rate": 0.8889,
+      "not_sure_rate": 0.1154,
+      "not_sure_rate_scam": 0.1176,
+      "not_sure_rate_genuine": 0.1111
+     },
+     "ur": {
+      "n": 19,
+      "n_scam": 10,
+      "n_genuine": 9,
+      "accuracy": 0.8421,
+      "fpr": 0.0,
+      "fnr": 0.1,
+      "scam_caught_rate": 0.7,
+      "genuine_passed_rate": 1.0,
+      "not_sure_rate": 0.1053,
+      "not_sure_rate_scam": 0.2,
+      "not_sure_rate_genuine": 0.0
+     }
+    },
+    "by_channel": {
+     "call": {
+      "n": 9,
+      "n_scam": 6,
+      "n_genuine": 3,
+      "accuracy": 1.0,
+      "fpr": 0.0,
+      "fnr": 0.0,
+      "scam_caught_rate": 1.0,
+      "genuine_passed_rate": 1.0,
+      "not_sure_rate": 0.0,
+      "not_sure_rate_scam": 0.0,
+      "not_sure_rate_genuine": 0.0
+     },
+     "sms": {
+      "n": 59,
+      "n_scam": 32,
+      "n_genuine": 27,
+      "accuracy": 0.7119,
+      "fpr": 0.0,
+      "fnr": 0.0938,
+      "scam_caught_rate": 0.5312,
+      "genuine_passed_rate": 0.9259,
+      "not_sure_rate": 0.2373,
+      "not_sure_rate_scam": 0.375,
+      "not_sure_rate_genuine": 0.0741
+     },
+     "whatsapp": {
+      "n": 12,
+      "n_scam": 8,
+      "n_genuine": 4,
+      "accuracy": 0.9167,
+      "fpr": 0.0,
+      "fnr": 0.0,
+      "scam_caught_rate": 0.875,
+      "genuine_passed_rate": 1.0,
+      "not_sure_rate": 0.0833,
+      "not_sure_rate_scam": 0.125,
+      "not_sure_rate_genuine": 0.0
+     }
+    }
+   },
+   "cascade": {
+    "tier": "cascade",
+    "status": "ran",
+    "n": 80,
+    "n_scam": 46,
+    "n_genuine": 34,
+    "accuracy": 0.8875,
+    "fpr": 0.0,
+    "fnr": 0.0,
+    "scam_caught_rate": 0.8478,
+    "genuine_passed_rate": 0.9412,
+    "not_sure_rate": 0.1125,
+    "not_sure_rate_scam": 0.1522,
+    "not_sure_rate_genuine": 0.0588,
+    "median_latency_ms": 321.19,
+    "p95_latency_ms": 362.28,
+    "total_cost_usd": 0.00256,
+    "cost_per_check_usd": 3.2e-05,
+    "second_sensor_calls": 0,
+    "disagreements": 0,
+    "fallback_count": 0,
+    "model_id": "jev-1.14.0",
+    "by_language": {
+     "en": {
+      "n": 35,
+      "n_scam": 19,
+      "n_genuine": 16,
+      "accuracy": 0.8857,
+      "fpr": 0.0,
+      "fnr": 0.0,
+      "scam_caught_rate": 0.8421,
+      "genuine_passed_rate": 0.9375,
+      "not_sure_rate": 0.1143,
+      "not_sure_rate_scam": 0.1579,
+      "not_sure_rate_genuine": 0.0625
+     },
+     "roman_ur": {
+      "n": 26,
+      "n_scam": 17,
+      "n_genuine": 9,
+      "accuracy": 0.8846,
+      "fpr": 0.0,
+      "fnr": 0.0,
+      "scam_caught_rate": 0.8824,
+      "genuine_passed_rate": 0.8889,
+      "not_sure_rate": 0.1154,
+      "not_sure_rate_scam": 0.1176,
+      "not_sure_rate_genuine": 0.1111
+     },
+     "ur": {
+      "n": 19,
+      "n_scam": 10,
+      "n_genuine": 9,
+      "accuracy": 0.8947,
+      "fpr": 0.0,
+      "fnr": 0.0,
+      "scam_caught_rate": 0.8,
+      "genuine_passed_rate": 1.0,
+      "not_sure_rate": 0.1053,
+      "not_sure_rate_scam": 0.2,
+      "not_sure_rate_genuine": 0.0
+     }
+    },
+    "by_channel": {
+     "call": {
+      "n": 9,
+      "n_scam": 6,
+      "n_genuine": 3,
+      "accuracy": 1.0,
+      "fpr": 0.0,
+      "fnr": 0.0,
+      "scam_caught_rate": 1.0,
+      "genuine_passed_rate": 1.0,
+      "not_sure_rate": 0.0,
+      "not_sure_rate_scam": 0.0,
+      "not_sure_rate_genuine": 0.0
+     },
+     "sms": {
+      "n": 59,
+      "n_scam": 32,
+      "n_genuine": 27,
+      "accuracy": 0.8644,
+      "fpr": 0.0,
+      "fnr": 0.0,
+      "scam_caught_rate": 0.8125,
+      "genuine_passed_rate": 0.9259,
+      "not_sure_rate": 0.1356,
+      "not_sure_rate_scam": 0.1875,
+      "not_sure_rate_genuine": 0.0741
+     },
+     "whatsapp": {
+      "n": 12,
+      "n_scam": 8,
+      "n_genuine": 4,
+      "accuracy": 0.9167,
+      "fpr": 0.0,
+      "fnr": 0.0,
+      "scam_caught_rate": 0.875,
+      "genuine_passed_rate": 1.0,
+      "not_sure_rate": 0.0833,
+      "not_sure_rate_scam": 0.125,
+      "not_sure_rate_genuine": 0.0
+     }
+    },
+    "note": "second sensor not configured: cascade = Jev + deterministic checks"
    }
   },
   "items": [
    {
     "id": "S01",
     "lang": "en",
+    "channel": "sms",
     "label": "scam",
-    "verdict": "NOT_SURE",
-    "score": 0.543,
-    "fallback": true,
-    "model_id": null,
-    "latency_ms": 1.65
+    "verdict": "LIKELY_SCAM",
+    "score": 0.975,
+    "fallback": false,
+    "model_id": "jev-1.14.0",
+    "latency_ms": 332.24,
+    "cost_usd": 3.167e-05,
+    "second_sensor_ran": false,
+    "disagreement": false,
+    "tier_verdicts": {
+     "deterministic": "LIKELY_SCAM",
+     "jev_only": "LIKELY_SCAM",
+     "cascade": "LIKELY_SCAM"
+    }
    },
    {
     "id": "S02",
     "lang": "en",
+    "channel": "sms",
     "label": "scam",
-    "verdict": "NOT_SURE",
-    "score": 0.383,
-    "fallback": true,
-    "model_id": null,
-    "latency_ms": 0.15
+    "verdict": "LIKELY_SCAM",
+    "score": 0.894,
+    "fallback": false,
+    "model_id": "jev-1.14.0",
+    "latency_ms": 355.1,
+    "cost_usd": 3.184e-05,
+    "second_sensor_ran": false,
+    "disagreement": false,
+    "tier_verdicts": {
+     "deterministic": "NOT_SURE",
+     "jev_only": "LIKELY_SCAM",
+     "cascade": "LIKELY_SCAM"
+    }
    },
    {
     "id": "S03",
     "lang": "en",
+    "channel": "sms",
     "label": "scam",
     "verdict": "NOT_SURE",
-    "score": 0.403,
-    "fallback": true,
-    "model_id": null,
-    "latency_ms": 0.17
+    "score": 0.59,
+    "fallback": false,
+    "model_id": "jev-1.14.0",
+    "latency_ms": 341.41,
+    "cost_usd": 3.205e-05,
+    "second_sensor_ran": false,
+    "disagreement": false,
+    "tier_verdicts": {
+     "deterministic": "NOT_SURE",
+     "jev_only": "NOT_SURE",
+     "cascade": "NOT_SURE"
+    }
    },
    {
     "id": "S04",
     "lang": "en",
+    "channel": "sms",
     "label": "scam",
-    "verdict": "NOT_SURE",
-    "score": 0.383,
-    "fallback": true,
-    "model_id": null,
-    "latency_ms": 0.12
+    "verdict": "LIKELY_SCAM",
+    "score": 0.894,
+    "fallback": false,
+    "model_id": "jev-1.14.0",
+    "latency_ms": 308.94,
+    "cost_usd": 3.158e-05,
+    "second_sensor_ran": false,
+    "disagreement": false,
+    "tier_verdicts": {
+     "deterministic": "NOT_SURE",
+     "jev_only": "LIKELY_SCAM",
+     "cascade": "LIKELY_SCAM"
+    }
    },
    {
     "id": "S05",
     "lang": "en",
+    "channel": "sms",
     "label": "scam",
-    "verdict": "NOT_SURE",
-    "score": 0.529,
-    "fallback": true,
-    "model_id": null,
-    "latency_ms": 0.12
+    "verdict": "LIKELY_SCAM",
+    "score": 0.898,
+    "fallback": false,
+    "model_id": "jev-1.14.0",
+    "latency_ms": 305.64,
+    "cost_usd": 3.213e-05,
+    "second_sensor_ran": false,
+    "disagreement": false,
+    "tier_verdicts": {
+     "deterministic": "NOT_SURE",
+     "jev_only": "LIKELY_SCAM",
+     "cascade": "LIKELY_SCAM"
+    }
    },
    {
     "id": "S06",
     "lang": "en",
+    "channel": "sms",
     "label": "scam",
-    "verdict": "NOT_SURE",
-    "score": 0.383,
-    "fallback": true,
-    "model_id": null,
-    "latency_ms": 0.1
+    "verdict": "LIKELY_SCAM",
+    "score": 0.895,
+    "fallback": false,
+    "model_id": "jev-1.14.0",
+    "latency_ms": 342.39,
+    "cost_usd": 3.196e-05,
+    "second_sensor_ran": false,
+    "disagreement": false,
+    "tier_verdicts": {
+     "deterministic": "NOT_SURE",
+     "jev_only": "LIKELY_SCAM",
+     "cascade": "LIKELY_SCAM"
+    }
    },
    {
     "id": "S07",
     "lang": "en",
+    "channel": "sms",
     "label": "scam",
-    "verdict": "NOT_SURE",
-    "score": 0.336,
-    "fallback": true,
-    "model_id": null,
-    "latency_ms": 0.09
+    "verdict": "LIKELY_SCAM",
+    "score": 0.793,
+    "fallback": false,
+    "model_id": "jev-1.14.0",
+    "latency_ms": 320.81,
+    "cost_usd": 3.133e-05,
+    "second_sensor_ran": false,
+    "disagreement": false,
+    "tier_verdicts": {
+     "deterministic": "LIKELY_SCAM",
+     "jev_only": "NOT_SURE",
+     "cascade": "LIKELY_SCAM"
+    }
    },
    {
     "id": "S08",
     "lang": "en",
+    "channel": "sms",
     "label": "scam",
     "verdict": "NOT_SURE",
-    "score": 0.193,
-    "fallback": true,
-    "model_id": null,
-    "latency_ms": 0.1
+    "score": 0.317,
+    "fallback": false,
+    "model_id": "jev-1.14.0",
+    "latency_ms": 312.73,
+    "cost_usd": 3.175e-05,
+    "second_sensor_ran": false,
+    "disagreement": false,
+    "tier_verdicts": {
+     "deterministic": "NOT_SURE",
+     "jev_only": "LOOKS_GENUINE",
+     "cascade": "NOT_SURE"
+    }
    },
    {
     "id": "S09",
     "lang": "roman_ur",
+    "channel": "sms",
     "label": "scam",
-    "verdict": "NOT_SURE",
-    "score": 0.383,
-    "fallback": true,
-    "model_id": null,
-    "latency_ms": 0.1
+    "verdict": "LIKELY_SCAM",
+    "score": 0.897,
+    "fallback": false,
+    "model_id": "jev-1.14.0",
+    "latency_ms": 338.26,
+    "cost_usd": 3.2e-05,
+    "second_sensor_ran": false,
+    "disagreement": false,
+    "tier_verdicts": {
+     "deterministic": "NOT_SURE",
+     "jev_only": "LIKELY_SCAM",
+     "cascade": "LIKELY_SCAM"
+    }
    },
    {
     "id": "S10",
     "lang": "roman_ur",
+    "channel": "sms",
     "label": "scam",
-    "verdict": "NOT_SURE",
-    "score": 0.529,
-    "fallback": true,
-    "model_id": null,
-    "latency_ms": 0.13
+    "verdict": "LIKELY_SCAM",
+    "score": 0.89,
+    "fallback": false,
+    "model_id": "jev-1.14.0",
+    "latency_ms": 395.95,
+    "cost_usd": 3.163e-05,
+    "second_sensor_ran": false,
+    "disagreement": false,
+    "tier_verdicts": {
+     "deterministic": "NOT_SURE",
+     "jev_only": "LIKELY_SCAM",
+     "cascade": "LIKELY_SCAM"
+    }
    },
    {
     "id": "S11",
     "lang": "roman_ur",
+    "channel": "sms",
     "label": "scam",
-    "verdict": "NOT_SURE",
-    "score": 0.403,
-    "fallback": true,
-    "model_id": null,
-    "latency_ms": 0.12
+    "verdict": "LIKELY_SCAM",
+    "score": 0.82,
+    "fallback": false,
+    "model_id": "jev-1.14.0",
+    "latency_ms": 307.7,
+    "cost_usd": 3.175e-05,
+    "second_sensor_ran": false,
+    "disagreement": false,
+    "tier_verdicts": {
+     "deterministic": "LIKELY_SCAM",
+     "jev_only": "NOT_SURE",
+     "cascade": "LIKELY_SCAM"
+    }
    },
    {
     "id": "S12",
     "lang": "roman_ur",
+    "channel": "sms",
     "label": "scam",
-    "verdict": "NOT_SURE",
-    "score": 0.383,
-    "fallback": true,
-    "model_id": null,
-    "latency_ms": 0.09
+    "verdict": "LIKELY_SCAM",
+    "score": 0.906,
+    "fallback": false,
+    "model_id": "jev-1.14.0",
+    "latency_ms": 303.27,
+    "cost_usd": 3.175e-05,
+    "second_sensor_ran": false,
+    "disagreement": false,
+    "tier_verdicts": {
+     "deterministic": "NOT_SURE",
+     "jev_only": "LIKELY_SCAM",
+     "cascade": "LIKELY_SCAM"
+    }
    },
    {
     "id": "S13",
     "lang": "roman_ur",
+    "channel": "sms",
     "label": "scam",
-    "verdict": "NOT_SURE",
-    "score": 0.383,
-    "fallback": true,
-    "model_id": null,
-    "latency_ms": 0.08
+    "verdict": "LIKELY_SCAM",
+    "score": 0.89,
+    "fallback": false,
+    "model_id": "jev-1.14.0",
+    "latency_ms": 321.15,
+    "cost_usd": 3.142e-05,
+    "second_sensor_ran": false,
+    "disagreement": false,
+    "tier_verdicts": {
+     "deterministic": "NOT_SURE",
+     "jev_only": "LIKELY_SCAM",
+     "cascade": "LIKELY_SCAM"
+    }
    },
    {
     "id": "S14",
     "lang": "roman_ur",
+    "channel": "sms",
     "label": "scam",
-    "verdict": "NOT_SURE",
-    "score": 0.383,
-    "fallback": true,
-    "model_id": null,
-    "latency_ms": 0.09
+    "verdict": "LIKELY_SCAM",
+    "score": 0.899,
+    "fallback": false,
+    "model_id": "jev-1.14.0",
+    "latency_ms": 315.02,
+    "cost_usd": 3.213e-05,
+    "second_sensor_ran": false,
+    "disagreement": false,
+    "tier_verdicts": {
+     "deterministic": "NOT_SURE",
+     "jev_only": "LIKELY_SCAM",
+     "cascade": "LIKELY_SCAM"
+    }
    },
    {
     "id": "S15",
     "lang": "roman_ur",
+    "channel": "sms",
     "label": "scam",
-    "verdict": "NOT_SURE",
-    "score": 0.383,
-    "fallback": true,
-    "model_id": null,
-    "latency_ms": 0.08
+    "verdict": "LIKELY_SCAM",
+    "score": 0.867,
+    "fallback": false,
+    "model_id": "jev-1.14.0",
+    "latency_ms": 331.42,
+    "cost_usd": 3.163e-05,
+    "second_sensor_ran": false,
+    "disagreement": false,
+    "tier_verdicts": {
+     "deterministic": "NOT_SURE",
+     "jev_only": "LIKELY_SCAM",
+     "cascade": "LIKELY_SCAM"
+    }
    },
    {
     "id": "S16",
     "lang": "roman_ur",
+    "channel": "sms",
     "label": "scam",
     "verdict": "NOT_SURE",
-    "score": 0.193,
-    "fallback": true,
-    "model_id": null,
-    "latency_ms": 0.08
+    "score": 0.311,
+    "fallback": false,
+    "model_id": "jev-1.14.0",
+    "latency_ms": 321.23,
+    "cost_usd": 3.188e-05,
+    "second_sensor_ran": false,
+    "disagreement": false,
+    "tier_verdicts": {
+     "deterministic": "NOT_SURE",
+     "jev_only": "LOOKS_GENUINE",
+     "cascade": "NOT_SURE"
+    }
    },
    {
     "id": "S17",
     "lang": "ur",
+    "channel": "sms",
     "label": "scam",
-    "verdict": "NOT_SURE",
-    "score": 0.383,
-    "fallback": true,
-    "model_id": null,
-    "latency_ms": 0.11
+    "verdict": "LIKELY_SCAM",
+    "score": 0.889,
+    "fallback": false,
+    "model_id": "jev-1.14.0",
+    "latency_ms": 317.91,
+    "cost_usd": 3.247e-05,
+    "second_sensor_ran": false,
+    "disagreement": false,
+    "tier_verdicts": {
+     "deterministic": "NOT_SURE",
+     "jev_only": "LIKELY_SCAM",
+     "cascade": "LIKELY_SCAM"
+    }
    },
    {
     "id": "S18",
     "lang": "ur",
+    "channel": "sms",
     "label": "scam",
-    "verdict": "NOT_SURE",
-    "score": 0.383,
-    "fallback": true,
-    "model_id": null,
-    "latency_ms": 0.08
+    "verdict": "LIKELY_SCAM",
+    "score": 0.893,
+    "fallback": false,
+    "model_id": "jev-1.14.0",
+    "latency_ms": 336.14,
+    "cost_usd": 3.217e-05,
+    "second_sensor_ran": false,
+    "disagreement": false,
+    "tier_verdicts": {
+     "deterministic": "NOT_SURE",
+     "jev_only": "LIKELY_SCAM",
+     "cascade": "LIKELY_SCAM"
+    }
    },
    {
     "id": "S19",
     "lang": "ur",
+    "channel": "sms",
     "label": "scam",
-    "verdict": "NOT_SURE",
-    "score": 0.383,
-    "fallback": true,
-    "model_id": null,
-    "latency_ms": 0.08
+    "verdict": "LIKELY_SCAM",
+    "score": 0.899,
+    "fallback": false,
+    "model_id": "jev-1.14.0",
+    "latency_ms": 309.67,
+    "cost_usd": 3.247e-05,
+    "second_sensor_ran": false,
+    "disagreement": false,
+    "tier_verdicts": {
+     "deterministic": "NOT_SURE",
+     "jev_only": "LIKELY_SCAM",
+     "cascade": "LIKELY_SCAM"
+    }
    },
    {
     "id": "S20",
     "lang": "ur",
+    "channel": "sms",
     "label": "scam",
     "verdict": "NOT_SURE",
-    "score": 0.403,
-    "fallback": true,
-    "model_id": null,
-    "latency_ms": 0.11
+    "score": 0.563,
+    "fallback": false,
+    "model_id": "jev-1.14.0",
+    "latency_ms": 331.97,
+    "cost_usd": 3.209e-05,
+    "second_sensor_ran": false,
+    "disagreement": false,
+    "tier_verdicts": {
+     "deterministic": "NOT_SURE",
+     "jev_only": "NOT_SURE",
+     "cascade": "NOT_SURE"
+    }
    },
    {
     "id": "S21",
     "lang": "ur",
+    "channel": "sms",
     "label": "scam",
-    "verdict": "NOT_SURE",
-    "score": 0.383,
-    "fallback": true,
-    "model_id": null,
-    "latency_ms": 0.06
+    "verdict": "LIKELY_SCAM",
+    "score": 0.896,
+    "fallback": false,
+    "model_id": "jev-1.14.0",
+    "latency_ms": 322.2,
+    "cost_usd": 3.188e-05,
+    "second_sensor_ran": false,
+    "disagreement": false,
+    "tier_verdicts": {
+     "deterministic": "NOT_SURE",
+     "jev_only": "LIKELY_SCAM",
+     "cascade": "LIKELY_SCAM"
+    }
    },
    {
     "id": "S22",
     "lang": "ur",
+    "channel": "sms",
     "label": "scam",
-    "verdict": "NOT_SURE",
-    "score": 0.383,
-    "fallback": true,
-    "model_id": null,
-    "latency_ms": 0.06
+    "verdict": "LIKELY_SCAM",
+    "score": 0.879,
+    "fallback": false,
+    "model_id": "jev-1.14.0",
+    "latency_ms": 328.26,
+    "cost_usd": 3.205e-05,
+    "second_sensor_ran": false,
+    "disagreement": false,
+    "tier_verdicts": {
+     "deterministic": "NOT_SURE",
+     "jev_only": "LIKELY_SCAM",
+     "cascade": "LIKELY_SCAM"
+    }
    },
    {
     "id": "G01",
     "lang": "en",
+    "channel": "sms",
     "label": "genuine",
-    "verdict": "NOT_SURE",
-    "score": 0.104,
-    "fallback": true,
-    "model_id": null,
-    "latency_ms": 0.1
+    "verdict": "LOOKS_GENUINE",
+    "score": 0.043,
+    "fallback": false,
+    "model_id": "jev-1.14.0",
+    "latency_ms": 337.57,
+    "cost_usd": 3.154e-05,
+    "second_sensor_ran": false,
+    "disagreement": false,
+    "tier_verdicts": {
+     "deterministic": "NOT_SURE",
+     "jev_only": "LOOKS_GENUINE",
+     "cascade": "LOOKS_GENUINE"
+    }
    },
    {
     "id": "G02",
     "lang": "en",
+    "channel": "sms",
     "label": "genuine",
-    "verdict": "NOT_SURE",
-    "score": 0.104,
-    "fallback": true,
-    "model_id": null,
-    "latency_ms": 0.09
+    "verdict": "LOOKS_GENUINE",
+    "score": 0.082,
+    "fallback": false,
+    "model_id": "jev-1.14.0",
+    "latency_ms": 328.46,
+    "cost_usd": 3.129e-05,
+    "second_sensor_ran": false,
+    "disagreement": false,
+    "tier_verdicts": {
+     "deterministic": "NOT_SURE",
+     "jev_only": "LOOKS_GENUINE",
+     "cascade": "LOOKS_GENUINE"
+    }
    },
    {
     "id": "G03",
     "lang": "en",
+    "channel": "sms",
     "label": "genuine",
-    "verdict": "NOT_SURE",
-    "score": 0.104,
-    "fallback": true,
-    "model_id": null,
-    "latency_ms": 0.1
+    "verdict": "LOOKS_GENUINE",
+    "score": 0.066,
+    "fallback": false,
+    "model_id": "jev-1.14.0",
+    "latency_ms": 380.08,
+    "cost_usd": 3.129e-05,
+    "second_sensor_ran": false,
+    "disagreement": false,
+    "tier_verdicts": {
+     "deterministic": "NOT_SURE",
+     "jev_only": "LOOKS_GENUINE",
+     "cascade": "LOOKS_GENUINE"
+    }
    },
    {
     "id": "G04",
     "lang": "en",
+    "channel": "sms",
     "label": "genuine",
-    "verdict": "NOT_SURE",
-    "score": 0.104,
-    "fallback": true,
-    "model_id": null,
-    "latency_ms": 0.1
+    "verdict": "LOOKS_GENUINE",
+    "score": 0.101,
+    "fallback": false,
+    "model_id": "jev-1.14.0",
+    "latency_ms": 305.81,
+    "cost_usd": 3.163e-05,
+    "second_sensor_ran": false,
+    "disagreement": false,
+    "tier_verdicts": {
+     "deterministic": "NOT_SURE",
+     "jev_only": "LOOKS_GENUINE",
+     "cascade": "LOOKS_GENUINE"
+    }
    },
    {
     "id": "G05",
     "lang": "en",
+    "channel": "sms",
     "label": "genuine",
-    "verdict": "NOT_SURE",
-    "score": 0.104,
-    "fallback": true,
-    "model_id": null,
-    "latency_ms": 0.12
+    "verdict": "LOOKS_GENUINE",
+    "score": 0.108,
+    "fallback": false,
+    "model_id": "jev-1.14.0",
+    "latency_ms": 326.48,
+    "cost_usd": 3.175e-05,
+    "second_sensor_ran": false,
+    "disagreement": false,
+    "tier_verdicts": {
+     "deterministic": "NOT_SURE",
+     "jev_only": "LOOKS_GENUINE",
+     "cascade": "LOOKS_GENUINE"
+    }
    },
    {
     "id": "G06",
     "lang": "en",
+    "channel": "sms",
     "label": "genuine",
-    "verdict": "NOT_SURE",
-    "score": 0.336,
-    "fallback": true,
-    "model_id": null,
-    "latency_ms": 0.08
+    "verdict": "LOOKS_GENUINE",
+    "score": 0.246,
+    "fallback": false,
+    "model_id": "jev-1.14.0",
+    "latency_ms": 313.71,
+    "cost_usd": 3.104e-05,
+    "second_sensor_ran": false,
+    "disagreement": false,
+    "tier_verdicts": {
+     "deterministic": "NOT_SURE",
+     "jev_only": "LOOKS_GENUINE",
+     "cascade": "LOOKS_GENUINE"
+    }
    },
    {
     "id": "G07",
     "lang": "en",
+    "channel": "sms",
     "label": "genuine",
-    "verdict": "NOT_SURE",
-    "score": 0.104,
-    "fallback": true,
-    "model_id": null,
-    "latency_ms": 0.09
+    "verdict": "LOOKS_GENUINE",
+    "score": 0.101,
+    "fallback": false,
+    "model_id": "jev-1.14.0",
+    "latency_ms": 320.6,
+    "cost_usd": 3.154e-05,
+    "second_sensor_ran": false,
+    "disagreement": false,
+    "tier_verdicts": {
+     "deterministic": "NOT_SURE",
+     "jev_only": "LOOKS_GENUINE",
+     "cascade": "LOOKS_GENUINE"
+    }
    },
    {
     "id": "G08",
     "lang": "en",
+    "channel": "sms",
     "label": "genuine",
-    "verdict": "NOT_SURE",
-    "score": 0.315,
-    "fallback": true,
-    "model_id": null,
-    "latency_ms": 0.08
+    "verdict": "LOOKS_GENUINE",
+    "score": 0.064,
+    "fallback": false,
+    "model_id": "jev-1.14.0",
+    "latency_ms": 359.07,
+    "cost_usd": 3.133e-05,
+    "second_sensor_ran": false,
+    "disagreement": false,
+    "tier_verdicts": {
+     "deterministic": "NOT_SURE",
+     "jev_only": "LOOKS_GENUINE",
+     "cascade": "LOOKS_GENUINE"
+    }
    },
    {
     "id": "G09",
     "lang": "roman_ur",
+    "channel": "sms",
     "label": "genuine",
-    "verdict": "NOT_SURE",
-    "score": 0.315,
-    "fallback": true,
-    "model_id": null,
-    "latency_ms": 0.11
+    "verdict": "LOOKS_GENUINE",
+    "score": 0.084,
+    "fallback": false,
+    "model_id": "jev-1.14.0",
+    "latency_ms": 308.22,
+    "cost_usd": 3.192e-05,
+    "second_sensor_ran": false,
+    "disagreement": false,
+    "tier_verdicts": {
+     "deterministic": "NOT_SURE",
+     "jev_only": "LOOKS_GENUINE",
+     "cascade": "LOOKS_GENUINE"
+    }
    },
    {
     "id": "G10",
     "lang": "roman_ur",
+    "channel": "sms",
     "label": "genuine",
-    "verdict": "NOT_SURE",
-    "score": 0.104,
-    "fallback": true,
-    "model_id": null,
-    "latency_ms": 0.09
+    "verdict": "LOOKS_GENUINE",
+    "score": 0.061,
+    "fallback": false,
+    "model_id": "jev-1.14.0",
+    "latency_ms": 297.62,
+    "cost_usd": 3.175e-05,
+    "second_sensor_ran": false,
+    "disagreement": false,
+    "tier_verdicts": {
+     "deterministic": "NOT_SURE",
+     "jev_only": "LOOKS_GENUINE",
+     "cascade": "LOOKS_GENUINE"
+    }
    },
    {
     "id": "G11",
     "lang": "roman_ur",
+    "channel": "sms",
     "label": "genuine",
-    "verdict": "NOT_SURE",
-    "score": 0.104,
-    "fallback": true,
-    "model_id": null,
-    "latency_ms": 0.07
+    "verdict": "LOOKS_GENUINE",
+    "score": 0.04,
+    "fallback": false,
+    "model_id": "jev-1.14.0",
+    "latency_ms": 314.3,
+    "cost_usd": 3.129e-05,
+    "second_sensor_ran": false,
+    "disagreement": false,
+    "tier_verdicts": {
+     "deterministic": "NOT_SURE",
+     "jev_only": "LOOKS_GENUINE",
+     "cascade": "LOOKS_GENUINE"
+    }
    },
    {
     "id": "G12",
     "lang": "roman_ur",
+    "channel": "sms",
     "label": "genuine",
-    "verdict": "NOT_SURE",
-    "score": 0.104,
-    "fallback": true,
-    "model_id": null,
-    "latency_ms": 0.07
+    "verdict": "LOOKS_GENUINE",
+    "score": 0.038,
+    "fallback": false,
+    "model_id": "jev-1.14.0",
+    "latency_ms": 298.5,
+    "cost_usd": 3.129e-05,
+    "second_sensor_ran": false,
+    "disagreement": false,
+    "tier_verdicts": {
+     "deterministic": "NOT_SURE",
+     "jev_only": "LOOKS_GENUINE",
+     "cascade": "LOOKS_GENUINE"
+    }
    },
    {
     "id": "G13",
     "lang": "roman_ur",
+    "channel": "sms",
     "label": "genuine",
-    "verdict": "NOT_SURE",
-    "score": 0.104,
-    "fallback": true,
-    "model_id": null,
-    "latency_ms": 0.07
+    "verdict": "LOOKS_GENUINE",
+    "score": 0.043,
+    "fallback": false,
+    "model_id": "jev-1.14.0",
+    "latency_ms": 304.12,
+    "cost_usd": 3.154e-05,
+    "second_sensor_ran": false,
+    "disagreement": false,
+    "tier_verdicts": {
+     "deterministic": "NOT_SURE",
+     "jev_only": "LOOKS_GENUINE",
+     "cascade": "LOOKS_GENUINE"
+    }
    },
    {
     "id": "G14",
     "lang": "ur",
+    "channel": "sms",
     "label": "genuine",
-    "verdict": "NOT_SURE",
-    "score": 0.104,
-    "fallback": true,
-    "model_id": null,
-    "latency_ms": 0.08
+    "verdict": "LOOKS_GENUINE",
+    "score": 0.055,
+    "fallback": false,
+    "model_id": "jev-1.14.0",
+    "latency_ms": 337.68,
+    "cost_usd": 3.205e-05,
+    "second_sensor_ran": false,
+    "disagreement": false,
+    "tier_verdicts": {
+     "deterministic": "NOT_SURE",
+     "jev_only": "LOOKS_GENUINE",
+     "cascade": "LOOKS_GENUINE"
+    }
    },
    {
     "id": "G15",
     "lang": "ur",
+    "channel": "sms",
     "label": "genuine",
-    "verdict": "NOT_SURE",
-    "score": 0.104,
-    "fallback": true,
-    "model_id": null,
-    "latency_ms": 0.09
+    "verdict": "LOOKS_GENUINE",
+    "score": 0.068,
+    "fallback": false,
+    "model_id": "jev-1.14.0",
+    "latency_ms": 325.99,
+    "cost_usd": 3.255e-05,
+    "second_sensor_ran": false,
+    "disagreement": false,
+    "tier_verdicts": {
+     "deterministic": "NOT_SURE",
+     "jev_only": "LOOKS_GENUINE",
+     "cascade": "LOOKS_GENUINE"
+    }
    },
    {
     "id": "G16",
     "lang": "ur",
+    "channel": "sms",
     "label": "genuine",
-    "verdict": "NOT_SURE",
-    "score": 0.104,
-    "fallback": true,
-    "model_id": null,
-    "latency_ms": 0.06
+    "verdict": "LOOKS_GENUINE",
+    "score": 0.041,
+    "fallback": false,
+    "model_id": "jev-1.14.0",
+    "latency_ms": 327.02,
+    "cost_usd": 3.205e-05,
+    "second_sensor_ran": false,
+    "disagreement": false,
+    "tier_verdicts": {
+     "deterministic": "NOT_SURE",
+     "jev_only": "LOOKS_GENUINE",
+     "cascade": "LOOKS_GENUINE"
+    }
    },
    {
     "id": "G17",
     "lang": "ur",
+    "channel": "sms",
     "label": "genuine",
-    "verdict": "NOT_SURE",
-    "score": 0.104,
-    "fallback": true,
-    "model_id": null,
-    "latency_ms": 0.07
+    "verdict": "LOOKS_GENUINE",
+    "score": 0.062,
+    "fallback": false,
+    "model_id": "jev-1.14.0",
+    "latency_ms": 312.76,
+    "cost_usd": 3.217e-05,
+    "second_sensor_ran": false,
+    "disagreement": false,
+    "tier_verdicts": {
+     "deterministic": "NOT_SURE",
+     "jev_only": "LOOKS_GENUINE",
+     "cascade": "LOOKS_GENUINE"
+    }
    },
    {
     "id": "G18",
     "lang": "ur",
+    "channel": "sms",
+    "label": "genuine",
+    "verdict": "LOOKS_GENUINE",
+    "score": 0.084,
+    "fallback": false,
+    "model_id": "jev-1.14.0",
+    "latency_ms": 334.67,
+    "cost_usd": 3.196e-05,
+    "second_sensor_ran": false,
+    "disagreement": false,
+    "tier_verdicts": {
+     "deterministic": "NOT_SURE",
+     "jev_only": "LOOKS_GENUINE",
+     "cascade": "LOOKS_GENUINE"
+    }
+   },
+   {
+    "id": "S23",
+    "lang": "en",
+    "channel": "sms",
+    "label": "scam",
+    "verdict": "LIKELY_SCAM",
+    "score": 0.852,
+    "fallback": false,
+    "model_id": "jev-1.14.0",
+    "latency_ms": 341.14,
+    "cost_usd": 3.213e-05,
+    "second_sensor_ran": false,
+    "disagreement": false,
+    "tier_verdicts": {
+     "deterministic": "LIKELY_SCAM",
+     "jev_only": "NOT_SURE",
+     "cascade": "LIKELY_SCAM"
+    }
+   },
+   {
+    "id": "S24",
+    "lang": "en",
+    "channel": "sms",
+    "label": "scam",
+    "verdict": "LIKELY_SCAM",
+    "score": 0.794,
+    "fallback": false,
+    "model_id": "jev-1.14.0",
+    "latency_ms": 329.36,
+    "cost_usd": 3.184e-05,
+    "second_sensor_ran": false,
+    "disagreement": false,
+    "tier_verdicts": {
+     "deterministic": "LIKELY_SCAM",
+     "jev_only": "NOT_SURE",
+     "cascade": "LIKELY_SCAM"
+    }
+   },
+   {
+    "id": "S25",
+    "lang": "en",
+    "channel": "whatsapp",
+    "label": "scam",
+    "verdict": "NOT_SURE",
+    "score": 0.561,
+    "fallback": false,
+    "model_id": "jev-1.14.0",
+    "latency_ms": 343.75,
+    "cost_usd": 3.142e-05,
+    "second_sensor_ran": false,
+    "disagreement": false,
+    "tier_verdicts": {
+     "deterministic": "NOT_SURE",
+     "jev_only": "NOT_SURE",
+     "cascade": "NOT_SURE"
+    }
+   },
+   {
+    "id": "S26",
+    "lang": "en",
+    "channel": "sms",
+    "label": "scam",
+    "verdict": "LIKELY_SCAM",
+    "score": 0.817,
+    "fallback": false,
+    "model_id": "jev-1.14.0",
+    "latency_ms": 308.73,
+    "cost_usd": 3.146e-05,
+    "second_sensor_ran": false,
+    "disagreement": false,
+    "tier_verdicts": {
+     "deterministic": "LIKELY_SCAM",
+     "jev_only": "NOT_SURE",
+     "cascade": "LIKELY_SCAM"
+    }
+   },
+   {
+    "id": "S27",
+    "lang": "en",
+    "channel": "sms",
+    "label": "scam",
+    "verdict": "LIKELY_SCAM",
+    "score": 0.894,
+    "fallback": false,
+    "model_id": "jev-1.14.0",
+    "latency_ms": 301.42,
+    "cost_usd": 3.163e-05,
+    "second_sensor_ran": false,
+    "disagreement": false,
+    "tier_verdicts": {
+     "deterministic": "LIKELY_SCAM",
+     "jev_only": "NOT_SURE",
+     "cascade": "LIKELY_SCAM"
+    }
+   },
+   {
+    "id": "S28",
+    "lang": "roman_ur",
+    "channel": "whatsapp",
+    "label": "scam",
+    "verdict": "LIKELY_SCAM",
+    "score": 0.948,
+    "fallback": false,
+    "model_id": "jev-1.14.0",
+    "latency_ms": 309.66,
+    "cost_usd": 3.2e-05,
+    "second_sensor_ran": false,
+    "disagreement": false,
+    "tier_verdicts": {
+     "deterministic": "NOT_SURE",
+     "jev_only": "LIKELY_SCAM",
+     "cascade": "LIKELY_SCAM"
+    }
+   },
+   {
+    "id": "S29",
+    "lang": "roman_ur",
+    "channel": "sms",
+    "label": "scam",
+    "verdict": "NOT_SURE",
+    "score": 0.651,
+    "fallback": false,
+    "model_id": "jev-1.14.0",
+    "latency_ms": 292.82,
+    "cost_usd": 3.23e-05,
+    "second_sensor_ran": false,
+    "disagreement": false,
+    "tier_verdicts": {
+     "deterministic": "NOT_SURE",
+     "jev_only": "NOT_SURE",
+     "cascade": "NOT_SURE"
+    }
+   },
+   {
+    "id": "S30",
+    "lang": "ur",
+    "channel": "sms",
+    "label": "scam",
+    "verdict": "LIKELY_SCAM",
+    "score": 0.835,
+    "fallback": false,
+    "model_id": "jev-1.14.0",
+    "latency_ms": 316.54,
+    "cost_usd": 3.331e-05,
+    "second_sensor_ran": false,
+    "disagreement": false,
+    "tier_verdicts": {
+     "deterministic": "LIKELY_SCAM",
+     "jev_only": "NOT_SURE",
+     "cascade": "LIKELY_SCAM"
+    }
+   },
+   {
+    "id": "S31",
+    "lang": "en",
+    "channel": "sms",
+    "label": "scam",
+    "verdict": "LIKELY_SCAM",
+    "score": 0.776,
+    "fallback": false,
+    "model_id": "jev-1.14.0",
+    "latency_ms": 309.79,
+    "cost_usd": 3.196e-05,
+    "second_sensor_ran": false,
+    "disagreement": false,
+    "tier_verdicts": {
+     "deterministic": "LIKELY_SCAM",
+     "jev_only": "NOT_SURE",
+     "cascade": "LIKELY_SCAM"
+    }
+   },
+   {
+    "id": "S32",
+    "lang": "en",
+    "channel": "call",
+    "label": "scam",
+    "verdict": "LIKELY_SCAM",
+    "score": 0.927,
+    "fallback": false,
+    "model_id": "jev-1.14.0",
+    "latency_ms": 325.26,
+    "cost_usd": 3.196e-05,
+    "second_sensor_ran": false,
+    "disagreement": false,
+    "tier_verdicts": {
+     "deterministic": "NOT_SURE",
+     "jev_only": "LIKELY_SCAM",
+     "cascade": "LIKELY_SCAM"
+    }
+   },
+   {
+    "id": "S33",
+    "lang": "roman_ur",
+    "channel": "call",
+    "label": "scam",
+    "verdict": "LIKELY_SCAM",
+    "score": 0.904,
+    "fallback": false,
+    "model_id": "jev-1.14.0",
+    "latency_ms": 314.4,
+    "cost_usd": 3.242e-05,
+    "second_sensor_ran": false,
+    "disagreement": false,
+    "tier_verdicts": {
+     "deterministic": "NOT_SURE",
+     "jev_only": "LIKELY_SCAM",
+     "cascade": "LIKELY_SCAM"
+    }
+   },
+   {
+    "id": "S34",
+    "lang": "roman_ur",
+    "channel": "call",
+    "label": "scam",
+    "verdict": "LIKELY_SCAM",
+    "score": 0.872,
+    "fallback": false,
+    "model_id": "jev-1.14.0",
+    "latency_ms": 341.72,
+    "cost_usd": 3.247e-05,
+    "second_sensor_ran": false,
+    "disagreement": false,
+    "tier_verdicts": {
+     "deterministic": "NOT_SURE",
+     "jev_only": "LIKELY_SCAM",
+     "cascade": "LIKELY_SCAM"
+    }
+   },
+   {
+    "id": "S35",
+    "lang": "en",
+    "channel": "call",
+    "label": "scam",
+    "verdict": "LIKELY_SCAM",
+    "score": 0.875,
+    "fallback": false,
+    "model_id": "jev-1.14.0",
+    "latency_ms": 325.39,
+    "cost_usd": 3.154e-05,
+    "second_sensor_ran": false,
+    "disagreement": false,
+    "tier_verdicts": {
+     "deterministic": "NOT_SURE",
+     "jev_only": "LIKELY_SCAM",
+     "cascade": "LIKELY_SCAM"
+    }
+   },
+   {
+    "id": "S36",
+    "lang": "ur",
+    "channel": "call",
+    "label": "scam",
+    "verdict": "LIKELY_SCAM",
+    "score": 0.896,
+    "fallback": false,
+    "model_id": "jev-1.14.0",
+    "latency_ms": 306.61,
+    "cost_usd": 3.389e-05,
+    "second_sensor_ran": false,
+    "disagreement": false,
+    "tier_verdicts": {
+     "deterministic": "NOT_SURE",
+     "jev_only": "LIKELY_SCAM",
+     "cascade": "LIKELY_SCAM"
+    }
+   },
+   {
+    "id": "S37",
+    "lang": "roman_ur",
+    "channel": "call",
+    "label": "scam",
+    "verdict": "LIKELY_SCAM",
+    "score": 0.931,
+    "fallback": false,
+    "model_id": "jev-1.14.0",
+    "latency_ms": 298.9,
+    "cost_usd": 3.179e-05,
+    "second_sensor_ran": false,
+    "disagreement": false,
+    "tier_verdicts": {
+     "deterministic": "NOT_SURE",
+     "jev_only": "LIKELY_SCAM",
+     "cascade": "LIKELY_SCAM"
+    }
+   },
+   {
+    "id": "S38",
+    "lang": "roman_ur",
+    "channel": "whatsapp",
+    "label": "scam",
+    "verdict": "LIKELY_SCAM",
+    "score": 0.904,
+    "fallback": false,
+    "model_id": "jev-1.14.0",
+    "latency_ms": 300.75,
+    "cost_usd": 3.318e-05,
+    "second_sensor_ran": false,
+    "disagreement": false,
+    "tier_verdicts": {
+     "deterministic": "NOT_SURE",
+     "jev_only": "LIKELY_SCAM",
+     "cascade": "LIKELY_SCAM"
+    }
+   },
+   {
+    "id": "S39",
+    "lang": "en",
+    "channel": "whatsapp",
+    "label": "scam",
+    "verdict": "LIKELY_SCAM",
+    "score": 0.881,
+    "fallback": false,
+    "model_id": "jev-1.14.0",
+    "latency_ms": 310.36,
+    "cost_usd": 3.2e-05,
+    "second_sensor_ran": false,
+    "disagreement": false,
+    "tier_verdicts": {
+     "deterministic": "NOT_SURE",
+     "jev_only": "LIKELY_SCAM",
+     "cascade": "LIKELY_SCAM"
+    }
+   },
+   {
+    "id": "S40",
+    "lang": "roman_ur",
+    "channel": "whatsapp",
+    "label": "scam",
+    "verdict": "LIKELY_SCAM",
+    "score": 0.891,
+    "fallback": false,
+    "model_id": "jev-1.14.0",
+    "latency_ms": 352.54,
+    "cost_usd": 3.188e-05,
+    "second_sensor_ran": false,
+    "disagreement": false,
+    "tier_verdicts": {
+     "deterministic": "NOT_SURE",
+     "jev_only": "LIKELY_SCAM",
+     "cascade": "LIKELY_SCAM"
+    }
+   },
+   {
+    "id": "S41",
+    "lang": "ur",
+    "channel": "whatsapp",
+    "label": "scam",
+    "verdict": "LIKELY_SCAM",
+    "score": 0.895,
+    "fallback": false,
+    "model_id": "jev-1.14.0",
+    "latency_ms": 310.93,
+    "cost_usd": 3.331e-05,
+    "second_sensor_ran": false,
+    "disagreement": false,
+    "tier_verdicts": {
+     "deterministic": "NOT_SURE",
+     "jev_only": "LIKELY_SCAM",
+     "cascade": "LIKELY_SCAM"
+    }
+   },
+   {
+    "id": "S42",
+    "lang": "en",
+    "channel": "whatsapp",
+    "label": "scam",
+    "verdict": "LIKELY_SCAM",
+    "score": 0.893,
+    "fallback": false,
+    "model_id": "jev-1.14.0",
+    "latency_ms": 347.65,
+    "cost_usd": 3.226e-05,
+    "second_sensor_ran": false,
+    "disagreement": false,
+    "tier_verdicts": {
+     "deterministic": "NOT_SURE",
+     "jev_only": "LIKELY_SCAM",
+     "cascade": "LIKELY_SCAM"
+    }
+   },
+   {
+    "id": "S43",
+    "lang": "roman_ur",
+    "channel": "sms",
+    "label": "scam",
+    "verdict": "LIKELY_SCAM",
+    "score": 0.883,
+    "fallback": false,
+    "model_id": "jev-1.14.0",
+    "latency_ms": 347.87,
+    "cost_usd": 3.209e-05,
+    "second_sensor_ran": false,
+    "disagreement": false,
+    "tier_verdicts": {
+     "deterministic": "NOT_SURE",
+     "jev_only": "LIKELY_SCAM",
+     "cascade": "LIKELY_SCAM"
+    }
+   },
+   {
+    "id": "S44",
+    "lang": "ur",
+    "channel": "sms",
+    "label": "scam",
+    "verdict": "NOT_SURE",
+    "score": 0.343,
+    "fallback": false,
+    "model_id": "jev-1.14.0",
+    "latency_ms": 296.7,
+    "cost_usd": 3.352e-05,
+    "second_sensor_ran": false,
+    "disagreement": false,
+    "tier_verdicts": {
+     "deterministic": "NOT_SURE",
+     "jev_only": "LOOKS_GENUINE",
+     "cascade": "NOT_SURE"
+    }
+   },
+   {
+    "id": "S45",
+    "lang": "en",
+    "channel": "sms",
+    "label": "scam",
+    "verdict": "LIKELY_SCAM",
+    "score": 0.851,
+    "fallback": false,
+    "model_id": "jev-1.14.0",
+    "latency_ms": 311.18,
+    "cost_usd": 3.2e-05,
+    "second_sensor_ran": false,
+    "disagreement": false,
+    "tier_verdicts": {
+     "deterministic": "LIKELY_SCAM",
+     "jev_only": "NOT_SURE",
+     "cascade": "LIKELY_SCAM"
+    }
+   },
+   {
+    "id": "S46",
+    "lang": "roman_ur",
+    "channel": "whatsapp",
+    "label": "scam",
+    "verdict": "LIKELY_SCAM",
+    "score": 0.887,
+    "fallback": false,
+    "model_id": "jev-1.14.0",
+    "latency_ms": 404.98,
+    "cost_usd": 3.196e-05,
+    "second_sensor_ran": false,
+    "disagreement": false,
+    "tier_verdicts": {
+     "deterministic": "NOT_SURE",
+     "jev_only": "LIKELY_SCAM",
+     "cascade": "LIKELY_SCAM"
+    }
+   },
+   {
+    "id": "G19",
+    "lang": "en",
+    "channel": "sms",
+    "label": "genuine",
+    "verdict": "LOOKS_GENUINE",
+    "score": 0.276,
+    "fallback": false,
+    "model_id": "jev-1.14.0",
+    "latency_ms": 303.96,
+    "cost_usd": 3.184e-05,
+    "second_sensor_ran": false,
+    "disagreement": false,
+    "tier_verdicts": {
+     "deterministic": "NOT_SURE",
+     "jev_only": "LOOKS_GENUINE",
+     "cascade": "LOOKS_GENUINE"
+    }
+   },
+   {
+    "id": "G20",
+    "lang": "en",
+    "channel": "sms",
+    "label": "genuine",
+    "verdict": "LOOKS_GENUINE",
+    "score": 0.147,
+    "fallback": false,
+    "model_id": "jev-1.14.0",
+    "latency_ms": 377.86,
+    "cost_usd": 3.242e-05,
+    "second_sensor_ran": false,
+    "disagreement": false,
+    "tier_verdicts": {
+     "deterministic": "NOT_SURE",
+     "jev_only": "LOOKS_GENUINE",
+     "cascade": "LOOKS_GENUINE"
+    }
+   },
+   {
+    "id": "G21",
+    "lang": "roman_ur",
+    "channel": "whatsapp",
+    "label": "genuine",
+    "verdict": "LOOKS_GENUINE",
+    "score": 0.069,
+    "fallback": false,
+    "model_id": "jev-1.14.0",
+    "latency_ms": 333.63,
+    "cost_usd": 3.175e-05,
+    "second_sensor_ran": false,
+    "disagreement": false,
+    "tier_verdicts": {
+     "deterministic": "NOT_SURE",
+     "jev_only": "LOOKS_GENUINE",
+     "cascade": "LOOKS_GENUINE"
+    }
+   },
+   {
+    "id": "G22",
+    "lang": "en",
+    "channel": "whatsapp",
+    "label": "genuine",
+    "verdict": "LOOKS_GENUINE",
+    "score": 0.161,
+    "fallback": false,
+    "model_id": "jev-1.14.0",
+    "latency_ms": 362.07,
+    "cost_usd": 3.171e-05,
+    "second_sensor_ran": false,
+    "disagreement": false,
+    "tier_verdicts": {
+     "deterministic": "NOT_SURE",
+     "jev_only": "LOOKS_GENUINE",
+     "cascade": "LOOKS_GENUINE"
+    }
+   },
+   {
+    "id": "G23",
+    "lang": "en",
+    "channel": "call",
+    "label": "genuine",
+    "verdict": "LOOKS_GENUINE",
+    "score": 0.07,
+    "fallback": false,
+    "model_id": "jev-1.14.0",
+    "latency_ms": 347.48,
+    "cost_usd": 3.242e-05,
+    "second_sensor_ran": false,
+    "disagreement": false,
+    "tier_verdicts": {
+     "deterministic": "NOT_SURE",
+     "jev_only": "LOOKS_GENUINE",
+     "cascade": "LOOKS_GENUINE"
+    }
+   },
+   {
+    "id": "G24",
+    "lang": "roman_ur",
+    "channel": "call",
+    "label": "genuine",
+    "verdict": "LOOKS_GENUINE",
+    "score": 0.11,
+    "fallback": false,
+    "model_id": "jev-1.14.0",
+    "latency_ms": 344.64,
+    "cost_usd": 3.205e-05,
+    "second_sensor_ran": false,
+    "disagreement": false,
+    "tier_verdicts": {
+     "deterministic": "NOT_SURE",
+     "jev_only": "LOOKS_GENUINE",
+     "cascade": "LOOKS_GENUINE"
+    }
+   },
+   {
+    "id": "G25",
+    "lang": "ur",
+    "channel": "sms",
+    "label": "genuine",
+    "verdict": "LOOKS_GENUINE",
+    "score": 0.211,
+    "fallback": false,
+    "model_id": "jev-1.14.0",
+    "latency_ms": 309.53,
+    "cost_usd": 3.238e-05,
+    "second_sensor_ran": false,
+    "disagreement": false,
+    "tier_verdicts": {
+     "deterministic": "NOT_SURE",
+     "jev_only": "LOOKS_GENUINE",
+     "cascade": "LOOKS_GENUINE"
+    }
+   },
+   {
+    "id": "G26",
+    "lang": "ur",
+    "channel": "whatsapp",
+    "label": "genuine",
+    "verdict": "LOOKS_GENUINE",
+    "score": 0.144,
+    "fallback": false,
+    "model_id": "jev-1.14.0",
+    "latency_ms": 321.03,
+    "cost_usd": 3.268e-05,
+    "second_sensor_ran": false,
+    "disagreement": false,
+    "tier_verdicts": {
+     "deterministic": "NOT_SURE",
+     "jev_only": "LOOKS_GENUINE",
+     "cascade": "LOOKS_GENUINE"
+    }
+   },
+   {
+    "id": "G27",
+    "lang": "en",
+    "channel": "sms",
     "label": "genuine",
     "verdict": "NOT_SURE",
-    "score": 0.476,
-    "fallback": true,
-    "model_id": null,
-    "latency_ms": 0.06
+    "score": 0.202,
+    "fallback": false,
+    "model_id": "jev-1.14.0",
+    "latency_ms": 298.9,
+    "cost_usd": 3.184e-05,
+    "second_sensor_ran": false,
+    "disagreement": false,
+    "tier_verdicts": {
+     "deterministic": "NOT_SURE",
+     "jev_only": "NOT_SURE",
+     "cascade": "NOT_SURE"
+    }
+   },
+   {
+    "id": "G28",
+    "lang": "roman_ur",
+    "channel": "sms",
+    "label": "genuine",
+    "verdict": "LOOKS_GENUINE",
+    "score": 0.214,
+    "fallback": false,
+    "model_id": "jev-1.14.0",
+    "latency_ms": 314.77,
+    "cost_usd": 3.259e-05,
+    "second_sensor_ran": false,
+    "disagreement": false,
+    "tier_verdicts": {
+     "deterministic": "NOT_SURE",
+     "jev_only": "LOOKS_GENUINE",
+     "cascade": "LOOKS_GENUINE"
+    }
+   },
+   {
+    "id": "G29",
+    "lang": "en",
+    "channel": "sms",
+    "label": "genuine",
+    "verdict": "LOOKS_GENUINE",
+    "score": 0.035,
+    "fallback": false,
+    "model_id": "jev-1.14.0",
+    "latency_ms": 311.82,
+    "cost_usd": 3.146e-05,
+    "second_sensor_ran": false,
+    "disagreement": false,
+    "tier_verdicts": {
+     "deterministic": "NOT_SURE",
+     "jev_only": "LOOKS_GENUINE",
+     "cascade": "LOOKS_GENUINE"
+    }
+   },
+   {
+    "id": "G30",
+    "lang": "ur",
+    "channel": "call",
+    "label": "genuine",
+    "verdict": "LOOKS_GENUINE",
+    "score": 0.078,
+    "fallback": false,
+    "model_id": "jev-1.14.0",
+    "latency_ms": 312.19,
+    "cost_usd": 3.305e-05,
+    "second_sensor_ran": false,
+    "disagreement": false,
+    "tier_verdicts": {
+     "deterministic": "NOT_SURE",
+     "jev_only": "LOOKS_GENUINE",
+     "cascade": "LOOKS_GENUINE"
+    }
+   },
+   {
+    "id": "G31",
+    "lang": "en",
+    "channel": "whatsapp",
+    "label": "genuine",
+    "verdict": "LOOKS_GENUINE",
+    "score": 0.137,
+    "fallback": false,
+    "model_id": "jev-1.14.0",
+    "latency_ms": 324.32,
+    "cost_usd": 3.167e-05,
+    "second_sensor_ran": false,
+    "disagreement": false,
+    "tier_verdicts": {
+     "deterministic": "NOT_SURE",
+     "jev_only": "LOOKS_GENUINE",
+     "cascade": "LOOKS_GENUINE"
+    }
+   },
+   {
+    "id": "G32",
+    "lang": "roman_ur",
+    "channel": "sms",
+    "label": "genuine",
+    "verdict": "NOT_SURE",
+    "score": 0.358,
+    "fallback": false,
+    "model_id": "jev-1.14.0",
+    "latency_ms": 357.5,
+    "cost_usd": 3.188e-05,
+    "second_sensor_ran": false,
+    "disagreement": false,
+    "tier_verdicts": {
+     "deterministic": "NOT_SURE",
+     "jev_only": "NOT_SURE",
+     "cascade": "NOT_SURE"
+    }
+   },
+   {
+    "id": "G33",
+    "lang": "en",
+    "channel": "sms",
+    "label": "genuine",
+    "verdict": "LOOKS_GENUINE",
+    "score": 0.035,
+    "fallback": false,
+    "model_id": "jev-1.14.0",
+    "latency_ms": 357.54,
+    "cost_usd": 3.15e-05,
+    "second_sensor_ran": false,
+    "disagreement": false,
+    "tier_verdicts": {
+     "deterministic": "NOT_SURE",
+     "jev_only": "LOOKS_GENUINE",
+     "cascade": "LOOKS_GENUINE"
+    }
+   },
+   {
+    "id": "G34",
+    "lang": "ur",
+    "channel": "sms",
+    "label": "genuine",
+    "verdict": "LOOKS_GENUINE",
+    "score": 0.103,
+    "fallback": false,
+    "model_id": "jev-1.14.0",
+    "latency_ms": 362.28,
+    "cost_usd": 3.276e-05,
+    "second_sensor_ran": false,
+    "disagreement": false,
+    "tier_verdicts": {
+     "deterministic": "NOT_SURE",
+     "jev_only": "LOOKS_GENUINE",
+     "cascade": "LOOKS_GENUINE"
+    }
    }
   ]
+ },
+ "documents": {
+  "set": "backend/sample_docs",
+  "positive": "edited document",
+  "tiers": {
+   "deterministic": {
+    "tier": "deterministic",
+    "status": "ran",
+    "n": 20,
+    "n_edited": 2,
+    "accuracy": 1.0,
+    "fpr": 0.0,
+    "fnr": 0.0,
+    "undecided_rate": 0.0,
+    "median_latency_ms": 296.7,
+    "total_cost_usd": 0.0,
+    "items": [
+     {
+      "file": "cnic_front_zainab.png",
+      "variant": "original",
+      "edited": false,
+      "outcome": "pass",
+      "latency_ms": 251.9,
+      "cost_usd": 0.0
+     },
+     {
+      "file": "cnic_front_zainab.whatsapp.jpg",
+      "variant": "whatsapp",
+      "edited": false,
+      "outcome": "pass",
+      "latency_ms": 187.2,
+      "cost_usd": 0.0
+     },
+     {
+      "file": "cnic_front_zainab.screenshot.png",
+      "variant": "screenshot",
+      "edited": false,
+      "outcome": "pass",
+      "latency_ms": 293.9,
+      "cost_usd": 0.0
+     },
+     {
+      "file": "cnic_back_zainab.png",
+      "variant": "original",
+      "edited": false,
+      "outcome": "pass",
+      "latency_ms": 169.1,
+      "cost_usd": 0.0
+     },
+     {
+      "file": "cnic_back_zainab.whatsapp.jpg",
+      "variant": "whatsapp",
+      "edited": false,
+      "outcome": "pass",
+      "latency_ms": 199.9,
+      "cost_usd": 0.0
+     },
+     {
+      "file": "cnic_back_zainab.screenshot.png",
+      "variant": "screenshot",
+      "edited": false,
+      "outcome": "pass",
+      "latency_ms": 283.9,
+      "cost_usd": 0.0
+     },
+     {
+      "file": "cnic_front_aslam.png",
+      "variant": "original",
+      "edited": false,
+      "outcome": "pass",
+      "latency_ms": 154.7,
+      "cost_usd": 0.0
+     },
+     {
+      "file": "cnic_front_aslam.whatsapp.jpg",
+      "variant": "whatsapp",
+      "edited": false,
+      "outcome": "pass",
+      "latency_ms": 162.0,
+      "cost_usd": 0.0
+     },
+     {
+      "file": "cnic_front_aslam.screenshot.png",
+      "variant": "screenshot",
+      "edited": false,
+      "outcome": "pass",
+      "latency_ms": 308.4,
+      "cost_usd": 0.0
+     },
+     {
+      "file": "frc_aslam_family.png",
+      "variant": "original",
+      "edited": false,
+      "outcome": "pass",
+      "latency_ms": 495.6,
+      "cost_usd": 0.0
+     },
+     {
+      "file": "frc_aslam_family.whatsapp.jpg",
+      "variant": "whatsapp",
+      "edited": false,
+      "outcome": "pass",
+      "latency_ms": 402.7,
+      "cost_usd": 0.0
+     },
+     {
+      "file": "frc_aslam_family.screenshot.png",
+      "variant": "screenshot",
+      "edited": false,
+      "outcome": "pass",
+      "latency_ms": 297.2,
+      "cost_usd": 0.0
+     },
+     {
+      "file": "death_certificate_aslam.png",
+      "variant": "original",
+      "edited": false,
+      "outcome": "pass",
+      "latency_ms": 424.7,
+      "cost_usd": 0.0
+     },
+     {
+      "file": "death_certificate_aslam.whatsapp.jpg",
+      "variant": "whatsapp",
+      "edited": false,
+      "outcome": "pass",
+      "latency_ms": 429.5,
+      "cost_usd": 0.0
+     },
+     {
+      "file": "death_certificate_aslam.screenshot.png",
+      "variant": "screenshot",
+      "edited": false,
+      "outcome": "pass",
+      "latency_ms": 296.2,
+      "cost_usd": 0.0
+     },
+     {
+      "file": "nikah_nama_aslam_zainab.png",
+      "variant": "original",
+      "edited": false,
+      "outcome": "pass",
+      "latency_ms": 487.3,
+      "cost_usd": 0.0
+     },
+     {
+      "file": "nikah_nama_aslam_zainab.whatsapp.jpg",
+      "variant": "whatsapp",
+      "edited": false,
+      "outcome": "pass",
+      "latency_ms": 515.0,
+      "cost_usd": 0.0
+     },
+     {
+      "file": "nikah_nama_aslam_zainab.screenshot.png",
+      "variant": "screenshot",
+      "edited": false,
+      "outcome": "pass",
+      "latency_ms": 293.3,
+      "cost_usd": 0.0
+     },
+     {
+      "file": "death_certificate_aslam_edited.png",
+      "variant": "edited",
+      "edited": true,
+      "outcome": "flag",
+      "latency_ms": 631.6,
+      "cost_usd": 0.0
+     },
+     {
+      "file": "death_certificate_aslam_edited.whatsapp.jpg",
+      "variant": "edited",
+      "edited": true,
+      "outcome": "flag",
+      "latency_ms": 402.2,
+      "cost_usd": 0.0
+     }
+    ]
+   },
+   "jev_only": {
+    "tier": "jev_only",
+    "status": "ran",
+    "n": 20,
+    "n_edited": 2,
+    "accuracy": 0.3,
+    "fpr": 0.0,
+    "fnr": 1.0,
+    "undecided_rate": 0.6,
+    "median_latency_ms": 547.0,
+    "total_cost_usd": 0.0,
+    "items": [
+     {
+      "file": "cnic_front_zainab.png",
+      "variant": "original",
+      "edited": false,
+      "outcome": "undecided",
+      "latency_ms": 536.0,
+      "cost_usd": 0.0
+     },
+     {
+      "file": "cnic_front_zainab.whatsapp.jpg",
+      "variant": "whatsapp",
+      "edited": false,
+      "outcome": "undecided",
+      "latency_ms": 442.0,
+      "cost_usd": 0.0
+     },
+     {
+      "file": "cnic_front_zainab.screenshot.png",
+      "variant": "screenshot",
+      "edited": false,
+      "outcome": "undecided",
+      "latency_ms": 425.0,
+      "cost_usd": 0.0
+     },
+     {
+      "file": "cnic_back_zainab.png",
+      "variant": "original",
+      "edited": false,
+      "outcome": "undecided",
+      "latency_ms": 514.0,
+      "cost_usd": 0.0
+     },
+     {
+      "file": "cnic_back_zainab.whatsapp.jpg",
+      "variant": "whatsapp",
+      "edited": false,
+      "outcome": "undecided",
+      "latency_ms": 482.0,
+      "cost_usd": 0.0
+     },
+     {
+      "file": "cnic_back_zainab.screenshot.png",
+      "variant": "screenshot",
+      "edited": false,
+      "outcome": "undecided",
+      "latency_ms": 395.0,
+      "cost_usd": 0.0
+     },
+     {
+      "file": "cnic_front_aslam.png",
+      "variant": "original",
+      "edited": false,
+      "outcome": "undecided",
+      "latency_ms": 609.0,
+      "cost_usd": 0.0
+     },
+     {
+      "file": "cnic_front_aslam.whatsapp.jpg",
+      "variant": "whatsapp",
+      "edited": false,
+      "outcome": "undecided",
+      "latency_ms": 404.0,
+      "cost_usd": 0.0
+     },
+     {
+      "file": "cnic_front_aslam.screenshot.png",
+      "variant": "screenshot",
+      "edited": false,
+      "outcome": "undecided",
+      "latency_ms": 427.0,
+      "cost_usd": 0.0
+     },
+     {
+      "file": "frc_aslam_family.png",
+      "variant": "original",
+      "edited": false,
+      "outcome": "pass",
+      "latency_ms": 1032.0,
+      "cost_usd": 0.0
+     },
+     {
+      "file": "frc_aslam_family.whatsapp.jpg",
+      "variant": "whatsapp",
+      "edited": false,
+      "outcome": "undecided",
+      "latency_ms": 714.0,
+      "cost_usd": 0.0
+     },
+     {
+      "file": "frc_aslam_family.screenshot.png",
+      "variant": "screenshot",
+      "edited": false,
+      "outcome": "undecided",
+      "latency_ms": 472.0,
+      "cost_usd": 0.0
+     },
+     {
+      "file": "death_certificate_aslam.png",
+      "variant": "original",
+      "edited": false,
+      "outcome": "pass",
+      "latency_ms": 645.0,
+      "cost_usd": 0.0
+     },
+     {
+      "file": "death_certificate_aslam.whatsapp.jpg",
+      "variant": "whatsapp",
+      "edited": false,
+      "outcome": "pass",
+      "latency_ms": 700.0,
+      "cost_usd": 0.0
+     },
+     {
+      "file": "death_certificate_aslam.screenshot.png",
+      "variant": "screenshot",
+      "edited": false,
+      "outcome": "undecided",
+      "latency_ms": 556.0,
+      "cost_usd": 0.0
+     },
+     {
+      "file": "nikah_nama_aslam_zainab.png",
+      "variant": "original",
+      "edited": false,
+      "outcome": "pass",
+      "latency_ms": 617.0,
+      "cost_usd": 0.0
+     },
+     {
+      "file": "nikah_nama_aslam_zainab.whatsapp.jpg",
+      "variant": "whatsapp",
+      "edited": false,
+      "outcome": "pass",
+      "latency_ms": 745.0,
+      "cost_usd": 0.0
+     },
+     {
+      "file": "nikah_nama_aslam_zainab.screenshot.png",
+      "variant": "screenshot",
+      "edited": false,
+      "outcome": "pass",
+      "latency_ms": 538.0,
+      "cost_usd": 0.0
+     },
+     {
+      "file": "death_certificate_aslam_edited.png",
+      "variant": "edited",
+      "edited": true,
+      "outcome": "pass",
+      "latency_ms": 709.0,
+      "cost_usd": 0.0
+     },
+     {
+      "file": "death_certificate_aslam_edited.whatsapp.jpg",
+      "variant": "edited",
+      "edited": true,
+      "outcome": "pass",
+      "latency_ms": 782.0,
+      "cost_usd": 0.0
+     }
+    ]
+   },
+   "cascade": {
+    "tier": "cascade",
+    "status": "ran",
+    "n": 20,
+    "n_edited": 2,
+    "accuracy": 0.5,
+    "fpr": 0.0,
+    "fnr": 0.0,
+    "undecided_rate": 0.5,
+    "median_latency_ms": 786.25,
+    "total_cost_usd": 0.0,
+    "items": [
+     {
+      "file": "cnic_front_zainab.png",
+      "variant": "original",
+      "edited": false,
+      "outcome": "undecided",
+      "latency_ms": 691.9,
+      "cost_usd": 0.0
+     },
+     {
+      "file": "cnic_front_zainab.whatsapp.jpg",
+      "variant": "whatsapp",
+      "edited": false,
+      "outcome": "undecided",
+      "latency_ms": 761.2,
+      "cost_usd": 0.0
+     },
+     {
+      "file": "cnic_front_zainab.screenshot.png",
+      "variant": "screenshot",
+      "edited": false,
+      "outcome": "undecided",
+      "latency_ms": 704.9,
+      "cost_usd": 0.0
+     },
+     {
+      "file": "cnic_back_zainab.png",
+      "variant": "original",
+      "edited": false,
+      "outcome": "undecided",
+      "latency_ms": 625.1,
+      "cost_usd": 0.0
+     },
+     {
+      "file": "cnic_back_zainab.whatsapp.jpg",
+      "variant": "whatsapp",
+      "edited": false,
+      "outcome": "undecided",
+      "latency_ms": 592.9,
+      "cost_usd": 0.0
+     },
+     {
+      "file": "cnic_back_zainab.screenshot.png",
+      "variant": "screenshot",
+      "edited": false,
+      "outcome": "undecided",
+      "latency_ms": 689.9,
+      "cost_usd": 0.0
+     },
+     {
+      "file": "cnic_front_aslam.png",
+      "variant": "original",
+      "edited": false,
+      "outcome": "undecided",
+      "latency_ms": 588.7,
+      "cost_usd": 0.0
+     },
+     {
+      "file": "cnic_front_aslam.whatsapp.jpg",
+      "variant": "whatsapp",
+      "edited": false,
+      "outcome": "undecided",
+      "latency_ms": 630.0,
+      "cost_usd": 0.0
+     },
+     {
+      "file": "cnic_front_aslam.screenshot.png",
+      "variant": "screenshot",
+      "edited": false,
+      "outcome": "undecided",
+      "latency_ms": 723.4,
+      "cost_usd": 0.0
+     },
+     {
+      "file": "frc_aslam_family.png",
+      "variant": "original",
+      "edited": false,
+      "outcome": "pass",
+      "latency_ms": 1233.6,
+      "cost_usd": 0.0
+     },
+     {
+      "file": "frc_aslam_family.whatsapp.jpg",
+      "variant": "whatsapp",
+      "edited": false,
+      "outcome": "pass",
+      "latency_ms": 1079.7,
+      "cost_usd": 0.0
+     },
+     {
+      "file": "frc_aslam_family.screenshot.png",
+      "variant": "screenshot",
+      "edited": false,
+      "outcome": "undecided",
+      "latency_ms": 772.2,
+      "cost_usd": 0.0
+     },
+     {
+      "file": "death_certificate_aslam.png",
+      "variant": "original",
+      "edited": false,
+      "outcome": "pass",
+      "latency_ms": 1151.7,
+      "cost_usd": 0.0
+     },
+     {
+      "file": "death_certificate_aslam.whatsapp.jpg",
+      "variant": "whatsapp",
+      "edited": false,
+      "outcome": "pass",
+      "latency_ms": 1000.5,
+      "cost_usd": 0.0
+     },
+     {
+      "file": "death_certificate_aslam.screenshot.png",
+      "variant": "screenshot",
+      "edited": false,
+      "outcome": "pass",
+      "latency_ms": 858.2,
+      "cost_usd": 0.0
+     },
+     {
+      "file": "nikah_nama_aslam_zainab.png",
+      "variant": "original",
+      "edited": false,
+      "outcome": "pass",
+      "latency_ms": 1210.3,
+      "cost_usd": 0.0
+     },
+     {
+      "file": "nikah_nama_aslam_zainab.whatsapp.jpg",
+      "variant": "whatsapp",
+      "edited": false,
+      "outcome": "pass",
+      "latency_ms": 1610.0,
+      "cost_usd": 0.0
+     },
+     {
+      "file": "nikah_nama_aslam_zainab.screenshot.png",
+      "variant": "screenshot",
+      "edited": false,
+      "outcome": "pass",
+      "latency_ms": 800.3,
+      "cost_usd": 0.0
+     },
+     {
+      "file": "death_certificate_aslam_edited.png",
+      "variant": "edited",
+      "edited": true,
+      "outcome": "flag",
+      "latency_ms": 1704.6,
+      "cost_usd": 0.0
+     },
+     {
+      "file": "death_certificate_aslam_edited.whatsapp.jpg",
+      "variant": "edited",
+      "edited": true,
+      "outcome": "flag",
+      "latency_ms": 1101.2,
+      "cost_usd": 0.0
+     }
+    ],
+    "note": "second sensor not configured: cascade = forensics + Jev"
+   }
+  }
  },
  "summary": {
   "ruleset_version": 1,
@@ -1247,9 +3219,67 @@
   "human_review_rate_at_configured": 0.69,
   "name_false_match_rate": 0.0,
   "name_false_non_match_rate": 0.42,
-  "scam_mode": "keyword_fallback",
+  "scam_mode": "live",
   "scam_fpr": 0.0,
   "scam_fnr": 0.0,
-  "scam_not_sure_rate": 1.0
+  "scam_not_sure_rate": 0.1125,
+  "scam_tiers": {
+   "deterministic": {
+    "status": "ran",
+    "accuracy": 0.125,
+    "fpr": 0.0,
+    "fnr": 0.0,
+    "not_sure_rate": 0.875,
+    "median_latency_ms": 0.255,
+    "total_cost_usd": 0.0
+   },
+   "jev_only": {
+    "status": "ran",
+    "accuracy": 0.775,
+    "fpr": 0.0,
+    "fnr": 0.0652,
+    "not_sure_rate": 0.1875,
+    "median_latency_ms": 319.94,
+    "total_cost_usd": 0.00256
+   },
+   "cascade": {
+    "status": "ran",
+    "accuracy": 0.8875,
+    "fpr": 0.0,
+    "fnr": 0.0,
+    "not_sure_rate": 0.1125,
+    "median_latency_ms": 321.19,
+    "total_cost_usd": 0.00256
+   }
+  },
+  "document_tiers": {
+   "deterministic": {
+    "status": "ran",
+    "accuracy": 1.0,
+    "fpr": 0.0,
+    "fnr": 0.0,
+    "undecided_rate": 0.0,
+    "median_latency_ms": 296.7,
+    "total_cost_usd": 0.0
+   },
+   "jev_only": {
+    "status": "ran",
+    "accuracy": 0.3,
+    "fpr": 0.0,
+    "fnr": 1.0,
+    "undecided_rate": 0.6,
+    "median_latency_ms": 547.0,
+    "total_cost_usd": 0.0
+   },
+   "cascade": {
+    "status": "ran",
+    "accuracy": 0.5,
+    "fpr": 0.0,
+    "fnr": 0.0,
+    "undecided_rate": 0.5,
+    "median_latency_ms": 786.25,
+    "total_cost_usd": 0.0
+   }
+  }
  }
 }
