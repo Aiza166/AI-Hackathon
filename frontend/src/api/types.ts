@@ -41,6 +41,22 @@ export type CaseView = {
   latest_decision: DecisionSummary | null
 }
 
+// A list row whose claimant no longer shares her details with this viewer (Security review H1):
+// only the reference and status come back, never personal details or an id to open.
+export type CaseStub = { reference: string; status: string; consent_active: false }
+export type CaseRow = CaseView | CaseStub
+
+export function isCaseStub(row: CaseRow): row is CaseStub {
+  return (row as CaseStub).consent_active === false
+}
+
+// The same for an officer's payout-change list row without payout_account consent.
+export type PayoutChangeStub = { id: string; case_id: string; case_reference: string; status: PayoutChangeStatus; hold_until: string; consent_active: false }
+
+export function isPayoutChangeStub(row: PayoutChange | PayoutChangeStub): row is PayoutChangeStub {
+  return (row as PayoutChangeStub).consent_active === false
+}
+
 export type Explanation = { reason_code: string; text_ur: string; text_en: string; audio_key: string; icon: string }
 
 export type CitizenExplanation = {

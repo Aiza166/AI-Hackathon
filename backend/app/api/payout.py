@@ -11,7 +11,7 @@ from app.core.lockout import MAX_FAILURES, recent_failures
 from app.api.cases import _load
 from app.core import audit
 from app.core.auth import Principal, get_principal, require_roles
-from app.core.consent import consented_person_ids
+from app.core.consent import list_access
 from app.core.envelope import ok
 from app.core.ratelimit import limiter
 from app.core.security import verify_pin
@@ -87,18 +87,26 @@ def cancel(change_id: str, request: Request,
 
 
 @router.get("/payout-changes")
-def officer_list(status: str = "flagged", principal: Principal = Depends(require_roles(Role.OFFICER)),
+def officer_list(request: Request, status: str = "flagged", principal: Principal = Depends(require_roles(Role.OFFICER)),
                  db: Session = Depends(get_db)) -> dict:
-    """Officer view: payout changes in this department, flagged ones by default (newest first)."""
+    """Officer view: payout changes in this department, flagged ones by default (newest first).
+    Per-row consent (payout_account): without it the row is a redacted stub and the refusal is logged."""
     if status not in ("flagged", "held", "confirmed", "approved", "applied", "rejected", "cancelled", "all"):
         raise HTTPException(status_code=422, detail="Unknown status")
-    shared = consented_person_ids(db, principal, "payout_account")  # same consent rule as the case view
-    query = (select(PayoutChangeRequest, Case.reference).join(Case, Case.id == PayoutChangeRequest.case_id)
-             .where(PayoutChangeRequest.tenant_id == principal.tenant_id, Case.claimant_person_id.in_(shared))
+    query = (select(PayoutChangeRequest, Case).join(Case, Case.id == PayoutChangeRequest.case_id)
+             .where(PayoutChangeRequest.tenant_id == principal.tenant_id)
              .order_by(PayoutChangeRequest.created_at.desc()).limit(100))
     if status != "all":
         query = query.where(PayoutChangeRequest.status == status)
-    return ok([{**svc.view(change), "case_reference": ref} for change, ref in db.execute(query).all()])
+    rows = db.execute(query).all()
+    allowed = list_access(db, principal, request, (case.claimant_person_id for _, case in rows), "payout_account")
+    return ok([
+        {**svc.view(change), "case_reference": case.reference, "consent_active": True}
+        if allowed[case.claimant_person_id] else
+        {"id": change.id, "case_id": change.case_id, "case_reference": case.reference, "status": change.status,
+         "hold_until": change.hold_until.isoformat(), "consent_active": False}
+        for change, case in rows
+    ])
 
 
 @router.post("/payout-changes/{change_id}/{decision}")

@@ -89,3 +89,33 @@ def _log_access(db: Session, principal: Principal, request: Request, person_id: 
         details={"field": field, "basis": basis, "path": f"{request.method} {request.url.path}"},
     )
     db.commit()
+
+
+def list_access(db: Session, principal: Principal, request: Request, person_ids, field: str) -> dict[str, bool]:
+    """Consent per row for list endpoints (Security review H1).
+
+    Returns {person_id: may_see_details}. Logs one audit row per person per request:
+    CONSENT_DENIED for rows that will be redacted, DATA_ACCESS for rows shown to a
+    helper, department or auditor (a citizen reading her own rows is not logged)."""
+    people = list(dict.fromkeys(person_ids))
+    if not people:
+        return {}
+    path = f"{request.method} {request.url.path}"
+    if principal.role == Role.AUDITOR:
+        shared, basis = set(people), "oversight"
+    elif principal.role == Role.CITIZEN:
+        shared, basis = {p for p in people if p == principal.person_id}, None
+    else:
+        shared, basis = consented_person_ids(db, principal, field), "consent"
+    result = {}
+    for person_id in people:
+        allowed = person_id in shared
+        result[person_id] = allowed
+        if not allowed:
+            audit.record(db, principal.actor, "CONSENT_DENIED", resource=person_resource(person_id),
+                         details={"field": field, "path": path, "redacted": True})
+        elif basis is not None:
+            audit.record(db, principal.actor, "DATA_ACCESS", resource=person_resource(person_id),
+                         details={"field": field, "basis": basis, "path": path})
+    db.commit()
+    return result

@@ -6,7 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.auth import Principal, deny, get_principal, require_roles
-from app.core.consent import assert_consent, consented_person_ids
+from app.core.consent import assert_consent, list_access
 from app.core.ratelimit import limiter
 from app.core.envelope import ok
 from app.db import get_db
@@ -119,17 +119,20 @@ def list_cases(request: Request, principal: Principal = Depends(get_principal), 
         query = query.where(Case.tenant_id == principal.tenant_id)
     else:  # e.g. API keys: never list cases
         raise deny(db, principal, request, "role cannot list cases")
-    rows = db.execute(_with_consent(db, principal, query).limit(200)).scalars()
-    return ok([_view(db, c, principal) for c in rows])
+    return ok(_consented_views(db, principal, request, list(db.execute(query.limit(200)).scalars())))
 
 
-def _with_consent(db: Session, principal: Principal, query):
-    """Lists follow the same consent rule as single reads: a helper or department only sees the
-    cases of people who still share their case details (a withdrawal hides them at once).
-    Filtered in SQL before any LIMIT. Citizens see their own cases; auditors keep oversight."""
-    if principal.role not in (Role.HELPER, Role.OFFICER, Role.ADMIN):
-        return query
-    return query.where(Case.claimant_person_id.in_(consented_person_ids(db, principal, "case_details")))
+def _consented_views(db: Session, principal: Principal, request: Request, cases: list[Case]) -> list[dict]:
+    """Lists follow the same consent rule as single reads (Security review H1): a row whose
+    claimant no longer shares case details with this helper or department is a stub
+    {reference, status, consent_active: false}, and the refusal is logged once per person.
+    Citizens see their own cases; auditors keep oversight."""
+    allowed = list_access(db, principal, request, (c.claimant_person_id for c in cases), "case_details")
+    return [
+        _view(db, c, principal) if allowed[c.claimant_person_id]
+        else {"reference": c.reference, "status": c.status, "consent_active": False}
+        for c in cases
+    ]
 
 
 @router.get("/cases/{case_id}")
@@ -189,14 +192,14 @@ def decision_trace(
 
 
 @router.get("/queue")
-def officer_queue(principal: Principal = Depends(require_roles(*OFFICER_LIKE)), db: Session = Depends(get_db)) -> dict:
+def officer_queue(request: Request, principal: Principal = Depends(require_roles(*OFFICER_LIKE)), db: Session = Depends(get_db)) -> dict:
     """Cases waiting for a human: highest priority first, then lowest confidence."""
     query = (
         select(Case)
         .where(Case.tenant_id == principal.tenant_id, Case.status.in_(("in_review", "proof_requested")))
         .order_by(Case.priority.desc(), Case.confidence.asc().nulls_first(), Case.created_at)
     )
-    return ok([_view(db, c, principal) for c in db.execute(_with_consent(db, principal, query)).scalars()])
+    return ok(_consented_views(db, principal, request, list(db.execute(query.limit(200)).scalars())))
 
 
 @router.post("/cases/{case_id}/approve")
