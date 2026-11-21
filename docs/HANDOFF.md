@@ -26,7 +26,9 @@ Hackathon: Coder's Cup 2026, "The Last Mile: AI on Public Rails". Submit by **Su
    - #8 security hardening against two professional checklists (`docs/SECURITY-CHECKLIST.md`, 148 items).
    - #19 fixes for every bug the browser test found (rule v2 demo, offline reload, consent, demo fill).
    - #20 Scam Shield v2 built from Aiza's FYP knowledge (no FYP code): WhatsApp share, screenshots, link and call checks, and a **two-model cascade**: Jev (fast, cheap) on everything, gpt-5-mini (Azure) only on hard cases. Measured on our invented test set: 74% -> 84% accuracy, 0 false alarms.
-5. **Running now (Sat evening):** Sentry error monitoring + Codecov coverage; judge console + evaluation page with charts. They merge themselves when CI is green.
+5. **Sat evening:**
+   - #21 monitoring: Sentry error tracking on backend and frontend (CNIC, IBAN, PIN, phone and tokens scrubbed before sending; admin `POST /api/v1/admin/sentry-test` shows a test error on the dashboard), Codecov coverage in CI (backend ~94% lines).
+   - #22 **Evaluation page** (officer/admin/auditor tab: cost curve with 0.95 marked, wrong approvals, name-matching rates, Scam Shield and document cascade tiers with accuracy, speed, cost, model ids; every chart has a table view) and **Judge console** (admin tab: fault switches for each mock government service, simulated outages for Jev / gpt-5-mini / Azure OCR / Azure voice with safe fallbacks, live status, demo reset, sample messages and documents, live audit feed).
 
 ## 3. What is where
 
@@ -46,7 +48,7 @@ Hackathon: Coder's Cup 2026, "The Last Mile: AI on Public Rails". Submit by **Su
 
 ## 5. Your tasks (in order)
 
-1. **Full test of the merged app (most important).** Nothing has been clicked through in a browser since PRs #8, #19, #20 and the monitoring/judge PRs. Run the Playwright suite (`frontend/e2e`) against a local stack, then click the golden path on your real phone on the live site once Aiza says OK. Watch especially: audio (Listen), photo step, Scam Shield screenshot/record, offline queue, and anything blocked by the new strict CSP (browser console "Refused to ..."). Write results in `docs/TEST-REPORT.md` (new dated section); fix small bugs in a PR, report big ones to Aiza.
+1. **Full test of the merged app (most important).** Nothing has been clicked through end to end in a browser since PRs #8, #19, #20, #21 and #22. Run the Playwright suite (`frontend/e2e`) against a local stack, then click the golden path on your real phone on the live site once Aiza says OK. Watch especially: audio (Listen), photo step, Scam Shield screenshot/record, offline queue, and anything blocked by the new strict CSP (browser console "Refused to ..."). Write results in `docs/TEST-REPORT.md` (new dated section); fix small bugs in a PR, report big ones to Aiza.
 2. **One real-user test.** Ask a relative or neighbour (ideally an older woman) to try the claim flow on a phone for 10 minutes. Don't help unless she is stuck. Note what confused her (anonymous: no name or photo). Put 3-5 findings and one short quote in `docs/USER-TEST.md`, and fix the easy ones.
 3. **Sindhi and Punjabi text.** About 40 fixed citizen strings (claim steps, reasons, Scam Shield verdicts). Add a language choice (Urdu default). Label them "machine-assisted translation, to be reviewed". Audio stays Urdu (Azure has no Pakistani Punjabi voice). Keep the size budget.
 4. **Demo script = one story** (5-7 min): Zainab claims, a scam SMS arrives and Scam Shield catches it, someone tries to change her payout account and SafeSwitch protects her, the officer handles the "not sure" case. Digital Twin and evaluation page only if judges ask. Update `docs/05-DEMO-SCRIPT.md`.
