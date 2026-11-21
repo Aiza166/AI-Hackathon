@@ -13,7 +13,7 @@ ARG RAILWAY_GIT_COMMIT_SHA=""
 ENV VITE_SENTRY_DSN=$VITE_SENTRY_DSN VITE_SENTRY_RELEASE=$RAILWAY_GIT_COMMIT_SHA
 RUN npm run build
 
-FROM nginx:1.27-alpine
+FROM nginx:1.29-alpine
 COPY nginx.conf.template /etc/nginx/templates/default.conf.template
 # Becomes /etc/nginx/conf.d/security-headers.inc (not *.conf, so it is only included where named).
 COPY security-headers.inc.template /etc/nginx/templates/security-headers.inc.template
