@@ -1,5 +1,68 @@
 # Sahara E2E test report
 
+## Run 2: full test of the merged app (Sat 21 Nov 2026, evening, Kissa)
+
+- **Build tested:** `main` at `12423bd` (after #19-#22 and #25), plus this branch's one CSS fix.
+- **Where:** localhost only, on Kissa's laptop. Backend :8010 on its own database `sahara_e2e`, Vite dev :5180, production build via `vite preview` :5181. The live Railway site was not used.
+- **Keys:** real Jev key (`jev-1.14.0`). **No Azure keys** (speech, document reading, gpt-5-mini) and no Sentry DSN, so those parts ran on their fallbacks; see "Not covered" below.
+- **How:** Playwright 1.65.1 + Chromium. Phone 390x844 (touch) as before, plus a new journey at **360x780**; staff screens at 1280x900.
+
+### Result
+
+| Suite | Result |
+|---|---|
+| Backend `pytest` (440 tests) | **438 passed, 2 skipped, 0 failed**. The 2 skips are voice-note tests that need `ffmpeg`, which is not installed on this laptop |
+| Playwright, final full run (26 tests, 5.4 min) | **25 passed, 0 failed, 1 skipped** (Jev unreachable: needs its own backend) |
+| Jev unreachable, run separately (backend with `TYPESAFE_BASE_URL=http://127.0.0.1:9`) | **passed**: `/readyz` said `jev_reachable: false`; Scam Shield still answered safely and never "looks genuine"; claims still worked |
+| New: J12 every citizen + helper screen at 360 px | **passed after one fix** (21 screens: 0 sideways scroll, all Urdu RTL, all tap targets >= 48 px, **0 Content-Security-Policy blocks**) |
+| Console errors | One per run, expected: `POST /speech/tts` -> 503 `TTS_NOT_CONFIGURED` (no Azure speech key here); the app then uses the phone's voice |
+
+All earlier bugs B1-B11 stay fixed: borderline Scam Shield message = `NOT_SURE` (B1); publishing v2 re-decides the pending Haider heirs to v2, Rakha stays v1 (B2); "Fill demo data" leaves a blank DOB blank (B3); offline reload resumes at "3 / 7" (B4).
+
+Security behaviour checked on the way (all held): helper cannot confirm a payout with a PIN (403); citizen cannot call the officer approve endpoint (403) or read decision traces (403); officer cannot open the Judge console (403); consent take-back blocks the helper's next request (403, `CONSENT_DENIED` in her access log); auditor chain verify "intact"; replaying an `Idempotency-Key` returns the same case (one claim, one `201`).
+
+### Measured
+
+| What | Value |
+|---|---|
+| Slow 3G cold load (production build) | first render 3.8 s, FCP 3.3 s, 96 KB on the wire (budget 170 KB) |
+| Offline reload (service worker) | app shell loads, saved claim resumes at step 3 / 7 |
+| Offline send then reconnect | 1 case on the server, one `201` |
+| Digital Twin v2 | 4 checked, 2 change (SP-0001, SP-0002 -> 2034-11-01) |
+| Helper Mode | 40 families; locked ones hide the CNIC |
+| axe (WCAG 2.1 A/AA) at 390 px | 0 serious or critical |
+
+### Bug found and fixed in this PR
+
+| ID | Severity | Bug | Fix |
+|---|---|---|---|
+| B12 | LOW | The login screen's "Demo accounts (mock)" / "Hide demo accounts" toggle was 44 px tall, under the 48 px rule (J9 recorded it but did not fail; J12 fails on it) | `.demo-toggle` `min-height: 48px` (`frontend/src/index.css`). J9 and J12 pass |
+
+### Not covered on this laptop (check on the live site or with keys)
+
+- **Azure speech:** Listen was tested with the phone's voice only (server TTS 503). Check that the live site's Listen uses the Azure voice.
+- **Azure document reading:** without OCR the edited death certificate goes to an officer as `OCR_UNAVAILABLE` + `NEEDS_OFFICER` (safe: in review, never approved) instead of `DOC_EDIT_RISK`. Check `DOC_EDIT_RISK` and the heatmap on the live site.
+- **gpt-5-mini second sensor:** Scam Shield ran on Jev + rules only.
+- **Voice notes and real recording:** `ffmpeg` is missing here (2 backend tests skipped); Record and Share need a real phone.
+- **Security-fixes branch:** not merged when this ran. Its screen changes (redacted rows after consent take-back, "scheduled" rule status, second-admin approval, forgery-flag clear button, new warning codes) were **not** tested; rerun J1, J7, J11 and J12 after it merges.
+
+### What to tap on the phone (live site, once Aiza says OK)
+
+Use a real Android phone, Chrome, mobile data or a weak hotspot.
+
+1. Open the live app: the PROTOTYPE banner shows, the page does not scroll sideways.
+2. Demo accounts (mock) -> Zainab. Start a new claim, fill the DOB with "Fill demo DOB", then "Fill demo data", send. Expect **approved**.
+3. On the result, tap **Listen**: it should be a natural Urdu voice (Azure), not the robot phone voice.
+4. Photo step: take a real photo of any printed page (no real ID), and upload `death_certificate_aslam_edited.png` from the Judge console samples: the case goes to an officer with "needs a second look", never "fake".
+5. Scam Shield: Fill demo scam SMS -> red verdict, Listen, tap **1799** (dialer opens; do not call). Try **Screenshot** with a screenshot of the demo SMS, and **Record** a few seconds.
+6. Change payout account: Demo: Own wallet -> PIN 1234 -> confirmed.
+7. Airplane mode mid-claim, Send, then turn signal back on: claim sends once, strip disappears.
+8. Watch for anything that does not load (blank picture, silent Listen); if a laptop is handy, check the browser console for "Refused to ...".
+
+---
+
+## Run 1 (Sat 21 Nov 2026, earlier)
+
 - **Build tested:** `main` at `5f521e6` (docs: infrastructure note), Sat 21 Nov 2026.
 - **Where:** localhost only. Backend on :8010 against its own database `sahara_e2e` (seeded, reset before each journey), Vite dev on :5180, production build via `vite preview` on :5181. The live Railway site was never used.
 - **How:** Playwright 1.65 + Chromium, phone 390x844 (touch) for citizen/helper screens, 1280x900 for staff screens. Specs: `frontend/e2e/tests/` (rerun steps in `frontend/e2e/README.md`). Real Jev and Azure keys from `backend/.env` were used (never printed).
