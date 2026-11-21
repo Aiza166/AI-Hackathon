@@ -76,3 +76,5 @@ Filled in as we build. Final version goes in the submission README.
 | Second sensor (cascade) | Real Azure OpenAI model (gpt-5-mini) when `SECOND_SENSOR_*` is set, called only when Jev is unsure; off without the settings |
 
 Infrastructure (Railway services, Azure resources, variable names): [docs/INFRA.md](docs/INFRA.md).
+
+New teammate or new session? Start with [docs/HANDOFF.md](docs/HANDOFF.md).

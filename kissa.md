@@ -5,6 +5,21 @@
 > Your personal task list. Aiza (and Claude) keep this updated. Tick boxes as you finish and push.
 > Last updated: Sat 21 Nov ~04:00. **Phase 1 is built** (backend + a first version of your screens). Read section 0 first.
 
+## Start here (Sat 21 Nov evening handoff)
+
+Read **[docs/HANDOFF.md](docs/HANDOFF.md)** first: the whole project in plain words, what is done, your task list, and the merge rules.
+
+Your tasks now (details in HANDOFF section 5):
+- [ ] 1. Full test of the merged app (Playwright + your phone); results in `docs/TEST-REPORT.md`
+- [ ] 2. One real-user test (10 min, anonymous) -> `docs/USER-TEST.md`
+- [ ] 3. Sindhi + Punjabi text for citizen screens (labelled machine-assisted)
+- [ ] 4. Demo script trimmed to one story
+- [ ] 5. Q&A cheat-sheet (`docs/QA-CHEATSHEET.md`), rehearse Sunday
+
+**Dependabot PRs #9-#18: leave them open. Do not merge or close.** You may squash-merge your own PRs once CI is green; ask Aiza for backend logic, security or migration changes.
+
+Note: older update notes below say "Sun" for some Saturday work; they were all written on Sat 21 Nov.
+
 ## 0. What changed overnight (read first)
 
 **Update Sun (Aiza + Claude): Scam Shield v2.** `src/pages/ScamShield.tsx` now has three modes (Message or link / Screenshot / Phone call), a Paste button, screenshot upload, voice-note upload and a Record button (only where the phone supports it). The result view moved to `src/components/ScamVerdict.tsx` and lists the links we checked (never opened) and what was read or heard. Installed app: "Share" from WhatsApp/SMS opens Scam Shield prefilled (`src/lib/share.ts`, `public/share-target-sw.js`). Please check at 360 px: the 3-mode choice, the file pickers, the Record button, Urdu line breaks; record clips for `prompt_scam_intro` (new text). Browser test of share/screenshot/recording is planned for the end.
