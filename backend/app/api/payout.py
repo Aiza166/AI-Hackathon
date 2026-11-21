@@ -7,9 +7,11 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.api.admin import platform_admin
+from app.core.lockout import MAX_FAILURES, recent_failures
 from app.api.cases import _load
 from app.core import audit
 from app.core.auth import Principal, get_principal, require_roles
+from app.core.consent import consented_person_ids
 from app.core.envelope import ok
 from app.core.ratelimit import limiter
 from app.core.security import verify_pin
@@ -55,7 +57,15 @@ def list_changes(case_id: str, request: Request, principal: Principal = Depends(
 @limiter.limit("5/minute")
 def confirm(change_id: str, body: ConfirmIn, request: Request,
             principal: Principal = Depends(require_roles(Role.CITIZEN)), db: Session = Depends(get_db)) -> dict:
-    """The claimant re-enters her own PIN. Helpers cannot reach this route at all."""
+    """The claimant re-enters her own PIN. Helpers cannot reach this route at all.
+
+    Same rule as sign-in: 5 wrong PINs here in 15 minutes block the step-up, so a stolen access
+    token cannot be used to guess the PIN and redirect the pension. Login failures are not counted:
+    anyone who knows her phone number could otherwise lock her payout confirmation."""
+    if recent_failures(db, principal.id, "PAYOUT_CONFIRM_FAILED") >= MAX_FAILURES:
+        audit.record(db, principal.actor, "PAYOUT_CONFIRM_LOCKED", resource=f"payout_change:{change_id}")
+        db.commit()
+        raise HTTPException(status_code=429, detail="Too many wrong PINs. Please wait 15 minutes or ask your helper.")
     user = db.get(User, principal.id)
     if user is None or not verify_pin(body.pin, user.pin_hash):
         audit.record(db, principal.actor, "PAYOUT_CONFIRM_FAILED", resource=f"payout_change:{change_id}")
@@ -82,8 +92,9 @@ def officer_list(status: str = "flagged", principal: Principal = Depends(require
     """Officer view: payout changes in this department, flagged ones by default (newest first)."""
     if status not in ("flagged", "held", "confirmed", "approved", "applied", "rejected", "cancelled", "all"):
         raise HTTPException(status_code=422, detail="Unknown status")
+    shared = consented_person_ids(db, principal, "payout_account")  # same consent rule as the case view
     query = (select(PayoutChangeRequest, Case.reference).join(Case, Case.id == PayoutChangeRequest.case_id)
-             .where(PayoutChangeRequest.tenant_id == principal.tenant_id)
+             .where(PayoutChangeRequest.tenant_id == principal.tenant_id, Case.claimant_person_id.in_(shared))
              .order_by(PayoutChangeRequest.created_at.desc()).limit(100))
     if status != "all":
         query = query.where(PayoutChangeRequest.status == status)

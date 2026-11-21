@@ -29,6 +29,7 @@ Build window: Fri 20 Nov 2026, 6:00 PM to Sun 22 Nov 2026, 6:00 PM PKT. Live jud
 | 3 | [docs/03-ARCHITECTURE.md](docs/03-ARCHITECTURE.md) | Stack, decision engine, data model, API, security |
 | 4 | [docs/04-BUILD-PLAN.md](docs/04-BUILD-PLAN.md) | Team roles, hour-by-hour timeline, milestones, cut list |
 | 5 | [docs/05-DEMO-SCRIPT.md](docs/05-DEMO-SCRIPT.md) | The live demo, judge console, backup plan, Q&A prep |
+| - | [docs/SECURITY-CHECKLIST.md](docs/SECURITY-CHECKLIST.md) | Security audit against the GitHub Well-Architected and Invicti checklists, STRIDE threat model, scanner results |
 | - | [docs/STATUS.md](docs/STATUS.md) | **Living status**: what is done, decisions, open questions |
 | - | [PRIOR_WORK.md](PRIOR_WORK.md) | Disclosure of related prior work (pending organizer clearance) |
 | - | [kissa.md](kissa.md) | Kissa's setup steps and task list |

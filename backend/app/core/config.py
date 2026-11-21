@@ -16,6 +16,8 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+psycopg://sahara:sahara@localhost:5432/sahara"
     redis_url: str = "redis://localhost:6379/0"
     cors_origins: list[str] = ["http://localhost:5173"]
+    # Proxies in front of the API that append to X-Forwarded-For (Railway: 1). See core/ratelimit.py.
+    rate_limit_proxy_hops: int = 0
 
     jwt_secret: str = ""  # required: the app refuses to start without a strong secret
     jwt_access_minutes: int = 30

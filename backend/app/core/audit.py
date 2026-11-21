@@ -12,6 +12,7 @@ from datetime import datetime, timezone
 from sqlalchemy import select, text
 from sqlalchemy.orm import Session
 
+from app.core.redact import redact, redact_text
 from app.models.audit import AuditEvent
 from app.models.platform import utcnow
 
@@ -63,7 +64,9 @@ def record(
 ) -> AuditEvent:
     """Append one event. Runs inside the caller's transaction; the advisory lock
     serialises writers so the chain never forks."""
-    details = details or {}
+    # CNICs and IBANs never enter the trail in full (also in free-text reasons and notes).
+    details = redact(details or {})
+    resource = redact_text(resource) if resource else resource
     tenant_id = tenant_id or actor.tenant_id
     db.execute(text("SELECT pg_advisory_xact_lock(:k)"), {"k": _CHAIN_LOCK_KEY})
     last = db.execute(select(AuditEvent.hash).order_by(AuditEvent.seq.desc()).limit(1)).scalar()

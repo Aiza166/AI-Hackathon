@@ -5,7 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.auth import Principal, deny, get_principal, require_roles
-from app.core.consent import assert_consent
+from app.core.consent import assert_consent, consented_person_ids
 from app.core.ratelimit import limiter
 from app.core.envelope import ok
 from app.db import get_db
@@ -92,8 +92,10 @@ def create_and_submit(
 def _file_claim(db: Session, principal: Principal, request: Request, body: ClaimIn) -> dict:
     if principal.role == Role.HELPER:
         # A helper may only file for a family that has shared its details with this helper.
+        # Only for families assigned to this helper: for anyone else create_case refuses with one
+        # message whether or not the CNIC exists, so the route cannot be used to probe CNICs.
         person = svc.person_by_cnic(db, body.claimant_cnic)
-        if person is not None:
+        if person is not None and svc.helper_assigned(db, principal.id, person.id):
             assert_consent(db, principal, request, person.id, "case_details")
     case = svc.create_case(db, principal, body)
     svc.run_decision(db, case, created_by=principal)
@@ -116,7 +118,17 @@ def list_cases(request: Request, principal: Principal = Depends(get_principal), 
         query = query.where(Case.tenant_id == principal.tenant_id)
     else:  # e.g. API keys: never list cases
         raise deny(db, principal, request, "role cannot list cases")
-    return ok([_view(db, c, principal) for c in db.execute(query.limit(200)).scalars()])
+    rows = db.execute(_with_consent(db, principal, query).limit(200)).scalars()
+    return ok([_view(db, c, principal) for c in rows])
+
+
+def _with_consent(db: Session, principal: Principal, query):
+    """Lists follow the same consent rule as single reads: a helper or department only sees the
+    cases of people who still share their case details (a withdrawal hides them at once).
+    Filtered in SQL before any LIMIT. Citizens see their own cases; auditors keep oversight."""
+    if principal.role not in (Role.HELPER, Role.OFFICER, Role.ADMIN):
+        return query
+    return query.where(Case.claimant_person_id.in_(consented_person_ids(db, principal, "case_details")))
 
 
 @router.get("/cases/{case_id}")
@@ -181,7 +193,7 @@ def officer_queue(principal: Principal = Depends(require_roles(*OFFICER_LIKE)), 
         .where(Case.tenant_id == principal.tenant_id, Case.status.in_(("in_review", "proof_requested")))
         .order_by(Case.priority.desc(), Case.confidence.asc().nulls_first(), Case.created_at)
     )
-    return ok([_view(db, c, principal) for c in db.execute(query).scalars()])
+    return ok([_view(db, c, principal) for c in db.execute(_with_consent(db, principal, query)).scalars()])
 
 
 @router.post("/cases/{case_id}/approve")

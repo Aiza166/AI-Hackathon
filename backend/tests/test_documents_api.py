@@ -118,7 +118,7 @@ def test_upload_limits_type_size_and_kind(client, login, file_claim, monkeypatch
     case = file_claim("zainab")["data"]
     zainab = login("zainab")
     assert _upload(client, zainab, case["id"], b"%PDF-1.4", content_type="application/pdf").status_code == 415
-    assert _upload(client, zainab, case["id"], b"not really a png", content_type="image/png").status_code == 422
+    assert _upload(client, zainab, case["id"], b"not really a png", content_type="image/png").status_code == 415  # magic bytes decide
     assert _upload(client, zainab, case["id"], "cnic_front_zainab.png", kind="passport").status_code == 422
     monkeypatch.setattr("app.api.documents.MAX_UPLOAD_BYTES", 1000)
     assert _upload(client, zainab, case["id"], "cnic_front_zainab.png").status_code == 413
