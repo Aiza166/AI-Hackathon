@@ -1,8 +1,11 @@
-import { useEffect, useState } from 'react'
+import { Suspense, lazy, useEffect, useState } from 'react'
 import { api, errorText } from '../api/client'
 import type { CitizenExplanation } from '../api/types'
 import { ErrorNote, ListenButton, Loading, Pictogram, humanize, toneFor } from '../components/ui'
 import { DOC_ICONS, Icon } from '../lib/icons'
+
+const DocumentCapture = lazy(() => import('../components/DocumentCapture').then((m) => ({ default: m.DocumentCapture })))
+const PHOTO_KINDS = ['death_certificate', 'claimant_cnic', 'frc', 'nikah_nama'] as const
 
 // The citizen's view of a decision: icon + Urdu sentence + audio. Never generated text.
 
@@ -23,6 +26,7 @@ interface CaseResultProps {
 export function CaseResult({ caseId, onBack }: CaseResultProps) {
   const [data, setData] = useState<CitizenExplanation | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [addingPhotos, setAddingPhotos] = useState(false)
 
   useEffect(() => {
     let active = true
@@ -44,6 +48,14 @@ export function CaseResult({ caseId, onBack }: CaseResultProps) {
 
   if (error) return <section className="stack"><ErrorNote message={error} />{backButton}</section>
   if (!data) return <Loading label="Opening your claim" />
+
+  if (addingPhotos) {
+    return (
+      <Suspense fallback={<Loading label="Opening the camera step" />}>
+        <DocumentCapture caseId={caseId} kinds={[...PHOTO_KINDS]} onDone={() => setAddingPhotos(false)} />
+      </Suspense>
+    )
+  }
 
   const head = HEADLINE[data.status] ?? FALLBACK
   const tone = toneFor(data.status)
@@ -99,6 +111,11 @@ export function CaseResult({ caseId, onBack }: CaseResultProps) {
           <span>Pension is paid until <strong>{data.entitlement_end}</strong> (rule v2: 10-year limit for children and other heirs).</span>
         </p>
       )}
+      <button type="button" className="btn btn-secondary btn-big" onClick={() => setAddingPhotos(true)}>
+        <Icon name="camera" size={24} />
+        <span lang="ur" dir="rtl">کاغذات کی تصویر بھیجیں</span>
+        <span className="btn-en">Send photos of papers</span>
+      </button>
       {backButton}
     </section>
   )

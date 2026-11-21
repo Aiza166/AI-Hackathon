@@ -1,10 +1,12 @@
-import { useCallback, useEffect, useState } from 'react'
+import { Suspense, lazy, useCallback, useEffect, useState } from 'react'
 import { api, errorText, post } from '../api/client'
 import type { CaseView } from '../api/types'
 import { Badge, ErrorNote, Loading, humanize, toneFor } from '../components/ui'
 import { Icon } from '../lib/icons'
 import { OfficerPayouts } from './OfficerPayouts'
 import { ScamMap } from './ScamMap'
+
+const DocumentReview = lazy(() => import('../components/DocumentReview').then((m) => ({ default: m.DocumentReview })))
 
 // Officer review queue: highest priority first, lowest confidence first.
 // Desktop: queue on the left, case detail and decision trace on the right.
@@ -160,6 +162,9 @@ function QueuePanel() {
             </header>
             {selected.latest_decision && !trace && <Loading label="Loading decision trace" />}
             {trace && <TraceView trace={trace} />}
+            <Suspense fallback={<Loading label="Loading documents" />}>
+              <DocumentReview key={selected.id} caseId={selected.id} />
+            </Suspense>
             <label className="field">
               <span className="field-label">Your reason (required, saved in the audit log)</span>
               <textarea className="input" rows={3} value={reason} onChange={(e) => setReason(e.target.value)} />

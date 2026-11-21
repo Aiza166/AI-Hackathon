@@ -29,7 +29,8 @@ log = logging.getLogger("sahara.speech")
 router = APIRouter(prefix="/api/v1/speech", tags=["speech"])
 
 VOICES = {"ur": ("ur-PK", "ur-PK-UzmaNeural"), "en": ("en-IN", "en-IN-NeerjaNeural")}
-STT_LANGUAGES = {"ur": "ur-PK", "en": "en-IN"}
+# ur-PK returns HTTP 400 on the short-audio REST API (tested live 2026-11-21, uaenorth); ur-IN works.
+STT_LANGUAGES = {"ur": "ur-IN", "en": "en-IN"}
 AUDIO_FORMAT = "audio-24khz-48kbitrate-mono-mp3"  # ~6 KB per second: fine on a weak connection
 MAX_TTS_CHARS = 400
 MAX_STT_BYTES = 1_000_000  # ~30 s of 16 kHz mono WAV; the short-audio API takes at most 60 s
@@ -155,7 +156,7 @@ def speech_to_text(
     request: Request, audio: UploadFile = File(...), lang: Literal["ur", "en"] = Query("ur"),
     principal: Principal = Depends(require_roles(*ALL_ROLES)),
 ) -> Response | dict:
-    """Short audio (16 kHz mono WAV or Ogg/Opus, <= ~30 s) to text. Pre-fill only: the user confirms."""
+    """Short audio (16 kHz mono WAV or Ogg/Opus, <= ~30 s) to text in ur-IN Urdu. Pre-fill only: the user confirms."""
     settings = get_settings()
     if not settings.speech_configured:
         return fail(code="STT_NOT_CONFIGURED", message="Server speech input is not set up.", status=503)

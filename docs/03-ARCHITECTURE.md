@@ -20,8 +20,8 @@
 | Rules engine | GoRules ZEN (`zen-engine`), rules stored as versioned JSON rows | Edit rules without redeploy; React editor exists |
 | AI decision model | Jev via TypeSafe API (`typesafe-sdk`), pinned `jev-1.14.0` | Typed questions, calibrated probabilities; brief names Jev |
 | Name matching | rapidfuzz + our own normaliser for Pakistani name variants | Fast, testable, explainable |
-| OCR / documents | Tesseract (`pytesseract`) + OpenCV; Pillow for EXIF; simple error-level analysis | Free, local, enough for mock documents |
-| Speech | Pre-generated Urdu audio (Azure `ur-PK-UzmaNeural`) for fixed prompts, cached in the PWA; speech-to-text (Whisper; browser `ur-PK` input untested on a real phone, no source confirms Google `ur-PK` STT) only pre-fills fields | Reliable offline demo; no blind trust in STT |
+| OCR / documents | Azure Document Intelligence `prebuilt-read` when configured, else Tesseract (`pytesseract`, eng+urd in the Docker image); OpenCV stamp copy-move; Pillow ELA + EXIF | Works with no keys; better reading with Azure |
+| Speech | Azure neural TTS (`ur-PK-UzmaNeural`, `en-IN-NeerjaNeural`) via `POST /api/v1/speech/tts`, cached on the server and in the PWA; falls back to the phone's speech engine. Short-audio STT (`ur-IN`; `ur-PK` returns 400) only pre-fills fields | Works without keys; no blind trust in STT |
 | Frontend | React + Vite + TypeScript PWA, Tailwind, Dexie (IndexedDB) outbox, Workbox service worker | Offline, small, installable |
 | Auth | JWT (access + refresh) issued by our API, bcrypt PINs/passwords; hashed API keys for outside systems | Simple, fully under our control, server-side RBAC |
 | Background jobs | arq on Redis (payout hold timer, webhook delivery, notifications) | Brief option "background jobs and queues" |
@@ -258,7 +258,7 @@ Mock services are separate modules with their own tables and clean APIs, so they
 | `persons` | id, cnic, display_name |
 | `helper_assignments` | helper_user_id, person_id |
 | `cases` | id, tenant_id, type, claimant_person_id, deceased_cnic, status, priority, assigned_officer_id, created_by, created_at |
-| `case_documents` | id, case_id, kind, storage_key, ocr_json, edit_risk_json |
+| `case_documents` | id, case_id, tenant_id, kind, sha256, risk_level, indicator_codes, result (fields, checks, forensics, jev, indicators), confirmed_fields, image_jpeg, ela_jpeg (see Documents) |
 | `case_events` | id, case_id, kind (created, assigned, escalated, proof_requested, approved, rejected, closed), actor, note |
 | `decisions` | id, case_id, rule_version_id, model_id, input_hash, signals jsonb, jev_raw jsonb, confidence, thresholds jsonb, route, reason_codes[], explanation_key, created_at |
 | `rule_versions` | id, ruleset, version, zen_json, thresholds jsonb, status (draft/live/retired), created_by, published_at |
@@ -383,6 +383,43 @@ Report routes shown after a scam verdict (Round 2 research): NCCIA helpline 1799
 - Outbox key = UUID created when the user taps save. Flush on app open, `online` event, Background Sync (Chromium only) and a "Send now" button. Call `navigator.storage.persist()`.
 - Server Idempotency-Key (IETF draft): unique per principal, replay stored response, 422 if the same key comes with a different body, 409 while in flight.
 - Outbox partitioned per family in Helper Mode.
+
+## Documents (Challenge 8) and Voice
+
+Code: `backend/app/documents/` (pipeline), `backend/app/api/documents.py`, `backend/app/api/speech.py`; frontend `src/components/DocumentCapture.tsx` (citizen, lazy), `src/components/DocumentReview.tsx` (officer, lazy), `src/lib/photo.ts`, `src/lib/speak.ts`.
+
+### Document pipeline
+
+`POST /api/v1/cases/{id}/documents` (multipart `kind` + `file`; citizen, helper or officer; same case visibility and consent check as other case reads, consent field `cnic` / `death_certificate` / `family_record` by kind; JPEG/PNG/WebP only, 8 MB max, 10 per minute). Kinds: `claimant_cnic`, `deceased_cnic`, `death_certificate`, `frc`, `nikah_nama`. The citizen reaches it right after "Send claim" in the wizard, and later from her claim page ("Send photos of papers").
+
+1. **Load** (`imaging.py`): decompression-bomb guard, EXIF orientation applied, RGB, longest side 1568 px (the Jev limit, also enough for OCR). The phone already shrinks the photo to 1568 px JPEG and gives a blur/dark hint before upload (`src/lib/photo.ts`).
+2. **Quality**: variance of the Laplacian on a 1000 px grey copy (< 60 = blurry), 90th-percentile brightness (< 90 = too dark; a percentile so screenshots with black phone borders pass), < 280 px = too small, low contrast. A failed photo returns `status: "retake"` with fixed Urdu/English text and **nothing is stored** (audit `DOCUMENT_RETAKE_ASKED`). All 20 sample images pass; blurred, darkened and tiny copies fail.
+3. **OCR** (`ocr.py`): Azure Document Intelligence `prebuilt-read` (REST, API 2024-11-30, submit then poll `Operation-Location`, 2 retries on 429/5xx, 20 s timeout) when `AZURE_DOCINTEL_*` is set; otherwise, or if Azure fails, Tesseract. If neither works: indicator `OCR_UNAVAILABLE` ("an officer will read it"), never an error for the citizen.
+4. **Fields** (`fields.py`), per kind: CNIC regex `#####-#######-#` (dashes, spaces or none); dates day-first in `dd.mm.yyyy`, `dd/mm/yyyy`, `dd-mm-yyyy`, `dd-Mon-yyyy` (2- or 4-digit year); names by label proximity (on the label line, to its right, under it); certificate and FRC numbers by label. Rotated watermark fragments (lines over 2.5x the median height) are dropped. The informant's CNIC on a death certificate is never taken for the deceased's. Each field has a 0-1 confidence (OCR line confidence x 1.0 for a label, 0.8 for a same-row neighbour, 0.6 for a pattern alone). Below 0.85 the citizen is asked to confirm or correct it (`POST .../documents/{doc}/confirm`); corrected values are checked against the record like read ones and shown to the officer as "typed by citizen".
+5. **Registry consistency** (`consistency.py`), through the same mock adapters as the decision engine (fault injection applies): CNIC exact; names via `match_identity` (a match needs the exact CNIC) or `name_similarity` >= 85 where the paper carries no CNIC (nikah nama); date of death and certificate number against the death record; FRC number and member CNICs against the family record. A disagreement read at confidence < 0.85 is "unclear" (confirm), not a mismatch.
+6. **Forensics** (`forensics.py`): **copy-move on stamp regions only**. Saturated ink is split by hue family and closed into blobs; similar-sized stamp candidates are compared by normalised cross-correlation of their ink masks (>= 0.6), with ORB keypoint matches kept as evidence. Whole-page ORB self-matching was tried first and flags every clean page (printed text repeats glyphs, the MOCK watermark repeats), so it is not used. **ELA** (JPEG q=90 recompression difference) is stored as a heatmap for the officer, context only. **EXIF** is context only: missing EXIF never counts; an editing-software tag is an `info` indicator. A phone-screenshot layout is shown as `info`.
+7. **Jev** (`jev_checks.py`, question set `B-documents-v1`): one request with the image as an asset (`TypeSafe-Danger-Zone-Images: true`, fresh UUID reference, baseline JPEG, 280-1568 px), 8 s timeout. Nouls: right document type; text looks pasted on or painted over; photo of a screen; official stamp present (certificates only). Box for the altered text and for the stamp, each kept only when its presence Noul is a clear yes. Skipped without a key; an error is recorded as `unavailable` and the other checks still stand.
+8. **Indicators** (`indicators.py`): fixed English + Urdu text, a "what this cannot tell" line and the evidence; never "fake", never one combined score. Severity decides the route, in code:
+
+| Severity | Indicators | Effect on the case |
+|---|---|---|
+| high | `STAMP_DUPLICATED`, `TEXT_LOOKS_ALTERED` (Jev yes) | UNSURE, reason `DOC_EDIT_RISK` (officer) |
+| mismatch | `RECORD_MISMATCH`, `WRONG_DOCUMENT` (Jev no), `STAMP_NOT_SEEN` (Jev no) | ASK_PROOF, reason `DOC_MISMATCH`, missing item = that paper |
+| confirm | `FIELD_CONFIRM`, `PHOTO_RETAKE` | the citizen confirms; no route change |
+| info | `OCR_UNAVAILABLE`, `SCREEN_PHOTO`, `JEV_UNDECIDED`, `EDIT_SOFTWARE_TAG` | officer context only |
+
+Measured on `backend/sample_docs` (tests in `backend/tests/test_documents_unit.py`): copy-move flags `death_certificate_aslam_edited.png` (NCC 0.81, 106 ORB matches) and its WhatsApp copy (0.74, 88), and none of the 18 clean originals, WhatsApp or screenshot variants (best clean pair 0.06). Live Jev on the same images: wrong type caught (an FRC asked about as a death certificate: 0.03), screenshot caught (0.89), stamp seen (0.80-0.88). But "text altered" did **not** separate the edited certificate (0.16-0.19) from the original (0.20-0.21), and was undecided on clean CNICs (0.45). So a Jev "undecided" on a document is shown to the officer but does not route by itself; this is a deliberate exception to "undecided = UNSURE", which still holds for money-relevant Nouls. The edited certificate is caught by the stamp copy-move (high) and by the registry check (name "Mohd. Akram" and date 14.06.2026 against the record), with Azure and with Tesseract alike.
+
+Storage (`case_documents`, migration `d41c0c5e7a10`): case- and tenant-scoped rows in Postgres with the upload's SHA-256, fields, checks, forensic and Jev results, a JPEG copy at most 1568 px for the officer and the ELA heatmap (both `bytea`, loaded only when asked for). Not stored: the original file and the raw OCR text. A re-upload of the same kind replaces the old one for the decision (latest per kind). Each upload re-decides the case unless an officer already finished it. Audit: `DOCUMENT_UPLOADED` (user), `DOCUMENT_ANALYSED` (AI: risk, indicators, OCR engine, Jev model, question set, latency, SHA-256), `DOCUMENT_FIELDS_CONFIRMED`, `DOCUMENT_IMAGE_VIEWED`.
+
+Views: citizens and helpers see the fields to confirm and citizen-safe reasons only (forensic detail becomes "An officer will look at this paper"). Officers, admins and auditors get `GET /cases/{id}/documents` with every indicator, check and sensor answer, plus `/documents/{doc}/image` and `/documents/{doc}/ela` (JPEG, `no-store`, staff only, audited). The officer panel draws copy-move regions (red) and Jev boxes (blue, dashed) on the photo, next to the heatmap.
+
+### Voice
+
+- `POST /api/v1/speech/tts` `{text <= 400 chars, lang: ur|en}` returns `audio/mpeg` (24 kHz mono MP3) from Azure neural TTS (`ur-PK-UzmaNeural`, `en-IN-NeerjaNeural`). Any signed-in role, 60 per minute. Text is XML-escaped into SSML. Cached by `sha256(voice + text)`: a 256-item LRU in memory, plus `TTS_CACHE_DIR` on disk if set. Not configured: 503 `TTS_NOT_CONFIGURED`. Azure error: 503 `TTS_UNAVAILABLE` (no upstream detail).
+- `POST /api/v1/speech/stt?lang=ur|en` (16 kHz mono WAV or Ogg/Opus, at most 1 MB) returns `{text, confidence, prefill_only: true}` via the short-audio REST API. **`ur-PK` returns HTTP 400 on that API (tested live in uaenorth); `ur-IN` works and is used.** The PWA does not record audio yet: Chrome's MediaRecorder produces WebM, which this API does not accept, so a small WAV encoder is the missing piece. STT is API-only for now.
+- `speak(audioKey, text)` in the PWA (signature unchanged): pre-recorded clip, then the server voice (memory + Cache API `sahara-tts-v1`, so each sentence downloads once; it stops asking after a 503), then the phone's speech engine.
+- Settings: `AZURE_SPEECH_KEY`, `AZURE_SPEECH_REGION`, `AZURE_DOCINTEL_ENDPOINT`, `AZURE_DOCINTEL_KEY` (all optional; blank = not configured; never logged).
 
 ## Evaluation (Challenges 1, 3 and 8)
 

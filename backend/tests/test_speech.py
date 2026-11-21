@@ -71,7 +71,7 @@ def test_stt_prefills_text_and_checks_audio_type(client, login, azure):
     ok = client.post("/api/v1/speech/stt?lang=ur", files={"audio": ("a.wav", b"RIFF" + b"\x00" * 100, "audio/wav")}, headers=headers)
     assert ok.status_code == 200, ok.text
     data = ok.json()["data"]
-    assert data["text"] == "محمد اسلم" and data["prefill_only"] and data["language"] == "ur-PK"
-    assert "language=ur-PK" in str(azure[0].url)
+    assert data["text"] == "محمد اسلم" and data["prefill_only"] and data["language"] == "ur-IN"
+    assert "language=ur-IN" in str(azure[0].url)
     bad = client.post("/api/v1/speech/stt", files={"audio": ("a.webm", b"x", "audio/webm")}, headers=headers)
     assert bad.status_code == 415

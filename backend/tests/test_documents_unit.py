@@ -126,12 +126,11 @@ def test_frc_and_nikah_nama_fields_even_when_labels_are_hidden():
 
 def test_watermark_fragments_are_not_read_as_names():
     result = ocr.OcrResult("azure-prebuilt-read", [
-        fields_line := ocr.OcrLine("Name", 0.99, (39, 110, 84, 126)),
+        ocr.OcrLine("Name", 0.99, (39, 110, 84, 126)),
         ocr.OcrLine("MOCI", 0.61, (240, 75, 362, 176)),  # rotated watermark: far taller than print
         ocr.OcrLine("ZAINAB BIBI", 0.99, (36, 134, 221, 161)),
         ocr.OcrLine("Father / Husband Name", 0.99, (38, 199, 212, 217)),
     ])
-    assert fields_line.text == "Name"
     assert fields.extract_fields("claimant_cnic", result)["name"].value == "ZAINAB BIBI"
 
 

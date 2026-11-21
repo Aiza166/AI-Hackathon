@@ -29,6 +29,7 @@ const PATHS: Record<string, ReactElement> = {
   unlock: <><rect x="5" y="11" width="14" height="10" rx="2" /><path d="M8 11V8a4 4 0 0 1 7.6-1.7M12 15v2" /></>,
   'cloud-off': <><path d="M7 18h10a4 4 0 0 0 .5-8A6 6 0 0 0 6 9.5 4.3 4.3 0 0 0 7 18z" /><path d="M3 3l18 18" /></>,
   rules: <><path d="M3.5 4.5H9a3 3 0 0 1 3 3V20a2.5 2.5 0 0 0-2.5-2.5h-6zM20.5 4.5H15a3 3 0 0 0-3 3V20a2.5 2.5 0 0 1 2.5-2.5h6z" /></>,
+  camera: <><path d="M4 8h3l2-3h6l2 3h3v11H4z" /><circle cx="12" cy="13" r="3.5" /></>,
   speaker: <><path d="M4 9h4l5-4v14l-5-4H4z" /><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12" /></>,
   'arrow-left': <path d="M19 12H5M11 6l-6 6 6 6" />,
   'arrow-right': <path d="M5 12h14M13 6l6 6-6 6" />,

@@ -58,9 +58,9 @@ Legend: P = Planned, B = Built, T = Tested, X = Cut
 | Classification and routing (Jev) | Claim routing AUTO / ASK_PROOF / UNSURE; scam check | B |
 | Guardrails + human approval | Never auto-reject; payout change needs confirmation; red flags go to officer | B |
 | Explainability | Two-view explanations from reason codes | B |
-| Voice | Urdu audio prompts; speech pre-fills fields (confirmed by tap) | P |
+| Voice | Urdu audio prompts via Azure neural TTS (cached, phone voice fallback); STT API (ur-IN) pre-fill only, not yet wired to a mic button | B (TTS) / P (STT in UI) |
 | Structured outputs | Voice/OCR into a validated Pydantic claim schema | P |
-| Computer vision | OCR on CNIC/death certificate; edit-risk indicators | P |
+| Computer vision | OCR (Azure prebuilt-read or Tesseract) on CNIC, death certificate, FRC, nikah nama; registry cross-check; stamp copy-move + ELA + Jev image Nouls as indicators | B (tested on sample_docs) |
 | Anomaly detection | One payout account across many claims; repeated claims | P |
 | Evaluation dashboard | Accuracy, false alarms, wrong approvals, UNSURE rate, speed, cost | P |
 
@@ -83,7 +83,7 @@ Legend: P = Planned, B = Built, T = Tested, X = Cut
 | 5 | Explain and audit | Urdu reason for citizen; full trace + audit replay for auditor | P |
 | 6 | Consent and take-back | Withdraw helper access: next request 403, logged | B (API, tested) |
 | 7 | Works for everyone | Voice + icons on throttled network, offline resume | P |
-| 8 | Scams and fake documents | Fee/OTP scam SMS flagged with case cross-check; edited certificate flagged; false-alarm rate shown | P |
+| 8 | Scams and fake documents | Fee/OTP scam SMS flagged with case cross-check; edited certificate flagged (stamp copy-move + record mismatch -> UNSURE; 0 of 18 clean sample images flagged); false-alarm rate shown | B (documents, tested) |
 
 ## Bonus (optional)
 

@@ -63,5 +63,7 @@ Filled in as we build. Final version goes in the submission README.
 | Payments (Raast-like) | Simulated |
 | SMS / WhatsApp delivery | Simulated (in-app inbox) |
 | Jev decision model | Real API calls (TypeSafe), pinned version |
-| Urdu audio | Real (pre-generated speech for fixed prompts) |
+| Urdu audio | Real: Azure neural TTS (`ur-PK-UzmaNeural`) when keys are set, else the phone's speech engine |
+| Document reading (OCR) | Real: Azure Document Intelligence `prebuilt-read` when keys are set, else Tesseract in the container. The documents are mock specimens |
+| Document checks (stamp copy-move, ELA, registry cross-check, Jev image questions) | Real code; indicators for an officer, never a verdict. The registry compared against is the mock one |
 | Login, roles, consent, audit log, rules engine | Real (implemented in this project) |
