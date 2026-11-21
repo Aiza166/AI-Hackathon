@@ -353,7 +353,7 @@ def test_payout_pin_step_up_locks_after_5_wrong_pins(client, login, file_claim, 
     change = client.post(f"/api/v1/cases/{case_id}/payout-change", json={"new_iban": "PK00MOCK0000000000000008"}, headers=zainab).json()["data"]
     url = f"/api/v1/payout-changes/{change['id']}/confirm"
     for i in range(5):  # a new address each time: the per-IP limit alone would not stop this
-        assert client.post(url, json={"pin": "9999"}, headers={**zainab, "X-Forwarded-For": f"203.0.113.{i}"}).status_code == 401
+        assert client.post(url, json={"pin": "9999"}, headers={**zainab, "X-Forwarded-For": f"203.0.113.{i}"}).status_code == 403
     locked = client.post(url, json={"pin": "1234"}, headers={**zainab, "X-Forwarded-For": "203.0.113.99"})
     assert locked.status_code == 429
     assert locked.json()["error"]["code"] != "RATE_LIMITED"  # the account lockout, not the IP limit
