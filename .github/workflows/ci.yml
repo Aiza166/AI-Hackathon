@@ -32,7 +32,7 @@ jobs:
       run:
         working-directory: backend
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -47,7 +47,7 @@ jobs:
       run:
         working-directory: frontend
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
@@ -61,7 +61,7 @@ jobs:
     # CodeQL needs GitHub Advanced Security on a private repo, so Bandit covers SAST here.
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0  # gitleaks scans the whole history
       - uses: actions/setup-python@v5
