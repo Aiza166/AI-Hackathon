@@ -1,32 +1,18 @@
-# React + TypeScript + Vite
+# Sahara frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+React 19 + TypeScript + Vite offline-first PWA. Citizen screens are Urdu first (Sindhi and Punjabi on request), with icons and a Listen button on every step. Staff screens (officer, admin, auditor) are lazy-loaded so the citizen shell stays small.
 
-Currently, two official plugins are available:
-
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```bash
+npm install
+npm run dev          # http://localhost:5173, proxies /api to http://localhost:8000
+npm run build        # production build; the citizen JavaScript budget is 100 KB gzipped
+npm run test:unit    # unit tests (Node test runner)
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+- `src/api/`: fetch client and types that mirror `backend/app/schemas`
+- `src/pages/`: Login, ClaimWizard, CaseResult, CitizenHome, OfficerHome, AdminHome, AuditorHome, ScamShield, SafeSwitch, Evaluation, JudgeConsole
+- `src/lib/`: offline outbox (IndexedDB), speech playback, language choice, sharing
+- `src/i18n/`: Sindhi and Punjabi text packs (machine-assisted, to be reviewed) and the voice clip list
+- `e2e/`: Playwright journeys, see [e2e/README.md](e2e/README.md)
+
+See the [root README](../README.md) for the whole project.

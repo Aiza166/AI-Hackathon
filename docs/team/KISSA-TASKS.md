@@ -7,7 +7,7 @@
 
 ## Start here (Sat 21 Nov evening handoff)
 
-Read **[docs/HANDOFF.md](docs/HANDOFF.md)** first: the whole project in plain words, what is done, your task list, and the merge rules.
+Read **[HANDOFF.md](HANDOFF.md)** first: the whole project in plain words, what is done, your task list, and the merge rules.
 
 Your tasks now (details in HANDOFF section 5):
 - [ ] 1. Full test of the merged app (Playwright + your phone); results in `docs/TEST-REPORT.md`

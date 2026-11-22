@@ -34,7 +34,7 @@ frontend/  React + Vite + TypeScript PWA (offline-first), plain CSS
   src/api/        fetch client + types (mirror backend/app/schemas)
   src/pages/      Login, ClaimWizard, CaseResult, CitizenHome, OfficerHome, AuditorHome
 docs/      01-IDEA, 02-COMPLIANCE, 03-ARCHITECTURE, 04-BUILD-PLAN, 05-DEMO-SCRIPT, STATUS, research/
-kissa.md   Kissa's task list
+docs/team/   team task list, handoff, AI tooling notes
 ```
 
 ## Commands
@@ -74,4 +74,4 @@ Demo logins (PIN 1234): Zainab 00000000001, Rukhsana 00000000002, helper 0000000
 
 ## Skills
 
-See [docs/SKILLS.md](docs/SKILLS.md) for which installed skills to use for each build step.
+See [docs/team/AI-TOOLING.md](docs/team/AI-TOOLING.md) for which installed skills to use for each build step.

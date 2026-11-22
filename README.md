@@ -111,7 +111,7 @@ The 7-minute demo story is in [docs/05-DEMO-SCRIPT.md](docs/05-DEMO-SCRIPT.md). 
 | [docs/research/](docs/research/) | Survivor pension rules and scam patterns, with sources |
 | [PRIOR_WORK.md](PRIOR_WORK.md) | Disclosure of related prior work |
 | [docs/STATUS.md](docs/STATUS.md) | Build log and decisions |
-| [docs/HANDOFF.md](docs/HANDOFF.md) | The whole project in plain words, for a new teammate |
+| [docs/team/HANDOFF.md](docs/team/HANDOFF.md) | The whole project in plain words, for a new teammate |
 
 ## Run it locally
 

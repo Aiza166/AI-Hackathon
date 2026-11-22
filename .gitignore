@@ -29,3 +29,6 @@ Thumbs.db
 # Local data
 *.sqlite
 uploads/
+
+# Local assistant worktrees and settings
+.claude/

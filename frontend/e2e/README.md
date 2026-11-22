@@ -1,6 +1,6 @@
 # Sahara E2E journeys (Playwright)
 
-Ten journeys from `docs/05-DEMO-SCRIPT.md` and `kissa.md`, written for **localhost only**.
+Ten journeys from `docs/05-DEMO-SCRIPT.md` and `docs/team/KISSA-TASKS.md`, written for **localhost only**.
 Never point them at the live site: the config refuses any non-localhost `E2E_BASE_URL`.
 Results of the last run: [`docs/TEST-REPORT.md`](../../docs/TEST-REPORT.md).
 
