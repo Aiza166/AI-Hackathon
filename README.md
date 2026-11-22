@@ -109,7 +109,6 @@ The 7-minute demo story is in [docs/05-DEMO-SCRIPT.md](docs/05-DEMO-SCRIPT.md). 
 | [docs/SECURITY-CHECKLIST.md](docs/SECURITY-CHECKLIST.md) | Security audit, STRIDE threat model, scanner results |
 | [docs/TEST-REPORT.md](docs/TEST-REPORT.md) | Browser test runs and bugs found |
 | [docs/research/](docs/research/) | Survivor pension rules and scam patterns, with sources |
-| [PRIOR_WORK.md](PRIOR_WORK.md) | Disclosure of related prior work |
 | [docs/STATUS.md](docs/STATUS.md) | Build log and decisions |
 
 ## Run it locally
