@@ -256,3 +256,8 @@ def extract_fields(kind: str, ocr: OcrResult) -> dict[str, Field]:
     if kind not in _PARSERS:
         raise ValueError(f"unknown document kind {kind}")
     return _PARSERS[kind](drop_overlay_lines(list(ocr.lines)))
+
+
+def ascii_digits(text: str) -> str:
+    """Identity for ASCII text; the one place digits are normalised before comparing."""
+    return text

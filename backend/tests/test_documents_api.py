@@ -88,6 +88,17 @@ def test_low_confidence_mismatch_asks_the_citizen_to_confirm_then_rechecks(clien
                             json={"values": {"date_of_death": "2026-08-14", "name_of_deceased": "Mohd. Aslam"}}, headers=zainab)
     assert confirmed.status_code == 200, confirmed.text
     assert confirmed.json()["data"]["risk_level"] == "low"
+    # Red team M3: a field already typed is locked; the claimant cannot overwrite it again.
+    again = client.post(f"/api/v1/cases/{case['id']}/documents/{body['id']}/confirm",
+                        json={"values": {"date_of_death": "2026-01-01"}}, headers=zainab)
+    assert again.status_code == 422
+
+
+def test_wrongly_typed_correction_becomes_a_mismatch(client, login, file_claim, ocr_returns):
+    ocr_returns(death_certificate(date_text="14.06.2026", conf=0.6))
+    case = file_claim("zainab")["data"]
+    zainab = login("zainab")
+    body = _upload(client, zainab, case["id"], "death_certificate_aslam.png").json()["data"]
     # A typed value is held to the same record: a wrong correction becomes a mismatch.
     wrong = client.post(f"/api/v1/cases/{case['id']}/documents/{body['id']}/confirm",
                         json={"values": {"date_of_death": "2026-01-01"}}, headers=zainab).json()["data"]
@@ -98,8 +109,9 @@ def test_ocr_unavailable_means_an_officer_reads_it_not_a_failure(client, login, 
     ocr_returns(OcrUnavailable("no engine"))
     case = file_claim("zainab")["data"]
     body = _upload(client, login("zainab"), case["id"], "cnic_front_zainab.png", kind="claimant_cnic").json()["data"]
-    assert [r["code"] for r in body["reasons"]] == ["OCR_UNAVAILABLE"]
-    assert body["risk_level"] == "low" and body["fields"] == {}
+    # Red team M4: an unread paper is "unverified" (never counted as clean), with honest words.
+    assert [r["code"] for r in body["reasons"]] == ["DOC_UNREADABLE", "OCR_UNAVAILABLE"]
+    assert body["risk_level"] == "unverified" and body["fields"] == {}
 
 
 def test_blurry_photo_is_sent_back_and_not_stored(client, login, file_claim, db):

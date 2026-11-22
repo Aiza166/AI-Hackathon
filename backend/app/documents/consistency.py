@@ -13,12 +13,14 @@ from rapidfuzz import fuzz
 from sqlalchemy.orm import Session
 
 from app.decision.matching import match_identity, name_similarity
-from app.documents.fields import Field
+from app.documents.fields import Field, ascii_digits
 from app.mock import registry
 
 MISMATCH_MIN_CONFIDENCE = 0.85  # below this an OCR disagreement is "unclear", not a mismatch
 NAME_SAME_SCORE = 85  # name_similarity (0-100) for names printed without a CNIC next to them
 DOC_NUMBER_SAME_SCORE = 90
+DOC_NUMBER_FUZZY_MIN_LEN = 8  # shorter numbers must match exactly
+PRINTED_PREFIX = "MOCK"
 
 
 @dataclass(frozen=True)
@@ -37,10 +39,23 @@ def _alnum(text: str) -> str:
     return re.sub(r"[^A-Z0-9]", "", text.upper())
 
 
+def _strip_prefix(number: str) -> str:
+    """A printed "MOCK" prefix is decoration on our specimen papers, not part of the number."""
+    return number[len(PRINTED_PREFIX):] if number.startswith(PRINTED_PREFIX) else number
+
+
 def same_doc_number(read: str, record: str) -> bool:
-    a, b = _alnum(read), _alnum(record)
-    if a == b or a.endswith(b) or b.endswith(a):
-        return True  # a printed prefix (e.g. "MOCK-") does not change the number
+    """Exact after normalisation; fuzzy only when both numbers are long enough to carry it.
+
+    The old suffix test accepted "-" or "1" as a match for any number (red team M3).
+    """
+    a, b = _strip_prefix(_alnum(ascii_digits(read))), _strip_prefix(_alnum(record))
+    if not a or not b:
+        return False
+    if a == b:
+        return True
+    if min(len(a), len(b)) < DOC_NUMBER_FUZZY_MIN_LEN:
+        return False
     return fuzz.ratio(a, b) >= DOC_NUMBER_SAME_SCORE
 
 

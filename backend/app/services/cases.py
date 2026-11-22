@@ -9,6 +9,7 @@ from datetime import date
 
 from fastapi import HTTPException, status
 from sqlalchemy import func, select, text
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core import audit
@@ -25,6 +26,9 @@ STATUS_FOR_ROUTE = {Route.AUTO_APPROVE: "auto_approved", Route.ASK_PROOF: "proof
 OFFICER_FINAL = ("approved", "rejected", "closed")
 FINAL_STATUSES = (*OFFICER_FINAL, "withdrawn")  # nobody can act on these any more
 WITHDRAWABLE = ("submitted", "proof_requested", "in_review")  # not decided yet: the claimant may withdraw
+# Route strictness: a re-decision of a held case may keep or raise its route, never lower it (H1).
+ROUTE_RANK = {Route.AUTO_APPROVE: 0, Route.ASK_PROOF: 1, Route.UNSURE: 2}
+ROUTE_FOR_STATUS = {"auto_approved": Route.AUTO_APPROVE, "proof_requested": Route.ASK_PROOF, "in_review": Route.UNSURE}
 MAX_RECHECK = 10  # bound the work a single new claim can trigger
 SAME_NAME_SCORE = 95  # canonical deceased-name match used for duplicates when no CNIC is given
 HIGH_RISK = {ReasonCode.DUPLICATE_CLAIM, ReasonCode.ACCOUNT_REUSED, ReasonCode.ACCOUNT_NOT_OWNED, ReasonCode.NOT_IN_FAMILY_RECORD}
@@ -105,9 +109,15 @@ def _require_department_access(db: Session, person_id: str, tenant_id: str) -> N
                                                     "Share access with the department again in My data, then file the claim.")
 
 
+def _lock_claimant(db: Session, person_id: str) -> None:
+    """Serialise claim filing per claimant until commit, so check-then-insert cannot race (C1)."""
+    db.execute(text("SELECT pg_advisory_xact_lock(hashtext(:k))"), {"k": f"claim:{person_id}"})
+
+
 def create_case(db: Session, principal: Principal, claim: ClaimIn) -> Case:
     person = _claimant_person(db, principal, claim)
     _require_department_access(db, person.id, principal.tenant_id)
+    _lock_claimant(db, person.id)
     _refuse_duplicate(db, person.id, claim.deceased_cnic, claim.deceased_name)
     number = db.execute(text("SELECT nextval('case_ref_seq')")).scalar()
     case = Case(
@@ -121,29 +131,44 @@ def create_case(db: Session, principal: Principal, claim: ClaimIn) -> Case:
         payout_iban=claim.payout_iban,
     )
     db.add(case)
-    db.flush()
+    try:
+        db.flush()
+    except IntegrityError:
+        # Backstop for the advisory lock: the partial unique index on open claims (sec01_cases).
+        db.rollback()
+        raise HTTPException(status_code=409, detail="You already have an open claim for this pension") from None
     _event(db, case, "created", principal.id)
     # CASE_CREATED is audited in run_decision, after the slow registry lookups, so the
     # global audit-chain lock is held only briefly.
     return case
 
 
-def _refuse_duplicate(db: Session, person_id: str, deceased_cnic: str | None, deceased_name: str) -> None:
-    """One open claim per claimant per deceased person.
+def duplicate_of(
+    db: Session, person_id: str, deceased_cnic: str | None, deceased_name: str, exclude_case_id: str | None = None,
+) -> str | None:
+    """Reference of another open claim by this claimant for the same deceased person, if any.
 
-    With a deceased CNIC we compare CNICs. Without one we compare the deceased
-    name canonically (spelling variants, honorifics, "Muhammad" down-weighted),
-    so leaving the CNIC blank cannot be used to file the same claim twice.
+    With a deceased CNIC we compare CNICs, and also compare the deceased name against the
+    claimant's open claims that have no CNIC (H5). Without a CNIC we compare the deceased name
+    canonically (spelling variants, honorifics, "Muhammad" down-weighted), so leaving the CNIC
+    blank cannot be used to file the same claim twice.
     """
-    open_cases = select(Case.reference, Case.claim).where(Case.claimant_person_id == person_id, Case.status.in_(ACTIVE_STATUSES))
-    if deceased_cnic is not None:
-        existing = db.execute(open_cases.where(Case.deceased_cnic == deceased_cnic)).first()
-        reference = existing[0] if existing else None
-    else:
-        reference = next((
-            ref for ref, claim in db.execute(open_cases).all()
-            if name_similarity(deceased_name, (claim or {}).get("deceased_name", "")) >= SAME_NAME_SCORE
-        ), None)
+    query = select(Case.reference, Case.claim, Case.deceased_cnic).where(
+        Case.claimant_person_id == person_id, Case.status.in_(ACTIVE_STATUSES))
+    if exclude_case_id is not None:
+        query = query.where(Case.id != exclude_case_id)
+    for reference, claim, other_cnic in db.execute(query).all():
+        if deceased_cnic is not None and other_cnic == deceased_cnic:
+            return reference
+        same_name = name_similarity(deceased_name, (claim or {}).get("deceased_name", "")) >= SAME_NAME_SCORE
+        if (deceased_cnic is None or other_cnic is None) and same_name:
+            return reference
+    return None
+
+
+def _refuse_duplicate(db: Session, person_id: str, deceased_cnic: str | None, deceased_name: str) -> None:
+    """One open claim per claimant per deceased person."""
+    reference = duplicate_of(db, person_id, deceased_cnic, deceased_name)
     if reference:
         raise HTTPException(status_code=409, detail=f"You already have an open claim for this pension ({reference})")
 
@@ -160,40 +185,65 @@ def _least_busy_officer(db: Session, tenant_id: str) -> str | None:
     return row[0] if row else None
 
 
+def is_held(case: Case) -> bool:
+    """Human hold (H1): a person or a guardrail raised this case to an officer (escalated,
+    assigned, or routed "I am not sure"). Until an officer acts, no automated path approves it."""
+    return case.status == "in_review" or case.assigned_officer_id is not None
+
+
+def held_route(case: Case, route: Route) -> Route:
+    """Under a hold, keep or tighten the current route; never AUTO_APPROVE."""
+    if not is_held(case):
+        return route
+    floor = ROUTE_FOR_STATUS.get(case.status, Route.ASK_PROOF)
+    if ROUTE_RANK[floor] < ROUTE_RANK[Route.ASK_PROOF]:
+        floor = Route.ASK_PROOF
+    return route if ROUTE_RANK[route] >= ROUTE_RANK[floor] else floor
+
+
 def run_decision(
     db: Session, case: Case, today: date | None = None, ruleset_row: RuleVersion | None = None, created_by: Principal | None = None,
 ) -> Decision:
-    """Decide (or re-decide) a case with the live ruleset. Actor = AI."""
+    """Decide (or re-decide) a case with the live ruleset. Actor = AI.
+
+    A re-decision of a held case may only keep or tighten its route (H1): this covers uploads,
+    field confirmations, related-claim rechecks and rule-publish re-decisions alike. The engine's
+    own answer is kept in rule_result["engine_route"].
+    """
     today = today or date.today()
     ruleset_row = ruleset_row or live_ruleset(db)
     claim = ClaimIn.model_validate(case.claim)
     signals = gather(db, case, claim, today)
     outcome = decide(signals, ruleset_dict(ruleset_row))
+    held = is_held(case)
+    route = held_route(case, outcome.route)
     decision = Decision(
         case_id=case.id,
         rule_version_id=ruleset_row.id,
         model_id=None,  # Jev is not used for claim facts in Phase 1
         input_hash=_input_hash(case.claim),
         signals=signals.to_dict(),
-        rule_result={**outcome.rule_result.to_dict(), "missing_items": list(outcome.missing_items)},
+        rule_result={**outcome.rule_result.to_dict(), "missing_items": list(outcome.missing_items),
+                     "engine_route": outcome.route.value, "human_hold": held},
         confidence=outcome.confidence,
         thresholds=ruleset_row.thresholds,
-        route=outcome.route.value,
+        route=route.value,
         reason_codes=[r.value for r in outcome.reasons],
     )
     db.add(decision)
-    case.status = STATUS_FOR_ROUTE[outcome.route]
-    case.priority = _priority(outcome)
+    case.status = STATUS_FOR_ROUTE[route]
+    case.priority = max(case.priority or 0, _priority(outcome)) if held else _priority(outcome)
     case.confidence = outcome.confidence
-    if outcome.route == Route.UNSURE and case.assigned_officer_id is None:
+    if route == Route.UNSURE and case.assigned_officer_id is None:
         case.assigned_officer_id = _least_busy_officer(db, case.tenant_id)
     db.flush()
-    _event(db, case, f"decision_{outcome.route.value.lower()}", "decision-engine", ", ".join(decision.reason_codes))
+    _event(db, case, f"decision_{route.value.lower()}", "decision-engine", ", ".join(decision.reason_codes))
     if created_by is not None:
         audit.record(db, created_by.actor, "CASE_CREATED", resource=f"case:{case.reference}", case_id=case.id)
     audit.record(
         db, audit.AI, "DECISION_MADE", resource=f"decision:{decision.id}", case_id=case.id, tenant_id=case.tenant_id,
-        details={"route": decision.route, "reasons": decision.reason_codes, "confidence": decision.confidence,
+        details={"route": decision.route, "engine_route": outcome.route.value, "human_hold": held,
+                 "reasons": decision.reason_codes, "confidence": decision.confidence,
                  "rule_version": ruleset_row.version, "model_id": None},
     )
     return decision
@@ -216,6 +266,11 @@ def recheck_related(db: Session, case: Case) -> list[str]:
 def officer_decide(db: Session, principal: Principal, case: Case, approve: bool, reason: str) -> Case:
     if case.status in FINAL_STATUSES:
         raise HTTPException(status_code=409, detail=f"Case is already {case.status}")
+    if approve:  # H5: a duplicate filed around the create-time check is caught before money moves
+        deceased_name = (case.claim or {}).get("deceased_name", "")
+        duplicate = duplicate_of(db, case.claimant_person_id, case.deceased_cnic, deceased_name, exclude_case_id=case.id)
+        if duplicate:
+            raise HTTPException(status_code=409, detail=f"This claimant has another claim for this pension ({duplicate})")
     case.status = "approved" if approve else "rejected"
     _event(db, case, case.status, principal.id, reason)
     audit.record(db, principal.actor, "CASE_APPROVED" if approve else "CASE_REJECTED", resource=f"case:{case.reference}", case_id=case.id, details={"reason": reason})

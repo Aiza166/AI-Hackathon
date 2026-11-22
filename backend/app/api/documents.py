@@ -146,3 +146,23 @@ def document_image(case_id: str, doc_id: str, request: Request, principal: Princ
 def document_ela(case_id: str, doc_id: str, request: Request, principal: Principal = Depends(require_roles(*STAFF)), db: Session = Depends(get_db)) -> Response:
     """Error level analysis heatmap: context next to the image, never a verdict."""
     return _image(db, principal, request, case_id, doc_id, "ela")
+
+
+class ClearIn(BaseModel):
+    reason: str = PydanticField(min_length=10, max_length=500)
+
+
+@router.post("/cases/{case_id}/documents/{doc_id}/clear")
+@limiter.limit("30/minute")
+def clear_document_flag(
+    request: Request, case_id: str, doc_id: str, body: ClearIn,
+    principal: Principal = Depends(require_roles(Role.OFFICER)), db: Session = Depends(get_db),
+) -> dict:
+    """An officer looked at a flagged paper and records why it is fine (red team H2). Until then
+    the flag stays on the case, whatever is uploaded after it. Audited (DOCUMENT_RISK_CLEARED)."""
+    _visible(db, principal, request, case_id)
+    doc = _doc(db, case_id, doc_id)
+    case = _load(db, principal, request, case_id, field=CONSENT_FIELD[doc.kind])
+    doc = service.clear_high_risk(db, principal, case, doc, body.reason.strip())
+    db.commit()
+    return ok({**_view(principal, doc), "case_status": case.status})
