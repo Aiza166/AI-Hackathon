@@ -1,5 +1,9 @@
 # Sahara E2E test report
 
+## Live phone check (Sun 22 Nov 2026, about 14:50 PKT, Kissa)
+
+On a real Android phone, Chrome incognito, on the live Railway site (its build already contained #28 and #31): demo reset; Zainab's claim through all 7 steps, approved, Listen plays; Scam Shield demo scam SMS gives the red verdict, reasons and report card, 1799 opens the dialer; payout change to someone else's account comes back no match and held; Sindhi and Punjabi switch and back to Urdu; Kamran sees the flagged payout change; demo reset again. **All passed.**
+
 ## Run 3: after the consent and Scam Shield security merges (Sun 22 Nov 2026, about 01:40 PKT, Kissa)
 
 - **Build tested:** `main` at `93ef5c3`, which adds #31 (consent checked per row on list endpoints), #32 (README), #33 (Scam Shield link unpacking and Jev reply checks), and Kissa's #28-#30. Same localhost setup and keys as Run 2 (Jev key, no Azure keys).

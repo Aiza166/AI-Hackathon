@@ -15,6 +15,7 @@ Entry for **Coder's Cup 2026 AI Hackathon: "The Last Mile: AI on Public Rails"**
 
 - App: https://confident-growth-production-1cfebeef.up.railway.app (works best at phone width)
 - API docs: https://ai-hackathon-production-31dd3038.up.railway.app/docs
+- Demo video (about 5 minutes, English voice-over and captions, mock data only): https://drive.google.com/file/d/1lA4QQ0hvbmJRb_Ys79lxVwjFmOwDdixQ/view?usp=sharing
 
 On the login screen tap **Demo accounts (mock)**. Every demo PIN is `1234` (public on purpose; all data is mock).
 
