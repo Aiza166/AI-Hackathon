@@ -126,6 +126,6 @@ Without the Azure keys the app still runs: Tesseract reads documents, the phone 
 
 ## Team working rules
 
-- All code in this repo was written **during the hackathon**. No code, models or data files were copied from any earlier project (see [PRIOR_WORK.md](PRIOR_WORK.md)).
+- All code in this repo was written **during the hackathon**. No code, models or data files were copied from any earlier project.
 - Mock data only. Secrets live in `.env` (git-ignored) and on Railway, never in git.
 - Branch per task, pull request into `main` with CI green, conventional commit messages.
