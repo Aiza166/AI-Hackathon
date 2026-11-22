@@ -12,7 +12,7 @@ If a judge finds one of these before we say it, it costs more than if we say it 
 - Every government record, bank account and person is mock. Nothing is connected to NADRA, the pension office or Raast.
 - Our test sets are small and invented: 200 claims, 502 name pairs, 80 messages, 20 documents. The numbers describe this prototype, not the real world.
 - Urdu voice input is weak (Azure only recognises Indian Urdu). Voice output is good.
-- Sindhi and Punjabi screen text is machine-assisted and not yet reviewed by native speakers. Audio stays Urdu.
+- Sindhi and Punjabi screen text is machine-assisted and not yet reviewed by native speakers. The Sindhi and Punjabi voice clips are ElevenLabs v3 (premade voice), generated from that text and also not yet reviewed; screens or lines without a clip speak Urdu.
 - The demo PIN 1234 is public on purpose.
 - Known gap, fixed after judging: ticking a document box counts as having that paper, even with no photo uploaded. In the prototype the ticks stand in for papers checked at the counter. Real use would count only uploaded, read papers, which means every claim waits for photos before it can be approved.
 - We have not tested with real users yet. One short test with an older woman is planned (task 2, `docs/USER-TEST.md`); update this line once it has happened.
