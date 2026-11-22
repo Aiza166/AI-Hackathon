@@ -66,7 +66,7 @@ The 7-minute demo story is in [docs/05-DEMO-SCRIPT.md](docs/05-DEMO-SCRIPT.md). 
 | Share from WhatsApp / SMS into the app | Real PWA Web Share Target (installed app) |
 | Login, roles, consent, audit chain, rules engine, offline outbox | Real, built in this project |
 | Pension rules | v1 and v2 follow real federal Finance Division memos (sources linked in the demo script); the cases are mock |
-| Sindhi and Punjabi text | Machine-assisted translation, to be reviewed by native speakers. Audio stays Urdu |
+| Sindhi and Punjabi text | Machine-assisted translation, to be reviewed by native speakers. Voice: ElevenLabs v3 clips for most lines, unreviewed; the rest stay Urdu |
 
 ## Honest limits
 
