@@ -32,3 +32,9 @@ uploads/
 
 # Local assistant worktrees and settings
 .claude/
+
+# Internal team notes (kept locally, not published)
+CLAUDE.md
+AGENTS.md
+docs/team/
+docs/QA-CHEATSHEET.md
