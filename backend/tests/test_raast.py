@@ -2,6 +2,7 @@
 from datetime import datetime
 
 from app.mock import raast
+from tests.helpers import business_days_until
 
 ZAINAB_CNIC = "9000000000022"
 
@@ -83,7 +84,7 @@ def test_safeswitch_timeout_holds_for_an_officer_and_never_auto_accepts(client, 
     assert change["payee_result"] == "unavailable"
     assert change["flags"] == ["PAYEE_CHECK_TIMEOUT"]
     hold = datetime.fromisoformat(change["hold_until"])
-    assert (hold - datetime.now(hold.tzinfo)).days >= 4
+    assert business_days_until(hold) >= 4
     confirmed = client.post(f"/api/v1/payout-changes/{change['id']}/confirm", json={"pin": "1234"}, headers=login("zainab")).json()["data"]
     assert confirmed["status"] == "flagged"  # her PIN alone is not enough: an officer must approve
 
