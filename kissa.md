@@ -3,7 +3,7 @@
 > Owner: **Kissa** (GitHub `Kissa-Zehra`), Streams C (frontend PWA) and D (demo & quality).
 
 > Your personal task list. Aiza (and Claude) keep this updated. Tick boxes as you finish and push.
-> Last updated: Sat 21 Nov ~04:00. **Phase 1 is built** (backend + a first version of your screens). Read section 0 first.
+> Last updated: Sun 22 Nov (status check against the code). Tasks 3-5 are done; 1 and 2 are open. Read section 0 first.
 
 ## Start here (Sat 21 Nov evening handoff)
 
@@ -12,7 +12,7 @@ Read **[docs/HANDOFF.md](docs/HANDOFF.md)** first: the whole project in plain wo
 Your tasks now (details in HANDOFF section 5):
 - [ ] 1. Full test of the merged app (Playwright + your phone); results in `docs/TEST-REPORT.md`
   - Local part done Sat evening (TEST-REPORT "Run 2"): pytest 438 passed / 2 skipped, Playwright 25 passed + Jev-down passed, new 360 px journey (J12), one bug fixed (demo toggle 44 -> 48 px). **Still to do:** live-site phone check (checklist in TEST-REPORT), Azure-key parts, rerun after the security-fixes branch merges.
-- [ ] 2. One real-user test (10 min, anonymous) -> `docs/USER-TEST.md`
+- [ ] 2. One real-user test (10 min, anonymous) -> `docs/USER-TEST.md` (not done yet; `docs/USER-TEST.md` does not exist)
 - [x] 3. Sindhi + Punjabi text for citizen screens (labelled machine-assisted)
   - Done Sun early (`feat/c-sindhi-punjabi`): language picker (اردو / سنڌي / پنجابی) on login and home, remembered on the phone; ~60 fixed lines (home, wizard, decision headline + all 25 reason codes, Scam Shield verdicts) in `frontend/src/i18n/sd.ts` and `pa.ts`, each its own 2 KB chunk. Labelled "machine-assisted translation, to be reviewed" on screen; audio stays Urdu. **Still wanted:** a native Sindhi and a native Punjabi speaker to read the two files.
 - [x] 4. Demo script trimmed to one story
@@ -102,43 +102,43 @@ You own **Stream C (Frontend PWA)** and **Stream D (Demo & quality)**. Aiza owns
 
 ### Phase 1 (Sat 09:00 to 15:00): golden path UI
 - [x] Role login screen (phone + PIN) with demo personas (built; routing is simple state in `App.tsx`, add a router only if needed).
-- [ ] Generate API types from the backend: `npx openapi-typescript http://localhost:8000/openapi.json -o src/api/schema.ts`. Until endpoints exist, use mock data (MSW) shaped like `backend/app/schemas/contracts.py`.
+- [x] ~~Generate API types from the backend (`openapi-typescript`).~~ **Obsolete:** `src/api/types.ts` is hand-written to mirror `backend/app/schemas`, and the app works against the real API, so generated types are not needed.
 - [x] Citizen claim flow: first version built (`ClaimWizard.tsx`). Improve the visuals.
 - [x] Decision result screen: first version built (`CaseResult.tsx`).
 - [x] Officer queue: first version built (`OfficerHome.tsx`).
-- [ ] Deploy the frontend to Vercel (Stream D) and send the link in the group.
+- [x] ~~Deploy the frontend to Vercel.~~ **Obsolete:** the frontend is deployed on Railway (`frontend/Dockerfile`, nginx), live link in `docs/STATUS.md`.
 
 ### Phase 2 (Sat 15:00 to 23:00)
 - [x] Offline outbox with Dexie: save each claim step locally; queue actions with an idempotency key; "send now" button; sync on reconnect. (Merged as PR #3; Dexie is lazy-loaded in its own chunk.) **Changed in review (Aiza + Claude):** a 401 keeps the claim and shows "Sign in again to send"; each claim keeps one UUID as `Idempotency-Key` on every attempt (the server now honours it); save + send run inside one lock (Web Locks across tabs); the draft stays until the claim is confirmed sent; refused claims (4xx) come back as "Open and fix"; a 409 shows the existing reference; sign-out deletes your drafts and unsent claims (in-page confirm); drafts expire after 7 days; Helper Mode shows only the selected family's claims; capped backoff after server errors; Dexie loads only when something is stored. Not yet checked in a real browser after these changes: please run the offline demo once (go offline, Send, reconnect).
-- [ ] Helper Mode: family list, fast switch, clear "now acting for: X" header, only families with consent.
-- [ ] Consent screen: who can see my data, toggle fields, withdraw, request correction, "who saw my data". **Backend is ready** (citizen token):
+- [x] Helper Mode (done: `CitizenHome.tsx` family picker, acting-for banner, locked families; Playwright J3 and J12; #5, #19): family list, fast switch, clear "now acting for: X" header, only families with consent.
+- [x] Consent screen (done: `src/pages/MyData.tsx` with toggles, withdraw, correction request, access log; Playwright J1; #19, #31): who can see my data, toggle fields, withdraw, request correction, "who saw my data". **Backend is ready** (citizen token):
   - `GET /api/v1/me/consents` → `{fields, consents:[{id, grantee_type, grantee_name, fields, status}]}`
   - `PATCH /api/v1/me/consents/{id}` body `{fields:[...]}` · `POST /api/v1/me/consents/{id}/withdraw` · `POST /api/v1/me/consents` to grant again
   - `GET /api/v1/me/access-log` → rows `{ts, action, who, role, field}` (DATA_ACCESS, CONSENT_DENIED, CONSENT_WITHDRAWN...)
   - `POST /api/v1/me/corrections` body `{field: name|date_of_birth|payout_account|family_record, requested_value, reason}`; officer side `GET /api/v1/corrections`, `POST /api/v1/corrections/{id}/approve|reject` body `{note}`
   - Helper family list now returns `consent_active` and hides `cnic` when not shared: show a lock icon and disable "new claim" for those families.
-- [ ] Admin rule editor screen + Digital Twin results table. **Backend is ready** (admin token):
+- [ ] **HALF-DONE.** Admin rules screen + Digital Twin results table (`AdminHome.tsx`: version list, Run Digital Twin, "On publish" column, publish with confirmation; Playwright J7). **Missing:** there is no form to write a new rule draft; `POST /api/v1/rules/drafts` is not used by the UI, and the only draft is the seeded v2. Original wording: **Backend is ready** (admin token):
   - `GET /api/v1/admin/rules` → versions `{id, version, label, status (live|draft|retired), effective_from, thresholds, rules}`
   - `POST /api/v1/rules/{id}/simulate` → `{checked, changed, cases:[{case, before:{route, reasons, entitlement_end}, after:{...}, changed:[...]}]}` (nothing is saved)
   - `POST /api/v1/rules/{id}/publish` · `POST /api/v1/rules/drafts` body `{label, rules, thresholds, effective_from}` (422 with a clear message if malformed)
   - Demo: simulate v2 shows 2 of 4 past cases change (end date 2034-11-01); publish; Zainab's new claim says "rule v2".
-- [ ] Auditor: decision trace view.
-- [ ] Urdu audio clips for every prompt and reason code (Stream D), cached by the PWA.
+- [ ] **HALF-DONE.** Auditor: decision trace view. The trace panel exists in the officer queue (`OfficerHome.tsx`, `GET /api/v1/decisions/{id}/trace`, which the API also allows for auditor and admin), but the auditor tab (`AuditorHome.tsx`) has only the audit log and chain check, no trace view.
+- [ ] **NOT DONE.** Urdu audio clips for every prompt and reason code (Stream D), cached by the PWA. There is no `frontend/public/audio/` on `main`; Listen uses the server's Azure Urdu voice, then the phone's voice. PR #39 (open) adds Sindhi and Punjabi clips only.
   - Update Sun: `speak()` now falls back to the server's Azure Urdu voice (`POST /api/v1/speech/tts`, cached in the Cache API) before the phone voice, so missing clips still sound natural online. Pre-recorded clips are still worth it for offline.
-- [ ] Click through the new photo step (wizard after "Send claim", and "Send photos of papers" on the claim page) at phone width; officer case panel now shows document indicators + ELA heatmap. Sample images: `backend/sample_docs/`.
+- [x] Click through the new photo step (done: Playwright J1, J2 and J12 run the photo step and the edited-certificate case at phone width; #19, #26) (wizard after "Send claim", and "Send photos of papers" on the claim page) at phone width; officer case panel now shows document indicators + ELA heatmap. Sample images: `backend/sample_docs/`.
 
 ### Phase 3 (Sat 23:00 to Sun 03:30)
 - [x] Scam Shield screen (paste/forward message, verdict, reasons, "is someone on the phone with you?" question). First version built; polish it.
 - [x] Scam Map (officer + admin tab, counts by district/type/hour). Analytics dashboard still open.
 - [x] Eval page (cost curve chart, false alarms, wrong approvals). Built Sun by Aiza + Claude: staff tab "Evaluation" (officer, admin, auditor). Please check it at tablet width.
 - [x] Judge console page (buttons listed in docs/05-DEMO-SCRIPT.md). Built Sun: admin tab "Judge console". Please rehearse the demo with it.
-- [ ] Audit replay screen.
+- [ ] **HALF-DONE (API only).** Audit replay screen. `GET /api/v1/audit/cases/{id}/replay` exists in `backend/app/api/audit.py`; no frontend screen calls it.
 
 ### Phase 4-5 (Sunday)
-- [ ] Playwright E2E for the demo script.
-- [ ] Test on a real phone with a throttled network.
-- [ ] Record the demo video, upload to Google Drive (public link).
-- [ ] Slides (optional).
+- [ ] **HALF-DONE.** Playwright E2E for the demo script. 13 journeys in `frontend/e2e/tests` (J1 claim, J4 Scam Shield, J5 SafeSwitch, J7 officer and auditor, J6 offline...) cover each beat separately; there is no single spec that runs the 7-minute story in order (including Rukhsana's competing claim).
+- [ ] **NOT DONE.** Test on a real phone with a throttled network. Only emulated Slow 3G in Chromium exists (Playwright J10). Live-site phone check is still open (`docs/TEST-REPORT.md`).
+- [ ] **NOT DONE.** Record the demo video, upload to Google Drive (public link). Planned after the 16:00 merge freeze; the README has no video line yet.
+- [ ] **NOT DONE.** Slides (optional; no deck in the repo).
 
 ### SafeSwitch endpoints (backend ready)
 - `POST /api/v1/cases/{case_id}/payout-change` body `{new_iban}` (citizen or helper with payout consent) → `{id, status (held|flagged), payee_result (match|close_match|no_match), flags, hold_until}`
