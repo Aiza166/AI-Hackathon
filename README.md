@@ -41,6 +41,19 @@ The 7-minute demo story is in [docs/05-DEMO-SCRIPT.md](docs/05-DEMO-SCRIPT.md). 
 7. **Her data, her say.** She sees who can see her data and who looked at it, and can take back a helper's access. That blocks access at once and is logged.
 8. **Tamper-evident audit.** Every action by a person, the AI or the system is written to an append-only, SHA-256 hash-chained log that anyone with the auditor role can verify.
 
+## Where to see each challenge in the brief
+
+| Brief challenge | Where to see it (demo logins above, PIN 1234) |
+|---|---|
+| 01 Cost of being wrong | Officer or Admin, **Evaluation** tab: cost curve with the 0.95 line, wrong approvals, human-review rate |
+| 02 "I am not sure" | Rukhsana's claim goes to Kamran's **Review queue** with reason codes. The system never rejects by itself |
+| 03 Bad data | Zainab's husband is spelled three ways and still matches on his CNIC. A blank or wrong date of birth asks for proof, it never rejects |
+| 04 Rules that change | Admin, **Rules**, v2 draft, **Run Digital Twin**, then Publish. Every decision shows its rule version |
+| 05 Explain and audit | Citizen: reason in Urdu plus Listen. Officer: decision trace. Auditor: **verify the chain** |
+| 06 Consent and take-back | Zainab, **My data**, take back Ayesha's access: her next request is refused and logged |
+| 07 Works for everyone | Listen on every step, icons, one question per screen, offline outbox (try airplane mode), Sindhi and Punjabi |
+| 08 Scams and fake documents | **Is this message a scam?** (Judge console has sample messages) and the edited death certificate (Judge console, sample documents) |
+
 ## How the AI is used
 
 - **Jev (`jev-1.14.0`, pinned) is a sensor, code decides.** Jev answers small factual yes/no questions (for example "does this message ask for a fee?"). Rules and thresholds in code turn the answers into a route. Above 0.7 counts as yes, below 0.3 as no, anything between as "not sure", which goes to a person.
