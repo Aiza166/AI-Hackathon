@@ -14,6 +14,7 @@ If a judge finds one of these before we say it, it costs more than if we say it 
 - Urdu voice input is weak (Azure only recognises Indian Urdu). Voice output is good.
 - Sindhi and Punjabi screen text is machine-assisted and not yet reviewed by native speakers. Audio stays Urdu.
 - The demo PIN 1234 is public on purpose.
+- Known gap, fixed after judging: ticking a document box counts as having that paper, even with no photo uploaded. In the prototype the ticks stand in for papers checked at the counter. Real use would count only uploaded, read papers, which means every claim waits for photos before it can be approved.
 - We have not tested with real users yet. One short test with an older woman is planned (task 2, `docs/USER-TEST.md`); update this line once it has happened.
 
 ## The product
@@ -93,9 +94,17 @@ If they push: the FYP ("Call and Link Scam Detection", FAST-NUCES Karachi) studi
 
 Use the "Judge Q&A risks (rule v1 to v2)" table in `docs/05-DEMO-SCRIPT.md`. Short version: v2 is the federal 10-year cap for heirs after the spouse (O.M. 10-09-2024); we model federal civil-service family pension only; when a child's 10-year clock starts is our labelled assumption.
 
-## Security fixes: merged and not merged (as of Sun 22 Nov, about 01:40 PKT)
+## Security fixes from the red-team review (as of Sun 22 Nov, morning)
 
-The original security-fixes branch was split into three PRs.
+All three PRs are merged and live. Say only what is listed here.
 
-- Merged, so say it: per-row consent on list endpoints with "Consent withdrawn" rows (PR #31, sec/c-consent), and Scam Shield link unpacking plus Jev reply checks (PR #33, sec/b-scam). The full browser suite was rerun after both merged.
-- Not merged, so do not say it: PR A (sec/a-decisions) with a "scheduled" rule status, a Digital Twin run plus a second admin before publishing a rule, two officers for high-risk approvals, a document flag that stays until an officer clears it, and new warning codes. If PR A merges before the 16:00 freeze, check what actually changed before mentioning any of it.
+- PR #31: consent is checked per row on every list. A row whose owner took back consent shows "Consent withdrawn" instead of her details, and the refusal is logged. A helper can't cancel a payout change without consent. Money never moves on a closed or rejected claim.
+- PR #33: Scam Shield unpacks disguised links (`hxxp`, `[.]`, `(dot)`, odd dots) before checking them. A broken or out-of-range Jev answer counts as Jev being down, so the keyword rules run and the answer is never "looks genuine".
+- PR #34:
+  - Sending the same claim many times at once gives one claim (database lock plus a unique index); the rest get "you already have an open claim".
+  - A case with an officer can never drop back to auto-approved when a paper is uploaded or a rule is published.
+  - A flagged paper stays flagged until an officer clears it with a written reason (the "Clear this flag" button, audited).
+  - The duplicate check also catches a claim filed once without the husband's CNIC and again with it.
+  - Typed corrections are only accepted for fields she was asked to confirm.
+  - A paper missing its fields shows as "unverified", not "low risk".
+- Not done, deferred to after judging: ticked document boxes without uploads (see "Say the weak spots first"), the second admin for publishing a rule, PIN and session changes, and encrypting the offline outbox.

@@ -73,6 +73,7 @@ The 7-minute demo story is in [docs/05-DEMO-SCRIPT.md](docs/05-DEMO-SCRIPT.md). 
 - Our test sets are small and invented (200 claims, 80 messages, 20 documents). The numbers show the method, not real-world accuracy.
 - No real government system is connected. Urdu speech recognition is weak (Azure only offers Indian Urdu); the voice output is good.
 - The demo PIN is public by design.
+- Ticking a document box counts as having that paper, even without a photo (the ticks stand in for papers checked at the counter). Counting only uploaded papers is the first fix after judging.
 
 ## Architecture (short)
 
