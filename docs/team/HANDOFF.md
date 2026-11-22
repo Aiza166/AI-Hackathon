@@ -1,6 +1,6 @@
 # Handoff: everything you need to know (Sat 21 Nov, evening)
 
-Written for Kissa (and any Claude session helping her). It explains the whole project from the start in plain words, what is done, what is left, and how we work now. Read this first, then `kissa.md` section 0.
+Written for Kissa (and any Claude session helping her). It explains the whole project from the start in plain words, what is done, what is left, and how we work now. Read this first, then `docs/team/KISSA-TASKS.md` section 0.
 
 ## 1. The project in one minute
 
@@ -18,7 +18,7 @@ Hackathon: Coder's Cup 2026, "The Last Mile: AI on Public Rails". Submit by **Su
 
 1. **Fri night:** picked the idea, wrote the plan (`docs/01`-`05`), set up the repo, Railway hosting, and the ECC toolkit. Researched real Pakistani pension rules (`docs/research/`).
 2. **Sat early morning:** built the backend (claims, decisions, name matching, rules v1/v2, Digital Twin, consent, audit chain, SafeSwitch API, Scam Shield API) and first screens; redesigned the UI; deployed live.
-3. **Sat morning:** your PRs #1 (setup notes) and #3 (offline outbox) were reviewed, fixed and merged (see `kissa.md` for what changed in your code). The server now de-duplicates retried claims (Idempotency-Key).
+3. **Sat morning:** your PRs #1 (setup notes) and #3 (offline outbox) were reviewed, fixed and merged (see `docs/team/KISSA-TASKS.md` for what changed in your code). The server now de-duplicates retried claims (Idempotency-Key).
 4. **Sat day:**
    - #4 evaluation API + mock document images + matcher fix (a wrong date of birth never auto-approves).
    - #5 Scam Shield + SafeSwitch screens, date-of-birth step, mock bank account-holder check.
@@ -34,7 +34,7 @@ Hackathon: Coder's Cup 2026, "The Last Mile: AI on Public Rails". Submit by **Su
 
 - Live app: https://confident-growth-production-1cfebeef.up.railway.app (API: https://ai-hackathon-production-31dd3038.up.railway.app). Test logins on **localhost** first (project rule); use the live site for the final phone check once Aiza says OK.
 - Services and keys (names only): `docs/INFRA.md`. Keys live only in `backend/.env` (ask Aiza; never commit it) and on Railway.
-- Rules for code: `CLAUDE.md`. Skills to use: `docs/SKILLS.md`.
+- Rules for code: `CLAUDE.md`. Skills to use: `docs/team/AI-TOOLING.md`.
 - Progress log: `docs/STATUS.md`. Bugs and test results: `docs/TEST-REPORT.md`. Demo story: `docs/05-DEMO-SCRIPT.md`.
 - Browser tests (Playwright): `frontend/e2e/` (own package; see its README).
 
@@ -44,7 +44,7 @@ Hackathon: Coder's Cup 2026, "The Last Mile: AI on Public Rails". Submit by **Su
 - **Merging:** you may squash-merge **your own** PRs once CI is green (backend, frontend, security jobs). Ask Aiza first if the PR touches backend decision logic, security, or database migrations. Never force-push `main`.
 - **Dependabot PRs (#9 to #18): leave them open. Do not merge, do not close.** They are big version jumps (Python 3.15, Node 26, bcrypt 5...) that could break the live site before judging. We revisit after Monday.
 - `main` auto-deploys to Railway in about 3-5 minutes; check `/readyz` after a merge.
-- When you finish something: tick it in `kissa.md`, add a line to `docs/STATUS.md`, message Aiza.
+- When you finish something: tick it in `docs/team/KISSA-TASKS.md`, add a line to `docs/STATUS.md`, message Aiza.
 
 ## 5. Your tasks (in order)
 
