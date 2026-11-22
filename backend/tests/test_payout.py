@@ -1,6 +1,8 @@
 """SafeSwitch: payout account changes are held, confirmed by the claimant herself, and flagged when risky."""
 from datetime import datetime
 
+from tests.helpers import business_days_until
+
 
 def _zainab_case(file_claim) -> str:
     return file_claim("zainab")["data"]["id"]
@@ -30,8 +32,7 @@ def test_change_to_someone_elses_account_is_flagged_and_held_4_business_days(cli
     change = _request(client, login("zainab"), case_id, "PK00MOCK0000000000000008").json()["data"]
     assert change["payee_result"] == "no_match"
     assert change["status"] == "flagged"
-    held_days = (datetime.fromisoformat(change["hold_until"]) - datetime.now(datetime.fromisoformat(change["hold_until"]).tzinfo)).days
-    assert held_days >= 4
+    assert business_days_until(datetime.fromisoformat(change["hold_until"])) >= 4
 
 
 def test_helper_can_start_but_never_confirm(client, login, file_claim):

@@ -216,6 +216,9 @@ h2.bi .bi-ur { font-size: var(--t-lg); line-height: 1.8; }
 .listen:active { transform: translateY(2px); box-shadow: 0 0 0 5px #fff3c7, 0 1px 0 var(--turmeric-deep); }
 .listen-text { font-size: 0.95rem; line-height: 1.5; font-weight: 700; margin-top: -2px; }
 .listen-compact { width: 52px; height: 52px; box-shadow: 0 0 0 3px #fff3c7, 0 2px 0 var(--turmeric-deep); }
+.listen-tagged { width: auto; height: auto; min-width: 76px; min-height: 76px; padding: 6px 14px; }
+.listen-compact.listen-tagged { min-width: 52px; min-height: 52px; padding: 4px 10px; }
+.listen-tag { font-size: 0.7rem; line-height: 1.3; font-weight: 700; white-space: nowrap; }
 
 /* ---------- pictograms + tones ---------- */
 .picto {

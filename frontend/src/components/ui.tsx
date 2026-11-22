@@ -14,15 +14,24 @@ interface ListenButtonProps {
 
 /** The round turmeric "listen" button: the one loud element on every citizen screen. */
 export function ListenButton({ audioKey, text, label = 'Listen', compact = false }: ListenButtonProps) {
+  const { lang } = useLang()
+  // Audio is always Urdu (no Sindhi/Punjabi voices), so say so when the screen is in another language.
+  const urduTag = lang !== 'ur'
+  const classes = ['listen', compact ? 'listen-compact' : '', urduTag ? 'listen-tagged' : ''].filter(Boolean).join(' ')
   return (
     <button
       type="button"
-      className={compact ? 'listen listen-compact' : 'listen'}
-      aria-label={`${label} (سنیں)`}
+      className={classes}
+      aria-label={urduTag ? `${label} (in Urdu) (سنیں)` : `${label} (سنیں)`}
       onClick={() => void speak(audioKey, text)}
     >
       <Icon name="speaker" size={compact ? 22 : 30} />
       {!compact && <span className="listen-text">سنیں</span>}
+      {urduTag && (
+        <span className="listen-tag">
+          <span lang="ur" dir="rtl">اردو</span> <span lang="en" dir="ltr">Urdu</span>
+        </span>
+      )}
     </button>
   )
 }

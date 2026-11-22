@@ -70,6 +70,7 @@ test.describe('J13 Sindhi and Punjabi (360 px)', () => {
       await phoneChecks(page, `${lang.id} decision`)
       await shot(page, `j13-${lang.id}-03-decision`)
       const tts = page.waitForRequest((r) => r.url().includes('/api/v1/speech/tts'), { timeout: 15_000 }).catch(() => null)
+      await expect(page.locator('.verdict').getByRole('button', { name: /Listen \(in Urdu\)/ })).toContainText('Urdu')
       await page.locator('.verdict').getByRole('button', { name: /Listen/ }).click()
       const ttsRequest = await tts
       if (ttsRequest) {
