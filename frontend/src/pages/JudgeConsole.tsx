@@ -49,7 +49,7 @@ const PERSONAS: { name: string; phone: string; note: string }[] = [
   { name: 'Ayesha', phone: '00000000010', note: 'Community helper, 40 families' },
   { name: 'Kamran', phone: '00000000020', note: 'Pension officer, review queue' },
   { name: 'Admin', phone: '00000000030', note: 'Rules, Digital Twin, this console' },
-  { name: 'Auditor', phone: '00000000040', note: 'Read-only audit log and replay' },
+  { name: 'Auditor', phone: '00000000040', note: 'Read-only audit log and chain check' },
 ]
 
 const SCAM_SAMPLES: { label: string; expect: string; text: string; sender: string }[] = [
