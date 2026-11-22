@@ -31,7 +31,7 @@ export function LanguagePicker() {
       {lang !== 'ur' && (
         <p className="fine lang-note" role="note">
           <Local k="lang.note" ur="مشینی مدد سے ترجمہ، ابھی جانچ باقی ہے۔ آواز اردو میں ہے۔" className="lang-note-local" />
-          <span lang="en"> Machine-assisted translation, to be reviewed. Audio stays in Urdu.</span>
+          <span lang="en"> Machine-assisted translation, to be reviewed. Voice clips are machine-generated and not yet reviewed; some lines are still spoken in Urdu.</span>
         </p>
       )}
     </section>
