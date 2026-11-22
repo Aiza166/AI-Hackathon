@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { Icon } from '../lib/icons'
+import { CLIPS } from '../i18n/audioClips'
 import { speak } from '../lib/speak'
 import { useLang } from '../lib/useLang'
 
@@ -15,8 +16,8 @@ interface ListenButtonProps {
 /** The round turmeric "listen" button: the one loud element on every citizen screen. */
 export function ListenButton({ audioKey, text, label = 'Listen', compact = false }: ListenButtonProps) {
   const { lang } = useLang()
-  // Audio is always Urdu (no Sindhi/Punjabi voices), so say so when the screen is in another language.
-  const urduTag = lang !== 'ur'
+  // Say so when this line will be read in Urdu: another language is chosen but it has no clip for this key.
+  const urduTag = lang !== 'ur' && !CLIPS[lang].has(audioKey)
   const classes = ['listen', compact ? 'listen-compact' : '', urduTag ? 'listen-tagged' : ''].filter(Boolean).join(' ')
   return (
     <button
