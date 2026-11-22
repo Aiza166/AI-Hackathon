@@ -1,4 +1,5 @@
 // Read a prompt aloud. Order of preference:
+// 0. Sindhi or Punjabi chosen and a clip exists: /audio/<lang>/<key>.mp3 (ElevenLabs, runtime-cached),
 // 1. a pre-recorded clip (/audio/<key>.mp3, cached by the PWA),
 // 2. the server's neural voice (Azure ur-PK-UzmaNeural via POST /api/v1/speech/tts),
 //    kept in memory and in the Cache API so each sentence is downloaded once,
@@ -6,6 +7,8 @@
 // The exported speak(audioKey, fallbackText) signature is stable: screens call it directly.
 
 import { getToken } from '../api/client'
+import { CLIPS } from '../i18n/audioClips'
+import { currentLang } from './useLang'
 
 const BASE: string = import.meta.env.VITE_API_BASE ?? ''
 const CACHE_NAME = 'sahara-tts-v1'
@@ -102,6 +105,8 @@ function speakWithPhone(text: string, lang: Lang): void {
 }
 
 export async function speak(audioKey: string, fallbackText: string): Promise<void> {
+  const chosen = currentLang()
+  if (chosen !== 'ur' && CLIPS[chosen].has(audioKey) && (await play(`/audio/${chosen}/${audioKey}.mp3`))) return
   if (audioKey && (await play(`/audio/${audioKey}.mp3`))) return
   const lang = languageOf(fallbackText)
   if (await speakWithServerVoice(fallbackText, lang)) return

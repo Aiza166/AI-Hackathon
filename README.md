@@ -58,6 +58,7 @@ The 7-minute demo story is in [docs/05-DEMO-SCRIPT.md](docs/05-DEMO-SCRIPT.md). 
 | Jev decision model | Real API calls (TypeSafe), pinned version |
 | Second model in the cascade | Real: Azure OpenAI `gpt-5-mini`, called only when Jev is unsure |
 | Urdu audio | Real: Azure neural voice (`ur-PK-UzmaNeural`); falls back to the phone's own voice |
+| Sindhi and Punjabi audio | Real voice, unreviewed text: ElevenLabs v3 pre-generated clips from machine-assisted text, not yet reviewed by a native speaker (`docs/AUDIO-REVIEW.md`); free-plan audio credited to ElevenLabs. Keys without a clip stay Urdu |
 | Document reading (OCR) | Real: Azure Document Intelligence `prebuilt-read`, Tesseract as fallback. The documents are mock specimens |
 | Document edit checks (copy-move, ELA, registry cross-check, Jev image questions) | Real code; indicators for an officer, never a verdict |
 | Scam Shield link and caller checks | Real code, deterministic; links are never opened. Official domains and short codes are real-world patterns, treated as evidence, never proof |

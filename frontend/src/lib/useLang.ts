@@ -32,6 +32,11 @@ function ensurePack(lang: Lang): void {
 
 ensurePack(current)
 
+/** The language chosen right now (speak.ts uses it to pick a Sindhi or Punjabi clip). */
+export function currentLang(): Lang {
+  return current
+}
+
 export function setLang(lang: Lang): void {
   current = lang
   storeLang(lang)

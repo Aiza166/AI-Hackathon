@@ -42,7 +42,15 @@ export default defineConfig({
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,mp3,ogg,opus}'],
         // The Sentry SDK chunk is optional and loaded on demand: never precache it for offline use.
-        globIgnores: ['**/sentry-*.js'],
+        globIgnores: ['**/sentry-*.js', 'audio/sd/**', 'audio/pa/**'],
+        // Sindhi and Punjabi clips stay out of the app shell: fetched on first listen, then kept.
+        runtimeCaching: [
+          {
+            urlPattern: ({ url }: { url: URL }) => /^\/audio\/(sd|pa)\//.test(url.pathname),
+            handler: 'CacheFirst',
+            options: { cacheName: 'sahara-local-audio-v1', expiration: { maxEntries: 120 }, rangeRequests: true },
+          },
+        ],
         // Runs before Workbox's own routes so the share POST is caught first.
         importScripts: ['share-target-sw.js'],
       },
